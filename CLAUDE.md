@@ -15,7 +15,9 @@ Kommunikation mit dem Nutzer: **Deutsch**.
 ## Repos (GitHub-Account Kyloschmeilo)
 - Bot: **privat** https://github.com/Kyloschmeilo/AmongUsManager (Projektordner, Branch `main`).
   `.env`, `data/` (echte Spielerdaten) und `mod/` sind per `.gitignore` ausgeschlossen – vor jedem
-  Commit sicherstellen, dass das so bleibt. Commits nur auf Wunsch des Nutzers.
+  Commit sicherstellen, dass das so bleibt.
+- **Funktionierende (gebaute/getestete) Änderungen immer sofort committen und pushen** – Bot-Repo
+  und Mod-Repo. Ein neues Mod-*Release* (`mod/release.ps1`, aktualisiert alle Spieler) nur auf Wunsch.
 - Mod: **öffentlich** https://github.com/Kyloschmeilo/CrewStats = eigenes git-Repo im Ordner `mod/`.
 - `gh` liegt in `C:\Program Files\GitHub CLI` (evtl. nicht im PATH), git nutzt den gh-Login.
 
