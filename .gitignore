@@ -1,0 +1,21 @@
+# Geheimnisse – NIEMALS hochladen
+.env
+
+# Echte Spielerdaten (liegen nur lokal bzw. auf dem Pelican-Panel)
+data/
+
+# Die Among-Us-Mod ist ein eigenes Repo: https://github.com/Kyloschmeilo/CrewStats
+mod/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# PyCharm: nur die Start-Konfiguration „Bot starten“ teilen
+.idea/*
+!.idea/runConfigurations/
+
+# Windows / Sonstiges
+desktop.ini
+*.zip
