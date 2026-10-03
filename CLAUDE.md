@@ -12,6 +12,13 @@ Kommunikation mit dem Nutzer: **Deutsch**.
   `app.py`, `requirements.txt`, `.env` hochladen; `data/` auf dem Server NICHT überschreiben
   (dort liegen die echten Spielerdaten).
 
+## Repos (GitHub-Account Kyloschmeilo)
+- Bot: **privat** https://github.com/Kyloschmeilo/AmongUsManager (Projektordner, Branch `main`).
+  `.env`, `data/` (echte Spielerdaten) und `mod/` sind per `.gitignore` ausgeschlossen – vor jedem
+  Commit sicherstellen, dass das so bleibt. Commits nur auf Wunsch des Nutzers.
+- Mod: **öffentlich** https://github.com/Kyloschmeilo/CrewStats = eigenes git-Repo im Ordner `mod/`.
+- `gh` liegt in `C:\Program Files\GitHub CLI` (evtl. nicht im PATH), git nutzt den gh-Login.
+
 ## Aufbau (`crewbot/`)
 - `config.py` – alle Discord-IDs (Channels, Rollen), Spielregeln (`Rules`), Dateipfade, .env-Loader.
 - `core/client.py` – `AmongUsBot`: erzeugt alle Services, registriert persistente Views,
