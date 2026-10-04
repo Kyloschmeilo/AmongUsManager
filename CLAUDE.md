@@ -86,7 +86,7 @@ Kommunikation mit dem Nutzer: **Deutsch**.
 - Zeichnet nur als Host auf, zeigt während der Runde nichts an (kein Vorteil), ignoriert
   Freeplay/Hide & Seek. JSON-Format = `RoundRecord.cs` (camelCase) ↔ `services/mod_rounds.py`.
   Beide Seiten gemeinsam ändern!
-- **Auto-Mute** (`AutoMute.cs`, Schalter im ESC-Menü `AutoMuteToggle.cs`, Config
+- **Auto-Mute** (`AutoMute.cs`, Schalter im ESC-Menü `MenuToggles.cs`, Config
   `[AutoMute] Enabled`, Standard aus): meldet Phasenwechsel (tasks/meeting/end) als JSON im
   Nachrichtentext über denselben Webhook ↔ `services/automute.py`. Beide Seiten gemeinsam ändern!
   Bot schaltet im Voice des Absenders (Friendcode-Verknüpfung), sonst `Channels.AMONG_US_VOICE`.
@@ -95,6 +95,10 @@ Kommunikation mit dem Nutzer: **Deutsch**.
   Symbole keinen Kill verraten. Panel-Unmute, „Runde beenden“ und Auto-Unmute-Channel heben auch
   „taub“ auf (`WorkerManager.release`). Läuft auch ohne Host-Rolle. Debug: `[Debug] RecordFreeplay = true` → Aufzeichnung + Auto-Mute
   auch in Freeplay.
+- **Hausregel „Kein Skip bei Notfall“** (`NoSkipRule.cs`, Schalter in `MenuToggles.cs`, Config
+  `[Regeln] NoSkipOnEmergency`, Standard aus): nur als Host. `CastVote`-Prefix lehnt Skip-Stimmen in
+  Meetings ohne Leiche ab und ruft `RpcClearVote` (Spieler kann neu wählen, klappt auch ohne Mod);
+  Chat-Hinweis beim Meeting-Start. Nicht-Abstimmen (Zeit ablaufen) bleibt möglich.
 - **Lobby-Ankündigung** (`LobbyReporter.cs`, Config `[Lobby] Announce`, Standard an): nur als Host in
   Online-Lobbys; sendet `{"crewstats":"lobby","state":"open|started|closed","code","map","players",
   "max","host","sender"}` (Spielerzahl höchstens alle 5 s, Zustandswechsel sofort) ↔ `services/lobby.py`.
