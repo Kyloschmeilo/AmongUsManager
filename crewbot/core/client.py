@@ -7,6 +7,7 @@ from discord.ext import commands
 
 from crewbot import config
 from crewbot.core.tree import CrewTree
+from crewbot.services.achievements import AchievementService
 from crewbot.services.audit import AuditLog
 from crewbot.services.automute import AutoMuteService
 from crewbot.services.betting import BetService
@@ -15,12 +16,15 @@ from crewbot.services.game_settings import GameSettingsService
 from crewbot.services.game_stats import GameStatsService
 from crewbot.services.levels import LevelService
 from crewbot.services.links import LinkService
+from crewbot.services.lobby import LobbyAnnouncer
 from crewbot.services.minecraft import MinecraftService
 from crewbot.services.mod_rounds import ModRoundService, ModSettings
+from crewbot.services.round_history import RoundHistoryService
 from crewbot.services.rounds import RoundService
 from crewbot.services.storage import JsonStore
 from crewbot.services.voice import VoiceStatusUpdater
 from crewbot.services.workers import WorkerManager
+from crewbot.ui.lobby import build_lobby_embed
 from crewbot.ui.views import ControlPanelView, EventSignupView, RoleSelectView
 from crewbot.ui.views.mod_round import UndoRoundButton
 
@@ -58,9 +62,13 @@ class AmongUsBot(commands.Bot):
         self.game_stats = GameStatsService(JsonStore(config.GAME_STATS_FILE))
         self.mod_settings = ModSettings(JsonStore(config.MOD_CONFIG_FILE))
         self.game_settings = GameSettingsService(JsonStore(config.GAME_SETTINGS_FILE))
+        self.round_history = RoundHistoryService(JsonStore(config.ROUND_HISTORY_FILE))
+        self.achievements = AchievementService(JsonStore(config.ACHIEVEMENTS_FILE), self.levels)
         self.mod_rounds = ModRoundService(
-            JsonStore(config.MOD_ROUNDS_FILE), self.levels, self.bets, self.rounds, self.links, self.game_stats
+            JsonStore(config.MOD_ROUNDS_FILE), self.levels, self.bets, self.rounds, self.links, self.game_stats,
+            self.round_history, self.achievements,
         )
+        self.lobby = LobbyAnnouncer(self, config.Channels.CODES, self.links, self.bets, build_lobby_embed)
         # Minecraft-Plugin (CoreSMP): Rohdaten kommen im Inbox-Channel an, Ankündigungen gehen in den /dc-Channel
         self.minecraft = MinecraftService(
             JsonStore(config.MINECRAFT_FILE), config.Channels.MINECRAFT, config.Channels.MINECRAFT_INBOX

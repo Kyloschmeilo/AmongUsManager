@@ -8,7 +8,7 @@ damit sie per Button komplett zurückgesetzt werden kann.
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import discord
 
@@ -19,6 +19,10 @@ from crewbot.services.levels import LevelService
 from crewbot.services.links import LinkService
 from crewbot.services.rounds import RoundOutcome, RoundService
 from crewbot.services.storage import JsonStore
+
+if TYPE_CHECKING:  # nur für Typen – die Module importieren selbst mod_rounds
+    from crewbot.services.achievements import AchievementService, Unlock
+    from crewbot.services.round_history import RoundHistoryService
 
 MAX_STORED_ROUNDS = 200
 
@@ -47,9 +51,15 @@ class ModPlayer:
     kills: int
     tasks_total: int
     tasks_completed: int
+    died_at: float | None = None  # Sekunden seit Rundenstart
+
+    @property
+    def is_impostor(self) -> bool:
+        return self.team == Team.IMPOSTOR.value
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ModPlayer":
+        died_at = data.get("diedAtSeconds")
         return cls(
             player_id=int(data["playerId"]),
             name=str(data.get("name", "?")),
@@ -64,7 +74,19 @@ class ModPlayer:
             kills=int(data.get("kills", 0)),
             tasks_total=int(data.get("tasksTotal", 0)),
             tasks_completed=int(data.get("tasksCompleted", 0)),
+            died_at=float(died_at) if died_at is not None else None,
         )
+
+
+@dataclass
+class ModKill:
+    at_seconds: float
+    killer: int
+    victim: int
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ModKill":
+        return cls(float(data.get("atSeconds", 0)), int(data["killer"]), int(data["victim"]))
 
 
 @dataclass
@@ -74,6 +96,7 @@ class ModMeeting:
     votes: list[tuple[int, int | None]]
     exiled: int | None
     tie: bool
+    at_seconds: float = 0
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ModMeeting":
@@ -83,6 +106,7 @@ class ModMeeting:
             votes=[(int(v["voter"]), v.get("target")) for v in data.get("votes", [])],
             exiled=data.get("exiled"),
             tie=bool(data.get("tie", False)),
+            at_seconds=float(data.get("atSeconds", 0)),
         )
 
 
@@ -96,6 +120,8 @@ class ModRound:
     winning_team: Team | None
     players: list[ModPlayer]
     meetings: list[ModMeeting]
+    kills: list[ModKill] = field(default_factory=list)
+    raw: dict[str, Any] = field(default_factory=dict, repr=False)  # Originaldaten für den Rundenverlauf
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ModRound":
@@ -110,6 +136,8 @@ class ModRound:
                 winning_team=Team(team) if team in (Team.CREW.value, Team.IMPOSTOR.value) else None,
                 players=[ModPlayer.from_dict(p) for p in data.get("players", [])],
                 meetings=[ModMeeting.from_dict(m) for m in data.get("meetings", [])],
+                kills=sorted((ModKill.from_dict(k) for k in data.get("kills", [])), key=lambda k: k.at_seconds),
+                raw=data,
             )
         except (KeyError, TypeError, ValueError) as exc:
             raise ModRoundError(f"Ungültige Rundendaten: {exc}") from exc
@@ -129,6 +157,7 @@ class ModRoundResult:
     discord_ids: dict[int, int]  # Ingame-PlayerId -> Discord-ID (nur verknüpfte)
     outcome: RoundOutcome | None  # None, wenn der Sieger unbekannt ist
     unlinked: list[ModPlayer] = field(default_factory=list)
+    achievements: list["Unlock"] = field(default_factory=list)  # in dieser Runde freigeschaltet
 
     def mention(self, player: ModPlayer) -> str:
         user_id = self.discord_ids.get(player.player_id)
@@ -149,6 +178,8 @@ class ModRoundService:
         rounds: RoundService,
         links: LinkService,
         stats: GameStatsService,
+        history: "RoundHistoryService",
+        achievements: "AchievementService",
     ) -> None:
         self._store = store
         self._levels = levels
@@ -156,6 +187,8 @@ class ModRoundService:
         self._rounds = rounds
         self._links = links
         self._stats = stats
+        self._history = history
+        self._achievements = achievements
         self._ledger: dict[str, dict[str, Any]] = store.load()
 
     def is_known(self, game_id: str) -> bool:
@@ -177,8 +210,10 @@ class ModRoundService:
 
         deltas = self._stat_deltas(round, discord_ids)
         self._stats.apply(deltas)
-        self._remember(round.game_id, outcome, deltas)
-        return ModRoundResult(round, discord_ids, outcome, unlinked)
+        history = self._history.add(round, discord_ids)
+        unlocks = await self._achievements.evaluate(guild, history, self._stats.get, self._history.rounds_of)
+        self._remember(round.game_id, outcome, deltas, unlocks)
+        return ModRoundResult(round, discord_ids, outcome, unlinked, unlocks)
 
     def attach_message(self, game_id: str, channel_id: int, message_id: int) -> None:
         entry = self._ledger.get(game_id)
@@ -202,8 +237,14 @@ class ModRoundService:
                 new_level=award["new_level"],
                 win=award["win"],
             )
+        for unlock in entry.get("achievements", []):  # ältere Einträge haben noch keine
+            self._levels.revert_xp(
+                unlock["user_id"], unlock["xp"], old_level=unlock["old_level"], new_level=unlock["new_level"]
+            )
+            self._achievements.revoke(unlock["user_id"], unlock["id"])
         self._bets.restore([Bet(b["user_id"], Team(b["team"]), b["amount"]) for b in entry["bets"]])
         self._stats.apply({int(uid): delta for uid, delta in entry["stats"].items()}, sign=-1)
+        self._history.remove(game_id)
 
         entry["undone"] = True
         self._save()
@@ -241,7 +282,13 @@ class ModRoundService:
 
         return {uid: dict(d) for uid, d in deltas.items()}
 
-    def _remember(self, game_id: str, outcome: RoundOutcome | None, deltas: dict[int, dict[str, int]]) -> None:
+    def _remember(
+        self,
+        game_id: str,
+        outcome: RoundOutcome | None,
+        deltas: dict[int, dict[str, int]],
+        unlocks: list["Unlock"],
+    ) -> None:
         awards = []
         bets = []
         if outcome is not None:
@@ -264,6 +311,11 @@ class ModRoundService:
             "awards": awards,
             "bets": bets,
             "stats": {str(uid): delta for uid, delta in deltas.items()},
+            "achievements": [
+                {"user_id": u.user_id, "id": u.achievement.id, "xp": u.achievement.xp,
+                 "old_level": u.result.old_level, "new_level": u.result.stats.level}
+                for u in unlocks
+            ],
         }
         # Nur die letzten Runden aufheben
         for old_id in list(self._ledger)[:-MAX_STORED_ROUNDS]:

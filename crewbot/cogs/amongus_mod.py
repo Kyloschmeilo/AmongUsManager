@@ -9,13 +9,17 @@ from discord import app_commands
 from discord.ext import commands
 
 from crewbot.cogs.base import CrewCog
+from crewbot.content.achievements import ACHIEVEMENTS
 from crewbot.services.automute import AutoMuteEvent
+from crewbot.services.insights import build_recap, rivals_of
+from crewbot.services.lobby import LobbyEvent
 from crewbot.services.game_settings import SETTINGS_FILE_NAME, GameSettingsError
 from crewbot.services.game_stats import GameStats
 from crewbot.services.links import is_valid_friend_code, normalize_friend_code
 from crewbot.services.mod_rounds import ModRound, ModRoundError
 from crewbot.services.voice import voice_channel_of
 from crewbot.ui.embeds import Palette, Tone, notify
+from crewbot.ui.insights import build_achievements_embed, build_recap_embed, rivals_text
 from crewbot.ui.views.game_settings import GameSettingsView, build_settings_embed
 from crewbot.ui.views.mod_round import UndoRoundButton, build_mod_round_embed
 
@@ -215,7 +219,26 @@ class AmongUsModCog(CrewCog, name="Among Us Mod"):
                 name="🎯 Vote-Trefferquote",
                 value=f"{rate(s.votes_correct, s.votes_correct + s.votes_wrong)} ({s.votes_correct}/{s.votes_correct + s.votes_wrong})",
             )
+            if rivals := rivals_text(rivals_of(target.id, self.bot.round_history.rounds_of(target.id))):
+                embed.add_field(name="⚔️ Rivalen", value=rivals, inline=False)
+            unlocked = len(self.bot.achievements.unlocked(target.id))
+            embed.add_field(name="🏅 Erfolge", value=f"{unlocked}/{len(ACHIEVEMENTS)} – Details: `/erfolge`", inline=False)
         embed.set_footer(text=f"Verknüpft: {', '.join(codes)}" if codes else "Nicht verknüpft – /verknuepfen")
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="erfolge", description="Zeigt freigeschaltete und offene Among-Us-Erfolge")
+    @app_commands.describe(spieler="Wessen Erfolge? (leer = deine eigenen)")
+    async def achievements(self, interaction: discord.Interaction, spieler: discord.Member | None = None) -> None:
+        target = spieler or interaction.user
+        embed = build_achievements_embed(target, self.bot.achievements, self.bot.game_stats.get(target.id))
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="recap", description="Zusammenfassung der letzten Runden: Auszeichnungen & MVP-Kandidaten")
+    @app_commands.describe(stunden="Wie viele Stunden zurück? (Standard: 6)")
+    async def recap(self, interaction: discord.Interaction, stunden: app_commands.Range[int, 1, 168] = 6) -> None:
+        since = discord.utils.utcnow() - timedelta(hours=stunden)
+        recap = build_recap(self.bot.round_history.rounds(since=since))
+        embed = build_recap_embed(recap, f"🌙 Recap der letzten {stunden} Stunden", since)
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="rundensettings", description="Zeigt die Lobbyeinstellungen der letzten Among-Us-Runde")
@@ -243,6 +266,10 @@ class AmongUsModCog(CrewCog, name="Among Us Mod"):
             return
         if (event := AutoMuteEvent.parse(message.content)) is not None:
             return await self._handle_automute(message, event)
+        if (lobby := LobbyEvent.parse(message.content)) is not None:
+            if discord.utils.utcnow() - message.created_at <= AUTOMUTE_MAX_AGE:
+                self.bot.lobby.apply(lobby)
+            return await self._delete(message)
         settings_file = next((a for a in message.attachments if a.filename == SETTINGS_FILE_NAME), None)
         if settings_file is not None:
             return await self._handle_settings(message, settings_file)

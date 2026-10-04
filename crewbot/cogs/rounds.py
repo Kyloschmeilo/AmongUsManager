@@ -9,9 +9,11 @@ from crewbot.cogs.base import CrewCog
 from crewbot.config import Rules
 from crewbot.content.among_us import Team
 from crewbot.services.betting import BetError
+from crewbot.services.insights import build_recap
 from crewbot.services.rounds import RoundService
 from crewbot.services.voice import voice_channel_of
 from crewbot.ui.embeds import Palette, Tone, notify
+from crewbot.ui.insights import mvp_suggestion_text
 from crewbot.ui.views import MvpVotingView
 from crewbot.ui.views.round_flow import evaluate_round
 
@@ -124,12 +126,14 @@ class RoundsCog(CrewCog, name="Runden & Wetten"):
 
         view = MvpVotingView(players, timeout=Rules.MVP_VOTING_SECONDS)
         ends_at = discord.utils.utcnow() + timedelta(seconds=Rules.MVP_VOTING_SECONDS)
+        tonight = self.bot.round_history.rounds(since=discord.utils.utcnow() - timedelta(hours=Rules.RECAP_HOURS))
         embed = discord.Embed(
             title="👑 MVP OF THE NIGHT VOTING 👑",
             description=(
                 "Wer hat heute die krassesten Plays gemacht, die härtesten Lügen"
-                " entlarvt oder als Impostor alle rasiert?\n\n"
-                f"⏳ Voting endet {discord.utils.format_dt(ends_at, 'R')}"
+                " entlarvt oder als Impostor alle rasiert?"
+                + mvp_suggestion_text(build_recap(tonight))
+                + f"\n\n⏳ Voting endet {discord.utils.format_dt(ends_at, 'R')}"
             ),
             color=Palette.PURPLE,
         )

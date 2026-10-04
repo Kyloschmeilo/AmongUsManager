@@ -32,7 +32,11 @@ Kommunikation mit dem Nutzer: **Deutsch**.
   (Friendcode ↔ Discord), `game_stats`, `mod_rounds` (Auswertung + Undo der Mod-Runden),
   `automute` (Mutes passend zur Spielphase, die die Mod meldet), `game_settings`
   (Lobbyeinstellungen der letzten Runde für `/rundensettings`, nur der neueste Stand),
-  `minecraft` (Minecraft-Kopplung: Webhook, Ziel-Channel, eingeschaltete Nachrichten).
+  `minecraft` (Minecraft-Kopplung: Webhook, Ziel-Channel, eingeschaltete Nachrichten),
+  `round_history` (jede Mod-Runde im Detail, `data/round_history.json`, max. 1000),
+  `insights` (reine Rechenfunktionen: Runden-Highlights, Rivalen, Recap/MVP-Kandidaten),
+  `achievements` (Erfolge mit XP, Definitionen in `content/achievements.py`, ids nie umbenennen),
+  `lobby` (automatische Lobby-Ankündigung im Codes-Channel + Wettbüro-Sperre).
   Speicherung als JSON in `data/` über `services/storage.JsonStore` (atomar).
 - `content/among_us.py` – Rollen, Maps, Texte als Datenklassen. `content/minecraft.py` –
   Nachrichtenarten, deutsche Todesursachen, Mob-Namen.
@@ -53,6 +57,12 @@ Kommunikation mit dem Nutzer: **Deutsch**.
   Der Bot akzeptiert nur Nachrichten seines eigenen Webhooks (`data/mod.json`, via `/mod-setup`).
   Jede Mod-Runde hat einen „Zurücksetzen“-Button (`DynamicItem`, custom_id `crewstats:undo:<gameId>`).
 - Mod-Runden und manuelle Auswertung (`/crew-win`, Runden-Assistent) nicht doppelt nutzen.
+- Mod-Runde auswerten = Stats → `round_history.add` → `achievements.evaluate` → Ledger. „Zurücksetzen“
+  nimmt alles zurück (XP, Siege, Wetten, Stats, Verlauf, Erfolge). Highlights/Rivalen/Recap werden
+  immer live aus dem Verlauf berechnet (nichts doppelt gespeichert).
+- Wettbüro: Lobby-Status „started“ (Mod, Host) sperrt `/bet`; offen wieder nach der Auswertung
+  (`settle`), `/runde-abbrechen`, 30 s nach Rundenende ohne Ergebnis oder spätestens nach 45 min.
+  Sperre nur im Speicher (Neustart = offen). Recap: `/recap` und automatisch nach jedem Event.
 
 ## Minecraft-Kopplung (CoreSMP-Plugin `CoreHold`, Projekt `C:\Users\petra\Desktop\CoreSMP`)
 - Plugin → Bot ebenfalls per **Webhook**, der im Log-Channel (`Channels.MINECRAFT_INBOX` = `Channels.LOG`) liegt; der Bot verschiebt ihn beim Start dorthin (URL bleibt gleich). Das Plugin
@@ -85,6 +95,10 @@ Kommunikation mit dem Nutzer: **Deutsch**.
   Symbole keinen Kill verraten. Panel-Unmute, „Runde beenden“ und Auto-Unmute-Channel heben auch
   „taub“ auf (`WorkerManager.release`). Läuft auch ohne Host-Rolle. Debug: `[Debug] RecordFreeplay = true` → Aufzeichnung + Auto-Mute
   auch in Freeplay.
+- **Lobby-Ankündigung** (`LobbyReporter.cs`, Config `[Lobby] Announce`, Standard an): nur als Host in
+  Online-Lobbys; sendet `{"crewstats":"lobby","state":"open|started|closed","code","map","players",
+  "max","host","sender"}` (Spielerzahl höchstens alle 5 s, Zustandswechsel sofort) ↔ `services/lobby.py`.
+  Kurze Webhook-Meldungen laufen über `LatestWebhookSender` (neueste gewinnt), auch Auto-Mute.
 - **Rundeneinstellungen** (`SettingsReporter.cs`): beim Rundenstart (auch ohne Host) werden alle
   Optionen generisch über `Int32/Float/BoolOptionNames` + Rollen-Anzahl/Chance als
   `crewstats-settings.json` (Anhang) gesendet ↔ `services/game_settings.py`; deutsche Namen und

@@ -11,7 +11,9 @@ from discord.ext import tasks
 from crewbot.cogs.base import CrewCog
 from crewbot.config import GAME_PING_ROLES, TIMEZONE, Rules
 from crewbot.services.events import OpenEvent
+from crewbot.services.insights import build_recap
 from crewbot.ui.embeds import Palette, Tone, notify
+from crewbot.ui.insights import build_recap_embed
 from crewbot.ui.views import EventSignupView
 from crewbot.ui.views.event_signup import (
     EventRoster,
@@ -112,6 +114,10 @@ class EventsCog(CrewCog, name="Events"):
         except discord.HTTPException as exc:
             log.warning("Event %s konnte nicht gesperrt werden: %s", event.message_id, exc)
         await self._pay_attendance(message, event)
+        try:
+            await self._post_recap(message, event)
+        except Exception:
+            log.exception("Recap für Event %s fehlgeschlagen", event.message_id)
 
     async def _pay_attendance(self, message: discord.Message, event: OpenEvent) -> None:
         player_ids = EventRoster.from_embed(message.embeds[0]).member_ids()
@@ -139,6 +145,14 @@ class EventsCog(CrewCog, name="Events"):
         )
         embed.add_field(name="👻 Nicht erschienen", value="\n".join(absent) or "Niemand 🎉", inline=True)
         embed.set_footer(text=f"Anwesend = mind. {Rules.EVENT_MIN_ATTENDANCE_MINUTES} Minuten im Voice")
+        await message.reply(embed=embed, allowed_mentions=discord.AllowedMentions.none())
+
+    async def _post_recap(self, message: discord.Message, event: OpenEvent) -> None:
+        """Spieleabend-Recap aus den Mod-Runden während des Events (falls welche aufgezeichnet wurden)."""
+        rounds = self.bot.round_history.rounds(since=event.starts_at, until=discord.utils.utcnow())
+        if not rounds:
+            return
+        embed = build_recap_embed(build_recap(rounds), "🌙 Spieleabend-Recap")
         await message.reply(embed=embed, allowed_mentions=discord.AllowedMentions.none())
 
     async def _fetch_message(self, event: OpenEvent) -> discord.Message | None:

@@ -3,6 +3,7 @@
 import discord
 
 from crewbot.content.among_us import Team, role_label
+from crewbot.services.insights import round_highlights
 from crewbot.services.mod_rounds import ModRoundError, ModRoundResult
 from crewbot.ui.embeds import Palette, Tone, notify
 from crewbot.ui.views.base import PrivateView
@@ -82,8 +83,7 @@ def build_mod_round_embed(result: ModRoundResult) -> discord.Embed:
         if (exiled := round_.player(meeting.exiled)) is not None:
             verdict = "✅ war Impostor" if exiled.team == Team.IMPOSTOR.value else "❌ war unschuldig"
             highlights.append(f"🚪 {result.mention(exiled)} rausgewählt – {verdict}")
-    if impostors and (top := max(impostors, key=lambda p: p.kills)).kills > 0:
-        highlights.append(f"🩸 Meiste Kills: {result.mention(top)} ({top.kills})")
+    highlights += round_highlights(round_, result.mention)
     embed.add_field(name="📊 Highlights", value=_fit(highlights), inline=False)
 
     # Belohnungen
@@ -102,6 +102,15 @@ def build_mod_round_embed(result: ModRoundResult) -> discord.Embed:
                 for bet, res in outcome.bets
             ]
             embed.add_field(name="🎰 Wettbüro", value=_fit(bet_lines), inline=False)
+
+    if result.achievements:
+        lines = []
+        for unlock in result.achievements:
+            line = f"<@{unlock.user_id}> {unlock.achievement.label} (+{unlock.achievement.xp} XP)"
+            if unlock.result.leveled_up:
+                line += f" 🎊 Level {unlock.result.stats.level}!"
+            lines.append(line)
+        embed.add_field(name="🏅 Erfolge freigeschaltet", value=_fit(lines), inline=False)
 
     if result.unlinked:
         embed.add_field(

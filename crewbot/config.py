@@ -22,6 +22,8 @@ GAME_STATS_FILE = DATA_DIR / "game_stats.json"  # Statistiken aus der Mod
 MOD_ROUNDS_FILE = DATA_DIR / "mod_rounds.json"  # ausgewertete Mod-Runden (für Zurücksetzen)
 MOD_CONFIG_FILE = DATA_DIR / "mod.json"  # Webhook der Mod
 GAME_SETTINGS_FILE = DATA_DIR / "game_settings.json"  # Lobbyeinstellungen der letzten Runde (/rundensettings)
+ROUND_HISTORY_FILE = DATA_DIR / "round_history.json"  # alle Mod-Runden im Detail (Highlights, Rivalen, Recap)
+ACHIEVEMENTS_FILE = DATA_DIR / "achievements.json"  # freigeschaltete Erfolge
 MINECRAFT_FILE = DATA_DIR / "minecraft.json"  # Minecraft-Plugin: Webhook, Channel, Nachrichten (/dc)
 
 
@@ -112,8 +114,11 @@ class Rules:
 
     MAX_BET = 50
     BET_PAYOUT_FACTOR = 2
+    BET_LOCK_MAX_MINUTES = 45  # Sicherheitsnetz: so lange bleibt das Wettbüro nach Rundenstart höchstens zu
+    BET_UNLOCK_GRACE_SECONDS = 30  # nach Rundenende ohne Ergebnis (z.B. Spiel verlassen) wieder öffnen
 
     MVP_VOTING_SECONDS = 60
+    RECAP_HOURS = 6  # „heute Abend“ für MVP-Vorschläge
     EVENT_DURATION_HOURS = 2
     EVENT_REMINDER_MINUTES = 15  # Erinnerung so viele Minuten vor Start
     EVENT_MIN_ATTENDANCE_MINUTES = 15  # so lange muss man im Voice sein, um als anwesend zu zählen
