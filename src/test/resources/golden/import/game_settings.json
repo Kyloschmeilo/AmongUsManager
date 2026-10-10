@@ -1,0 +1,113 @@
+{
+    "crewstats": "settings",
+    "v": 1,
+    "capturedAt": "2026-10-09T19:45:12.1234567Z",
+    "lobbyCode": "QWERTY",
+    "map": "Polus",
+    "players": 9,
+    "maxPlayers": 15,
+    "numImpostors": 2,
+    "ints": {
+        "KillDistance": 1,
+        "NumEmergencyMeetings": 1,
+        "EmergencyCooldown": 15,
+        "DiscussionTime": 30,
+        "VotingTime": 120,
+        "TaskBarMode": 1,
+        "NumCommonTasks": 2,
+        "NumLongTasks": 1,
+        "NumShortTasks": 5,
+        "MaxImpostors": 3,
+        "BrandNewInt": 42,
+        "RulePreset": 0
+    },
+    "floats": {
+        "KillCooldown": 22.5,
+        "PlayerSpeedMod": 1.25,
+        "CrewLightMod": 0.75,
+        "ImpostorLightMod": 1.5,
+        "EngineerCooldown": 30,
+        "EngineerInVentMaxTime": 15,
+        "ScientistCooldown": 15,
+        "ScientistBatteryCharge": 5,
+        "GuardianAngelCooldown": 60,
+        "ProtectionDurationSeconds": 10,
+        "TrackerCooldown": 15,
+        "TrackerDuration": 30,
+        "TrackerDelay": 1,
+        "NoisemakerAlertDuration": 10,
+        "ShapeshifterCooldown": 10,
+        "ShapeshifterDuration": 30,
+        "PhantomCooldown": 15,
+        "PhantomDuration": 10,
+        "ViperDissolveTime": 20,
+        "DetectiveSuspectLimit": 3,
+        "JudgeTaskRequirementPercentage": 75,
+        "SpiritGuideCooldownSeconds": 25.5,
+        "NewFloatThing": 0.333
+    },
+    "bools": {
+        "ConfirmImpostor": true,
+        "AnonymousVotes": false,
+        "VisualTasks": false,
+        "GhostsDoTasks": true,
+        "ImpostorsCanSeeProtect": false,
+        "NoisemakerImpostorAlert": true,
+        "ShapeshifterLeaveSkin": false,
+        "SomethingNew": true
+    },
+    "roles": {
+        "Engineer": {
+            "count": 2,
+            "chance": 100
+        },
+        "Scientist": {
+            "count": 1,
+            "chance": 50
+        },
+        "GuardianAngel": {
+            "count": 0,
+            "chance": 100
+        },
+        "Tracker": {
+            "count": 1,
+            "chance": 0
+        },
+        "Noisemaker": {
+            "count": 1,
+            "chance": 100
+        },
+        "Detective": {
+            "count": 1,
+            "chance": 30
+        },
+        "Judge": {
+            "count": 0,
+            "chance": 0
+        },
+        "SpiritGuide": {
+            "count": 1,
+            "chance": 100
+        },
+        "Shapeshifter": {
+            "count": 1,
+            "chance": 100
+        },
+        "Phantom": {
+            "count": 0,
+            "chance": 0
+        },
+        "Viper": {
+            "count": 1,
+            "chance": 25
+        },
+        "FutureRole": {
+            "count": 2,
+            "chance": 60
+        },
+        "OffFutureRole": {
+            "count": 0,
+            "chance": 60
+        }
+    }
+}

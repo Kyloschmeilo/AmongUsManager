@@ -1,0 +1,9 @@
+{
+    "webhook_id": 1488888888888888888,
+    "webhook_url": "https://discord.com/api/webhooks/1488888888888888888/abc",
+    "channel_id": 77,
+    "enabled": [
+        "join",
+        "death"
+    ]
+}
