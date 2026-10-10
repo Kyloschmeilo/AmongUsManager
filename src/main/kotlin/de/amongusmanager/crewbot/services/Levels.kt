@@ -199,7 +199,7 @@ class LevelService(private val db: Database) {
     // ---------- intern ----------
 
     private fun ensure(userId: Long): PlayerStats {
-        db.update("INSERT OR IGNORE INTO players (user_id) VALUES (?)", userId)
+        db.update("${db.insertIgnore} INTO players (user_id) VALUES (?)", userId)
         return get(userId)
     }
 

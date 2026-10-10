@@ -18,11 +18,15 @@ dependencies {
         exclude(module = "opus-java") // Der Bot spielt keine Sprache ab
     }
     implementation("org.xerial:sqlite-jdbc:3.53.4.0")
+    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.10") // MySQL/MariaDB (z.B. Datenbank des Panels)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
     implementation("ch.qos.logback:logback-classic:1.5.38")
 
     testImplementation(kotlin("test"))
+    testImplementation("ch.vorburger.mariaDB4j:mariaDB4j-core:3.3.1") // echter MariaDB-Server für die Tests
+    testRuntimeOnly("ch.vorburger.mariaDB4j:mariaDB4j-db-winx64:11.4.5")
+    testRuntimeOnly("ch.vorburger.mariaDB4j:mariaDB4j-db-linux64:11.4.5")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -51,9 +55,12 @@ tasks.named<JavaExec>("run") {
 tasks.test {
     useJUnitPlatform()
     workingDir = projectDir
+    systemProperty("jarSmoke", System.getProperty("jarSmoke") ?: "false") // JarSmokeTest: gradlew shadowJar test -DjarSmoke=true
 }
 
 tasks.shadowJar {
     archiveFileName.set("AmongUsManager.jar")
+    // Service-Dateien (z.B. JDBC-Treiber von SQLite UND MariaDB) zusammenführen statt nur die erste zu behalten
+    filesMatching("META-INF/services/**") { duplicatesStrategy = DuplicatesStrategy.INCLUDE }
     mergeServiceFiles()
 }

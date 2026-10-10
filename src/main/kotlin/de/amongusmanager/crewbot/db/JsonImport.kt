@@ -156,7 +156,7 @@ object JsonImport {
         for ((code, userId) in data) {
             db.update(
                 "INSERT INTO friend_links (friend_code, user_id) VALUES (?, ?)" +
-                    " ON CONFLICT(friend_code) DO UPDATE SET user_id = excluded.user_id",
+                    " ${db.onConflictUpdate("friend_code")} user_id = ${db.excluded("user_id")}",
                 normalizeFriendCode(code), userId.pyLong(),
             )
         }
@@ -275,7 +275,7 @@ object JsonImport {
         for ((uid, value) in data) {
             for ((achievementId, at) in value as JsonObject) {
                 db.update(
-                    "INSERT OR REPLACE INTO achievements (user_id, achievement_id, unlocked_at) VALUES (?, ?, ?)",
+                    "${db.insertOrReplace} INTO achievements (user_id, achievement_id, unlocked_at) VALUES (?, ?, ?)",
                     uid.toLong(), achievementId, parseInstant(at.pyStr()),
                 )
                 count++

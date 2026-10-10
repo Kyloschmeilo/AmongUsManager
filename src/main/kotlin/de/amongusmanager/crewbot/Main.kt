@@ -5,6 +5,7 @@ import de.amongusmanager.crewbot.core.BotThread
 import de.amongusmanager.crewbot.core.CrewBot
 import de.amongusmanager.crewbot.db.Database
 import de.amongusmanager.crewbot.db.JsonImport
+import de.amongusmanager.crewbot.db.SqliteToMysql
 import net.dv8tion.jda.api.exceptions.InvalidTokenException
 import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
@@ -21,9 +22,9 @@ fun main() {
     }
 
     val db = try {
-        Database.open(BotPaths.database).also { JsonImport.runIfNeeded(it, BotPaths.dataDir) }
+        openDatabase()
     } catch (e: Exception) {
-        log.error("❌ Datenbank {} konnte nicht geöffnet bzw. befüllt werden", BotPaths.database, e)
+        log.error("❌ Datenbank konnte nicht geöffnet bzw. befüllt werden: {}", e.message, e)
         exitProcess(1)
     }
 
@@ -38,6 +39,28 @@ fun main() {
         log.error("❌ Bot konnte nicht starten", e)
         exitProcess(1)
     }
+}
+
+/**
+ * MySQL, wenn in der .env DB_HOST usw. stehen, sonst die SQLite-Datei data/crewbot.db.
+ * Beim ersten Start werden vorhandene Daten übernommen (SQLite-Datei bzw. alte JSON-Dateien).
+ */
+private fun openDatabase(): Database {
+    val mysql = Env.mysql
+    val db = if (mysql != null) {
+        Database.mysql(mysql.host, mysql.name, mysql.user, mysql.password)
+    } else {
+        Database.open(BotPaths.database)
+    }
+    log.info("🗄️ Datenbank: {}", db.description)
+    try {
+        SqliteToMysql.copyIfNeeded(db, BotPaths.database)
+        JsonImport.runIfNeeded(db, BotPaths.dataDir)
+    } catch (e: Exception) {
+        db.close()
+        throw e
+    }
+    return db
 }
 
 private fun shutdown(bot: CrewBot, db: Database) {

@@ -1,6 +1,6 @@
 # Among Us Manager 2
 
-Discord-Bot (**Kotlin**, JDA 6.7, SQLite) für einen deutschen Among-Us-/Gaming-Server plus eine
+Discord-Bot (**Kotlin**, JDA 6.7, SQLite oder MySQL/MariaDB) für einen deutschen Among-Us-/Gaming-Server plus eine
 Among-Us-Mod „CrewStats“ (C#, BepInEx), die Rundendaten automatisch an den Bot schickt.
 Kommunikation mit dem Nutzer: **Deutsch**.
 
@@ -9,6 +9,10 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 ## Starten & Bauen
 - Tokens in `.env` (`DISCORD_TOKEN`, `WORKER_TOKENS` kommagetrennt) – niemals in den Code schreiben.
   Echte Umgebungsvariablen haben Vorrang vor der `.env`.
+- Datenbank: ohne weitere Angaben SQLite `data/crewbot.db`. Mit `DB_HOST`, `DB_NAME`, `DB_USER`,
+  `DB_PASSWORD` in der `.env` MySQL/MariaDB (Panel-Datenbank `s12_spieleabend` auf `45.81.233.92:3306` –
+  nur aus dem Panel-Netz erreichbar, von zu Hause nicht; lokal daher SQLite benutzen). Treiber:
+  MariaDB Connector/J (kann MySQL und MariaDB), direkt instanziiert (nicht über DriverManager).
 - Gradle-Wrapper (Gradle 9.7.1), Kotlin 2.4.21, Bytecode **Java 17** (`-Xjdk-release=17`).
   Lokal mit JDK 21 bauen: `JAVA_HOME=C:\Users\petra\.jdks\ms-21.0.9` (JDK 23 unter `C:\Program Files\Java`).
   - `gradlew run` (IntelliJ-Run-Config „Bot starten“), Arbeitsordner = Projektordner (`.env`, `data/`)
@@ -49,10 +53,15 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   pausieren bei Discord-Anfragen (`RestAction.await()`), aber nie zwei Handler gleichzeitig.
   `core/Commands.kt` – `SlashCommand` (Name, Text, Recht, Optionen, Handler) und `CrewModule`.
   `core/Json.kt` – JSON-Helfer mit Python-Semantik (`pyInt`, `pyStr`, `pyTruthy` …).
-- `db/` – `Database.kt` (eine SQLite-Verbindung, `transaction {}` atomar & verschachtelbar, Tabelle
-  `settings` als Schlüssel/Wert), `Schema.kt` (Tabellen; Änderungen = neue Version an `MIGRATIONS`
-  anhängen, `PRAGMA user_version`), `JsonImport.kt` (einmaliger Import der alten JSON-Dateien beim
-  ersten Start, Marker `meta.json_import`; JSON-Dateien bleiben als Backup liegen).
+- `db/` – `Database.kt` (eine Verbindung, `transaction {}` atomar & verschachtelbar, Tabelle `settings`
+  als Schlüssel/Wert; `Dialect` SQLITE/MYSQL mit Helfern `insertIgnore`, `insertOrReplace`, `greatest`,
+  `onConflictUpdate`/`excluded`, `keepNewest`; MySQL verbindet bei abgelaufener Verbindung neu),
+  `Schema.kt` (Tabellen je Dialekt – Änderungen in BEIDEN Listen als neue Version anhängen; Version in
+  `PRAGMA user_version` bzw. Tabelle `schema_version`), `JsonImport.kt` (einmaliger Import der alten
+  JSON-Dateien, Marker `meta.json_import`), `SqliteToMysql.kt` (erster Start mit MySQL kopiert eine
+  vorhandene `data/crewbot.db`). Neues SQL muss in SQLite UND MySQL laufen: Spalten `key`/`value` in
+  Backticks, keine `rowid`-Tricks außer `ORDER BY rowid` (MySQL hat dafür eigene `rowid`-Spalten),
+  keine Subqueries mit LIMIT, IDs als BIGINT.
 - `services/` – Logik ohne UI, erreichbar als `bot.<name>`: `levels` (XP/Level/Ränge/Level-Rollen),
   `bets` (Wettbüro + Sperre), `rounds` (Rundenende), `events` (Erinnerung, Anwesenheit, Abschluss),
   `audit` (Log-Channel), `workers` (Worker-Bots fürs parallele Muten: `editVoice`, `setMute`,
@@ -185,8 +194,10 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - Kotlin-Bot: Logik/Embeds/Befehle/Import per Golden-Tests gegen den Python-Bot geprüft, JAR-Start
   (Fake-Token) getestet. **Noch nicht live auf Discord gelaufen.**
 - **Offen beim Nutzer**: Pelican-Server auf einen Java-Egg (17+) umstellen lassen, Startbefehl
-  `java -jar AmongUsManager.jar`, `crewbot-update.zip` (JAR) hochladen, `.env` + `data/` behalten.
-  Beim ersten Start übernimmt der Bot automatisch die JSON-Daten aus `data/`.
+  `java -jar AmongUsManager.jar`, `crewbot-update.zip` (JAR) hochladen, `.env` (mit `DB_…`-Werten für
+  die Panel-Datenbank) + `data/` behalten. Beim ersten Start übernimmt der Bot automatisch die JSON-Daten
+  aus `data/` in die Datenbank. MySQL bisher nur gegen MariaDB 11.4 (lokal) getestet, nicht gegen den
+  echten Panel-Server.
 
 ## Testen
 `gradlew test` (JUnit 5, `src/test/kotlin`). Golden-Tests (`*GoldenTest.kt`) vergleichen mit
@@ -195,5 +206,9 @@ erzeugt von `tools/golden/generate_golden.py` (braucht den Python-Bot aus Tag `p
 Inhalte, Formatierer, Parser, alle Embeds, Slash-Command-Definitionen, 665 zufällige Operationen
 (Runden, Wetten, Undo, Admin …) mit Spielerstand nach jedem Schritt, und der JSON-Import.
 `ServiceBehaviorTest.kt`: Transaktions-Rollback, Undo, Wettsperre, Events, Datenbankdatei.
+`MariaDbTests.kt`: Pipeline-, Import- und Verhaltens-Tests nochmal gegen einen echten MariaDB-Server
+(mariaDB4j startet ihn automatisch, `TestMariaDb`; die ERROR-Zeile „mysqld … failed unexpectedly“ am
+Ende kommt nur vom Beenden des Test-Servers) + Umzug SQLite → MySQL. `JarSmokeTest.kt` startet das
+fertige JAR gegen MariaDB: `gradlew shadowJar test -DjarSmoke=true` (vor jedem Deploy sinnvoll).
 Services ohne Discord testen: `TestServices` (In-Memory-Datenbank), `*WithoutRoles`-Funktionen.
 Embed-Grenzen: JDA prüft lokal (Feld ≤ 1024 UTF-16-Zeichen, Embed ≤ 6000) und wirft sonst.

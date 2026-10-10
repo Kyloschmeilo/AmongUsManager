@@ -90,11 +90,11 @@ class GameStatsService(private val db: Database) {
     fun apply(deltas: StatDeltas, sign: Int = 1) {
         db.transaction {
             for ((userId, delta) in deltas) {
-                db.update("INSERT OR IGNORE INTO game_stats (user_id) VALUES (?)", userId)
+                db.update("${db.insertIgnore} INTO game_stats (user_id) VALUES (?)", userId)
                 for ((field, value) in delta) {
                     if (field !in GameStats.FIELDS) continue // unbekannte Felder aus alten Daten ignorieren
                     db.update(
-                        "UPDATE game_stats SET $field = MAX(0, $field + ?) WHERE user_id = ?",
+                        "UPDATE game_stats SET $field = ${db.greatest}(0, $field + ?) WHERE user_id = ?",
                         sign.toLong() * value, userId,
                     )
                 }

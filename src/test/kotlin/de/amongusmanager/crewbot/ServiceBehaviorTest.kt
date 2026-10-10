@@ -25,12 +25,15 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /** Verhalten, das nicht aus dem Python-Vergleich kommt: Transaktionen, Wettsperre, Events, Datenbankdatei. */
-class ServiceBehaviorTest {
+open class ServiceBehaviorTest {
+    /** Datenbank für den Test (Standard SQLite; Unterklasse für MariaDB). */
+    open fun newDb(): Database = Database.inMemory()
+
     private val roundJson = Golden.section("pipeline")["ops"]!!.arr.first { it.obj["op"]!!.str == "round" }.obj["json"]!!.str
 
     @Test
     fun failedRoundLeavesNoTrace() {
-        val s = TestServices()
+        val s = TestServices(newDb())
         for ((code, user) in listOf("spieler0#1000" to 1L, "spieler1#1001" to 2L, "spieler2#1002" to 3L)) s.links.link(code, user)
         s.levels.addXp(1, 40)
         val before = s.players()
@@ -57,7 +60,7 @@ class ServiceBehaviorTest {
 
     @Test
     fun undoRestoresEverything() {
-        val s = TestServices()
+        val s = TestServices(newDb())
         val round = ModRound.parse(roundJson)
         for (player in round.players) s.links.link(player.friendCode, 1000L + player.playerId)
         s.levels.addXp(1000, 45) // knapp vor Level 2 – der Sieg + Erfolge heben das Level
@@ -82,7 +85,7 @@ class ServiceBehaviorTest {
     @Test
     fun betLockFollowsLobby() {
         var now = Instant.parse("2026-10-10T20:00:00Z")
-        val db = Database.inMemory()
+        val db = newDb()
         val levels = LevelService(db)
         val bets = BetService(db, levels) { now }
         levels.addXp(7, 100)
@@ -121,7 +124,7 @@ class ServiceBehaviorTest {
 
     @Test
     fun eventLifecycle() {
-        val s = TestServices()
+        val s = TestServices(newDb())
         val start = Instant.parse("2026-10-20T17:00:00Z")
         val end = start + Duration.ofHours(2)
         s.events.add(1, 10, start, end, start - Duration.ofHours(1))

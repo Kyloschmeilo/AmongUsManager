@@ -50,6 +50,20 @@ object Env {
     val discordToken: String get() = get("DISCORD_TOKEN").trim()
     val workerTokens: List<String>
         get() = get("WORKER_TOKENS").split(",").map { it.trim() }.filter { it.isNotEmpty() }
+
+    /** MySQL/MariaDB statt SQLite, sobald DB_HOST gesetzt ist (Werte wie im Pelican-Panel unter „Datenbanken“). */
+    val mysql: MysqlConfig?
+        get() {
+            val host = get("DB_HOST").trim()
+            if (host.isEmpty()) return null
+            val missing = listOf("DB_NAME", "DB_USER", "DB_PASSWORD").filter { get(it).isEmpty() }
+            require(missing.isEmpty()) { "DB_HOST ist gesetzt, aber es fehlt: ${missing.joinToString(", ")}" }
+            return MysqlConfig(host, get("DB_NAME").trim(), get("DB_USER").trim(), get("DB_PASSWORD"))
+        }
+}
+
+data class MysqlConfig(val host: String, val name: String, val user: String, val password: String) {
+    override fun toString(): String = "MysqlConfig(host=$host, name=$name, user=$user)" // nie das Passwort loggen
 }
 
 val TIMEZONE: ZoneId = ZoneId.of("Europe/Berlin")

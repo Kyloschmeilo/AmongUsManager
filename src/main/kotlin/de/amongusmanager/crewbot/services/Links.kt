@@ -33,7 +33,7 @@ class LinkService(private val db: Database) {
     fun link(friendCode: String, userId: Long) {
         db.update(
             "INSERT INTO friend_links (friend_code, user_id) VALUES (?, ?)" +
-                " ON CONFLICT(friend_code) DO UPDATE SET user_id = excluded.user_id",
+                " ${db.onConflictUpdate("friend_code")} user_id = ${db.excluded("user_id")}",
             normalizeFriendCode(friendCode), userId,
         )
     }

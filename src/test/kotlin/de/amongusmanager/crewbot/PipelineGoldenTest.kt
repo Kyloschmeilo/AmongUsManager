@@ -1,6 +1,7 @@
 package de.amongusmanager.crewbot
 
 import de.amongusmanager.crewbot.content.Team
+import de.amongusmanager.crewbot.db.Database
 import de.amongusmanager.crewbot.services.BetError
 import de.amongusmanager.crewbot.services.ModRound
 import de.amongusmanager.crewbot.services.ModRoundError
@@ -21,12 +22,15 @@ import kotlin.test.fail
  * Spielt hunderte zufällige Operationen (Runden der Mod, Wetten, Zurücksetzen, Admin-Änderungen …)
  * nach und vergleicht nach jedem Schritt mit dem alten Python-Bot.
  */
-class PipelineGoldenTest {
+open class PipelineGoldenTest {
+    /** Datenbank für den Test (Standard SQLite; Unterklasse für MariaDB). */
+    open fun newDb(): Database = Database.inMemory()
+
     private val pipeline = Golden.section("pipeline")
 
     @Test
     fun replayAllOperations() {
-        val s = TestServices()
+        val s = TestServices(newDb())
         for ((index, op) in pipeline["ops"]!!.arr.withIndex()) {
             val o = op.obj
             val context = "Schritt $index (${o["op"]!!.str})"

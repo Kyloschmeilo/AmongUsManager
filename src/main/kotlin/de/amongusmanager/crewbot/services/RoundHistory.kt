@@ -32,10 +32,7 @@ class RoundHistoryService(private val db: Database, private val clock: () -> Ins
         db.transaction {
             db.update("DELETE FROM round_history WHERE game_id = ?", round.gameId)
             insert(round, discordIds, ended)
-            db.update(
-                "DELETE FROM round_history WHERE id NOT IN (SELECT id FROM round_history ORDER BY id DESC LIMIT ?)",
-                MAX_HISTORY_ROUNDS,
-            )
+            db.keepNewest("round_history", MAX_HISTORY_ROUNDS)
         }
         cache = null
         return HistoryRound(round, LinkedHashMap(discordIds), ended)

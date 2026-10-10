@@ -84,7 +84,7 @@ class AchievementService(
                 if (achievement.id in have || !earned(achievement, history, player, stats, userId, streakRounds)) continue
                 val result = levels.addXp(userId, achievement.xp)
                 db.update(
-                    "INSERT OR REPLACE INTO achievements (user_id, achievement_id, unlocked_at) VALUES (?, ?, ?)",
+                    "${db.insertOrReplace} INTO achievements (user_id, achievement_id, unlocked_at) VALUES (?, ?, ?)",
                     userId, achievement.id, clock(),
                 )
                 unlocks.add(Unlock(userId, achievement, result))

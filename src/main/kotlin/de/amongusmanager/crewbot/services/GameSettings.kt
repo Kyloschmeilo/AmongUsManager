@@ -143,7 +143,7 @@ class GameSettingsService(private val db: Database) {
             for ((kind, values) in settings.options) {
                 for ((key, value) in values) {
                     db.update(
-                        "INSERT INTO game_setting_options (seq, kind, key, value) VALUES (?, ?, ?, ?)",
+                        "INSERT INTO game_setting_options (seq, kind, `key`, `value`) VALUES (?, ?, ?, ?)",
                         seq++, kind, key, value.toString(),
                     )
                 }
@@ -161,16 +161,16 @@ class GameSettingsService(private val db: Database) {
     }
 
     private fun load(): GameSettings? = db.transaction {
+        val options = OPTION_KINDS.associateWithTo(LinkedHashMap()) { LinkedHashMap<String, JsonElement>() }
+        db.query("SELECT kind, `key`, `value` FROM game_setting_options ORDER BY seq") {
+            options.getOrPut(it.string("kind")) { LinkedHashMap() }[it.string("key")] =
+                JSON.parseToJsonElement(it.string("value"))
+        }
+        val roles = LinkedHashMap<String, RoleRate>()
+        db.query("SELECT name, count, chance FROM game_setting_roles ORDER BY seq") {
+            roles[it.string("name")] = RoleRate(it.int("count"), it.int("chance"))
+        }
         db.queryOne("SELECT * FROM game_settings WHERE id = 1") { row ->
-            val options = OPTION_KINDS.associateWithTo(LinkedHashMap()) { LinkedHashMap<String, JsonElement>() }
-            db.query("SELECT kind, key, value FROM game_setting_options ORDER BY seq") {
-                options.getOrPut(it.string("kind")) { LinkedHashMap() }[it.string("key")] =
-                    JSON.parseToJsonElement(it.string("value"))
-            }
-            val roles = LinkedHashMap<String, RoleRate>()
-            db.query("SELECT name, count, chance FROM game_setting_roles ORDER BY seq") {
-                roles[it.string("name")] = RoleRate(it.int("count"), it.int("chance"))
-            }
             GameSettings(
                 capturedAt = row.instant("captured_at"),
                 lobbyCode = row.string("lobby_code"),

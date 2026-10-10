@@ -18,14 +18,17 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 /** Die echten JSON-Dateien des alten Bots werden vollständig und korrekt in die Datenbank übernommen. */
-class ImportGoldenTest {
+open class ImportGoldenTest {
+    /** Datenbank für den Test (Standard SQLite; Unterklasse für MariaDB). */
+    open fun newDb(): Database = Database.inMemory()
+
     private val pipeline = Golden.section("pipeline")
     private val extra = pipeline["import_extra"]!!.obj
     private val users = pipeline["users"]!!.arr.map { it.long }
     private val importDir = Golden.dir.resolve("import")
 
     private fun imported(): TestServices {
-        val db = Database.inMemory()
+        val db = newDb()
         assertNotNull(JsonImport.runIfNeeded(db, importDir), "Import muss laufen")
         return TestServices(db)
     }
@@ -108,7 +111,7 @@ class ImportGoldenTest {
 
     @Test
     fun importRunsOnlyOnce() {
-        val db = Database.inMemory()
+        val db = newDb()
         assertNotNull(JsonImport.runIfNeeded(db, importDir))
         val players = db.queryOne("SELECT COUNT(*) AS n FROM players") { it.int("n") }
         assertNull(JsonImport.runIfNeeded(db, importDir), "Zweiter Start darf nicht erneut importieren")
@@ -118,7 +121,7 @@ class ImportGoldenTest {
     @Test
     fun emptyDataFolderGivesEmptyDatabase() {
         val empty = Files.createTempDirectory("crewbot-empty")
-        val db = Database.inMemory()
+        val db = newDb()
         assertEquals(emptyMap(), JsonImport.runIfNeeded(db, empty))
         assertNull(JsonImport.runIfNeeded(db, importDir), "Nach dem ersten Start wird nie mehr importiert")
         assertEquals(0, db.queryOne("SELECT COUNT(*) AS n FROM players") { it.int("n") })

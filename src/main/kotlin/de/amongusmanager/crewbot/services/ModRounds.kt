@@ -197,10 +197,7 @@ class ModRoundService(
             )
         }
         // Nur die letzten Runden aufheben
-        db.update(
-            "DELETE FROM mod_rounds WHERE id NOT IN (SELECT id FROM mod_rounds ORDER BY id DESC LIMIT ?)",
-            MAX_STORED_ROUNDS,
-        )
+        db.keepNewest("mod_rounds", MAX_STORED_ROUNDS)
     }
 
     companion object {

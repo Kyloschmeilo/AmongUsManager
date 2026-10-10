@@ -60,7 +60,7 @@ class EventService(private val db: Database) {
             for (userId in userIds) {
                 db.update(
                     "INSERT INTO event_attendance (message_id, user_id, minutes) VALUES (?, ?, ?)" +
-                        " ON CONFLICT(message_id, user_id) DO UPDATE SET minutes = minutes + excluded.minutes",
+                        " ${db.onConflictUpdate("message_id, user_id")} minutes = minutes + ${db.excluded("minutes")}",
                     messageId, userId, minutes,
                 )
             }
@@ -77,7 +77,7 @@ class EventService(private val db: Database) {
         db.query("SELECT message_id, user_id, minutes FROM event_attendance ORDER BY rowid") {
             attendance.getOrPut(it.long("message_id")) { LinkedHashMap() }[it.long("user_id")] = it.int("minutes")
         }
-        db.query("SELECT message_id, channel_id, starts_at, ends_at, reminded FROM events ORDER BY rowid") {
+        db.query("SELECT message_id, channel_id, starts_at, ends_at, reminded FROM events ORDER BY message_id") {
             val messageId = it.long("message_id")
             OpenEvent(
                 messageId = messageId,
