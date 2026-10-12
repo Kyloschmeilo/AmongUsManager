@@ -83,6 +83,7 @@ object Channels {
     const val MINECRAFT_INBOX = LOG
     const val ROLE_LOG = 1463920288214548684L
     const val MINECRAFT = 1463920288214548684L // Standard für Minecraft-Ankündigungen (vorerst #test, änderbar mit /dc)
+    const val ROLES = 1499809856603816136L // Rollen-Channel: hier postet /rollen-panel die Rollen-Auswahl
 }
 
 object Roles {
