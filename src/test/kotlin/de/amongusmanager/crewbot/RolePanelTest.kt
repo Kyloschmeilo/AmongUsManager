@@ -4,6 +4,7 @@ import de.amongusmanager.crewbot.db.Database
 import de.amongusmanager.crewbot.services.RolePanelMessage
 import de.amongusmanager.crewbot.services.RolePanelService
 import de.amongusmanager.crewbot.services.RoleToggle
+import de.amongusmanager.crewbot.services.missingAutoRoles
 import de.amongusmanager.crewbot.services.planRoleToggle
 import de.amongusmanager.crewbot.services.selfRoleGroupOf
 import de.amongusmanager.crewbot.ui.views.RolePanel
@@ -41,6 +42,29 @@ class RolePanelTest {
         assertTrue(games.containsAll(GAME_PING_ROLES.values), "jede Event-Ping-Rolle ist im Panel")
         assertTrue(1556707082386808883L in games, "Lockdown Protocol")
         assertEquals(12, games.size)
+    }
+
+    @Test
+    fun groupsInChannelOrder() {
+        assertEquals(listOf("clans", "games", "minecraft"), SELF_ROLE_GROUPS.map { it.key })
+        val clans = SELF_ROLE_GROUPS.first { it.key == "clans" }
+        assertTrue(clans.exclusive, "nur ein Clan pro Person")
+        assertEquals(9, clans.roles.size)
+        assertEquals(listOf("PVP", "MCC"), SELF_ROLE_GROUPS.first { it.key == "minecraft" }.roles.map { it.name })
+        // Buttons gleichmäßig auf möglichst wenige Reihen (max. 5 pro Reihe) verteilt
+        assertEquals(listOf(5, 4), RolePanel.components(clans, emptyMap()).map { it.components.size })
+        assertEquals(listOf(2), RolePanel.components(SELF_ROLE_GROUPS.last(), emptyMap()).map { it.components.size })
+    }
+
+    @Test
+    fun autoRoles() {
+        assertEquals(2, AUTO_ROLES.size)
+        val panelIds = SELF_ROLE_GROUPS.flatMap { group -> group.roles.map { it.roleId } }.toSet()
+        assertTrue(AUTO_ROLES.none { it in panelIds }, "Auto-Rollen gehören nicht ins Panel")
+        val (a, b) = AUTO_ROLES
+        assertEquals(listOf(a, b), missingAutoRoles(emptySet()))
+        assertEquals(listOf(b), missingAutoRoles(setOf(a, 42)))
+        assertEquals(emptyList(), missingAutoRoles(setOf(a, b)))
     }
 
     @Test

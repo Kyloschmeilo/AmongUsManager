@@ -92,6 +92,9 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - Rollen-Panel (`/rollen-panel`, Admin, postet immer in `Channels.ROLES`): Gruppen in `SELF_ROLE_GROUPS` (`Config.kt`, eine Nachricht je Gruppe,
   `exclusive` = nur eine Rolle der Gruppe). Buttons zeigen die Mitgliederzahl; gepostete Nachrichten stehen in
   `settings` (`rolepanel.messages`) und werden bei Rollenänderungen gebündelt (2 s) aktualisiert.
+  Gruppen: Clans (exklusiv), Spiele, Minecraft-Events. „Nicht mehr pingen“ gibt es bewusst nicht mehr.
+- Auto-Rollen (`AUTO_ROLES`, `services/AutoRoles.kt`): jedes Mitglied (keine Bots) beim Beitreten bzw. nach
+  der Mitgliederprüfung, beim Bot-Start werden fehlende an alle nachvergeben.
 - Event-XP gibt es erst nach dem Event und nur bei ≥ `EVENT_MIN_ATTENDANCE_MINUTES` im Voice.
   Events werden nach Start + `EVENT_DURATION_HOURS` automatisch gesperrt; danach automatischer
   Spieleabend-Recap, falls Mod-Runden aufgezeichnet wurden.

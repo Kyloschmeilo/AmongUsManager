@@ -43,10 +43,11 @@ object RolePanel {
             .build()
     }
 
-    /** Ein Button je Rolle, Beschriftung „Name · Anzahl“; 4 pro Reihe (ab 21 Rollen 5). */
+    /** Ein Button je Rolle, Beschriftung „Name · Anzahl“; gleichmäßig auf möglichst wenige Reihen verteilt (max. 5). */
     fun components(group: SelfRoleGroup, counts: Map<Long, Int>): List<ActionRow> {
         require(group.roles.size in 1..25) { "Gruppe ${group.key}: 1 bis 25 Rollen erlaubt" }
-        val perRow = if (group.roles.size > 20) 5 else 4
+        val rowCount = (group.roles.size + 4) / 5
+        val perRow = (group.roles.size + rowCount - 1) / rowCount
         return group.roles.map { role ->
             Button.of(ButtonStyle.SECONDARY, customId(role.roleId), "${role.name} · ${counts[role.roleId] ?: 0}")
                 .withEmoji(Emoji.fromUnicode(role.emoji))

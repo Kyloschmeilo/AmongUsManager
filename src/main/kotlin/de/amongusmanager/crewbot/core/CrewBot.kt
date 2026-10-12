@@ -16,6 +16,7 @@ import de.amongusmanager.crewbot.modules.RoundsModule
 import de.amongusmanager.crewbot.modules.VoiceModule
 import de.amongusmanager.crewbot.services.AchievementService
 import de.amongusmanager.crewbot.services.AuditLog
+import de.amongusmanager.crewbot.services.AutoRoleService
 import de.amongusmanager.crewbot.services.AutoMuteService
 import de.amongusmanager.crewbot.services.BetService
 import de.amongusmanager.crewbot.services.EventService
@@ -45,9 +46,11 @@ import de.amongusmanager.crewbot.ui.views.ViewRegistry
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.JDABuilder
+import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleRemoveEvent
+import net.dv8tion.jda.api.events.guild.member.update.GuildMemberUpdatePendingEvent
 import net.dv8tion.jda.api.events.guild.voice.GenericGuildVoiceEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
@@ -97,6 +100,7 @@ class CrewBot(val db: Database) {
 
     // Rollen-Panel (/rollen-panel): Rollen per Button, die Buttons zeigen die Mitgliederzahl
     val rolePanel = RolePanelService(db, { jda }, RolePanel::components, scope)
+    val autoRoles = AutoRoleService()
 
     /** Reihenfolge = Reihenfolge in /hilfe. */
     val modules: List<CrewModule> = listOf(
@@ -172,6 +176,8 @@ class CrewBot(val db: Database) {
             e.rethrowIfCancelled()
             log.error("Rollen-Panels konnten nicht aktualisiert werden", e)
         }
+        // Auto-Rollen für alle, die beim Start noch keine haben (läuft nebenher, JDA drosselt die Anfragen)
+        scope.launch { for (guild in jda.guilds) autoRoles.syncAll(guild) }
         for (module in modules) {
             try {
                 module.onReady()
@@ -295,6 +301,17 @@ class CrewBot(val db: Database) {
         override fun onGuildMemberRoleRemove(event: GuildMemberRoleRemoveEvent) {
             attach(event.jda)
             if (event.roles.any { it.idLong in rolePanel.roleIds }) scope.launch { rolePanel.requestRefresh() }
+        }
+
+        override fun onGuildMemberJoin(event: GuildMemberJoinEvent) {
+            attach(event.jda)
+            scope.launch { autoRoles.apply(event.member) }
+        }
+
+        // Mitgliederprüfung (Regeln bestätigt): erst jetzt gibt es die Auto-Rollen
+        override fun onGuildMemberUpdatePending(event: GuildMemberUpdatePendingEvent) {
+            attach(event.jda)
+            if (!event.newPending) scope.launch { autoRoles.apply(event.member) }
         }
 
         override fun onGuildMemberRemove(event: GuildMemberRemoveEvent) {

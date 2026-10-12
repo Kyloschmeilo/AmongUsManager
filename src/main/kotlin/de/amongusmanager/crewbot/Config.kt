@@ -124,6 +124,23 @@ data class SelfRoleGroup(
 /** Rollen-Panel: jede Gruppe ist eine eigene Nachricht (Reihenfolge = Reihenfolge im Channel). */
 val SELF_ROLE_GROUPS: List<SelfRoleGroup> = listOf(
     SelfRoleGroup(
+        key = "clans",
+        title = "🏰 Clans",
+        description = "Such dir eine Rolle passend zu deinem Clan.",
+        exclusive = true,
+        roles = listOf(
+            SelfRole("🏛️", "NOVA", 1490514611403755580L),
+            SelfRole("🪵", "SPP", 1474591477119062016L),
+            SelfRole("🐵", "MAC", 1499808447548358818L),
+            SelfRole("🏝️", "Insel", 1474591918569689239L),
+            SelfRole("🚢", "Handels Havn", 1515457948279640175L),
+            SelfRole("💩", "Kake-Fresser", 1499814292185153687L),
+            SelfRole("🧸", "GBB", 1522655413684801666L),
+            SelfRole("🎱", "OST", 1538673319413285035L),
+            SelfRole("🌅", "Ossis", 1478460962758594671L),
+        ),
+    ),
+    SelfRoleGroup(
         key = "games",
         title = "🎮 Spiele",
         description = "Nehmt euch die Spiele raus, die ihr mit uns spielen wollt – " +
@@ -143,6 +160,21 @@ val SELF_ROLE_GROUPS: List<SelfRoleGroup> = listOf(
             SelfRole("🔫", "Lockdown Protocol", 1556707082386808883L),
         ),
     ),
+    SelfRoleGroup(
+        key = "minecraft",
+        title = "⛏️ Minecraft-Events",
+        description = "Bei welchen Minecraft-Events willst du dabei sein? Du wirst dazu gepingt.",
+        roles = listOf(
+            SelfRole("⚔️", "PVP", 1551601510989828137L),
+            SelfRole("🏆", "MCC", 1559255061224235091L),
+        ),
+    ),
+)
+
+/** Rollen, die jedes Mitglied automatisch bekommt (beim Beitreten und beim Bot-Start für alle, Bots ausgenommen). */
+val AUTO_ROLES: List<Long> = listOf(
+    1544486785730478151L,
+    1544485832860110868L,
 )
 
 /** Level -> Rolle, die ab diesem Level automatisch vergeben wird. */
