@@ -241,8 +241,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Muten/Taubschalten durch den Bot, „Kein Skip bei Notfall“, Lobby-Ankündigung, Highlights/Erfolge/
   Recap mit echten Daten, **Rollenwünsche** (Abruf über die Webhook-Nachricht, Tausch bei der
   Rollenvergabe, Chat-Hinweis). Tausch-Logik und Verschlüsselung Bot ↔ Mod sind offline geprüft.
-- Released am 12.10.2026: Bot **v2.1.0** (Rollenwünsche, `/changelog`; JAR am GitHub-Release, Deploy aufs
-  Panel macht der Nutzer) und Mod **v1.3.0** (Rollenwünsche, aktualisiert alle Spieler).
+- Released am 12.10.2026: Bot **v2.2.0** (Rollenwünsche, `/changelog`, Willkommen/Abschied, dritte Auto-Rolle;
+  JAR am GitHub-Release, Deploy aufs Panel macht der Nutzer) und Mod **v1.3.0** (Rollenwünsche, aktualisiert alle Spieler).
 - Kotlin-Bot: Logik/Embeds/Befehle/Import per Golden-Tests gegen den Python-Bot geprüft, JAR-Start
   (Fake-Token) getestet. **Noch nicht live auf Discord gelaufen.**
 - **Offen beim Nutzer**: Pelican-Server auf einen Java-Egg (17+) umstellen lassen, Startbefehl
