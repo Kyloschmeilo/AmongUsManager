@@ -18,8 +18,10 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   - `gradlew run` (IntelliJ-Run-Config „Bot starten“), Arbeitsordner = Projektordner (`.env`, `data/`)
   - `gradlew test` – alle Tests (müssen grün sein)
   - `gradlew shadowJar` → `build/libs/AmongUsManager.jar` (Fat-JAR, ~33 MB, `java -jar …`)
-  - GitHub-Release: annotierten Tag `vX.Y.Z` pushen (Tag-Nachricht = Release-Notizen) →
-    `.github/workflows/release.yml` baut das JAR und hängt es ans Release. Version auch in `build.gradle.kts`.
+  - GitHub-Release: `.github/workflows/release.yml` (Actions → „Release“ → „Run workflow“ mit Version, oder
+    Tag `vX.Y.Z` pushen) baut das JAR und hängt es ans Release. Notizen in `release-notes/vX.Y.Z.md`.
+    Aus der Cloud-Sitzung lassen sich keine Tags pushen → dort per workflow_dispatch starten.
+    Version auch in `build.gradle.kts` anheben.
 - Produktiv läuft der Bot auf einem **Pelican-Panel** eines Freundes – ohne Zugang für Claude.
   Das Panel braucht einen **Java-Egg (17+)**, Startbefehl `java -jar AmongUsManager.jar`.
   Deploy = `AmongUsManager.jar` (+ `.env`) hochladen; `data/` auf dem Server NICHT überschreiben
