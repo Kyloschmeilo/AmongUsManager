@@ -216,14 +216,16 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Container; auch Weltkoordinaten-Ansatz klappte nicht) → zurückgenommen, Nutzer will es so lassen.
   Falls doch: Schalter in den Reiter „Graphics“ verschieben oder nur per Config.
 - **Verteilung & Updates**: Repo `mod/` (nur Mod + Installer, kein Bot-Code, keine Webhook-URLs!).
-  Aktuelles Release: **v1.2.0** (v1.1.0 hat ein kaputtes Auto-Update). `IncludeSourceRevision-
+  Aktuelles Release: **v1.3.0** (Rollenwünsche; v1.1.0 hat ein kaputtes Auto-Update). `IncludeSourceRevision-
   InInformationalVersion=false` in der csproj nicht entfernen – sonst „1.2.0+commit“ und der Updater
   kann nicht vergleichen. `installer/CrewStats-Installer.bat` (Batch/PowerShell-Hybrid, **CRLF, ohne
   BOM** – `sed` entfernt CRLF, danach wiederherstellen) findet Among Us über Steam, installiert
   BepInEx x64 (SHA256 geprüft) + neueste `CrewStats.dll` aus GitHub-Releases, fragt optional die
   Webhook-URL; [2] deinstalliert. `Updater.cs` prüft beim Spielstart `releases/latest` und tauscht
   die eigene DLL. Repo-Name steht in `Updater.GitHubRepo` UND `$Repo` im Installer.
-  Release: Version in `CrewStats.csproj` erhöhen, committen, dann `mod\release.ps1 "Notizen"`.
+  Release: Version in `CrewStats.csproj` erhöhen, committen, dann `mod\release.ps1 "Notizen"`. Ohne Windows
+  (Cloud): Notizen in `release-notes/vX.Y.Z.md` des Mod-Repos, pushen, dann Workflow „Release“ im Mod-Repo per
+  workflow_dispatch starten (baut die DLL auf GitHub, hängt DLL + Installer an).
   Installer-Tests nur mit Fake-Ordner: `CREWSTATS_GAME_DIR`, `CREWSTATS_BEPINEX_ZIP`, `CREWSTATS_MOD_DLL`.
 - Config: `BepInEx/config/de.amongusmanager.crewstats.cfg` (`WebhookUrl`, nur bei geschlossenem
   Spiel ändern – BepInEx überschreibt sie sonst). Log: `BepInEx/LogOutput.log`.
@@ -237,8 +239,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Muten/Taubschalten durch den Bot, „Kein Skip bei Notfall“, Lobby-Ankündigung, Highlights/Erfolge/
   Recap mit echten Daten, **Rollenwünsche** (Abruf über die Webhook-Nachricht, Tausch bei der
   Rollenvergabe, Chat-Hinweis). Tausch-Logik und Verschlüsselung Bot ↔ Mod sind offline geprüft.
-- Mod-Version im csproj ist **1.3.0** (Rollenwünsche), aber **noch nicht released** – Release nur auf
-  Wunsch des Nutzers.
+- Released am 12.10.2026: Bot **v2.1.0** (Rollenwünsche, `/changelog`; JAR am GitHub-Release, Deploy aufs
+  Panel macht der Nutzer) und Mod **v1.3.0** (Rollenwünsche, aktualisiert alle Spieler).
 - Kotlin-Bot: Logik/Embeds/Befehle/Import per Golden-Tests gegen den Python-Bot geprüft, JAR-Start
   (Fake-Token) getestet. **Noch nicht live auf Discord gelaufen.**
 - **Offen beim Nutzer**: Pelican-Server auf einen Java-Egg (17+) umstellen lassen, Startbefehl
