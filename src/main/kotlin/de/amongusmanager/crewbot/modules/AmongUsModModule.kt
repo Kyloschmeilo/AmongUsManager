@@ -1,4 +1,4 @@
-/* Among-Us-Mod: Webhook einrichten, Accounts verknüpfen, Statistiken und automatische Auswertung. */
+/* Among-Us-Mod: Webhook einrichten, Accounts verknüpfen, Statistiken, automatische Auswertung und Rollenwünsche. */
 package de.amongusmanager.crewbot.modules
 
 import de.amongusmanager.crewbot.core.CrewBot
@@ -19,6 +19,7 @@ import de.amongusmanager.crewbot.services.LobbyEvent
 import de.amongusmanager.crewbot.services.ModRound
 import de.amongusmanager.crewbot.services.ModRoundError
 import de.amongusmanager.crewbot.services.SETTINGS_FILE_NAME
+import de.amongusmanager.crewbot.services.WishProtocol
 import de.amongusmanager.crewbot.services.buildRecap
 import de.amongusmanager.crewbot.services.isValidFriendCode
 import de.amongusmanager.crewbot.services.normalizeFriendCode
@@ -63,6 +64,7 @@ private val AUTOMUTE_MAX_AGE: Duration = Duration.ofSeconds(60)
 class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "🛰️") {
     private val log = LoggerFactory.getLogger(AmongUsModModule::class.java)
     private val roundLock = Mutex() // Runden nacheinander auswerten (doppelt gesendete Runden zählen nur einmal)
+    private val wishes = RoleWishCommands(bot) // /rollenwunsch, /rolle-zuweisen
 
     override val commands = listOf(
         // ==========================================
@@ -280,7 +282,11 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "�
                 null
             }
         },
-    )
+    ) + wishes.commands
+
+    override suspend fun onReady() {
+        wishes.startExpiry()
+    }
 
     private fun sortName(guild: Guild, userId: Long): String =
         guild.getMemberById(userId)?.effectiveName?.lowercase() ?: "~" // Ehemalige ans Ende
@@ -295,6 +301,10 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "�
         if (!message.isWebhookMessage || message.author.idLong != webhookId) return
         val guild = event.guild
 
+        WishProtocol.parse(message.contentRaw)?.let { wish ->
+            wishes.onModMessage(message, webhookId, wish, isFresh(message))
+            return
+        }
         AutoMuteEvent.parse(message.contentRaw)?.let { automute ->
             handleAutomute(guild, message, automute)
             return

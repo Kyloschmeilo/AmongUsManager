@@ -86,6 +86,32 @@ fun roleLabel(gameRole: String): String {
     return if (role != null) "${role.emoji} $name" else name
 }
 
+/**
+ * Rollen für /rollenwunsch und /rolle-zuweisen. `gameName` = RoleTypes im Spiel (so schickt der Bot sie an die Mod).
+ * Geister-Rollen (Guardian Angel, Influencer) bekommt man erst nach dem Tod – die gehen nicht.
+ * Crewmate/Impostor heißt „irgendeine Rolle dieses Teams“ (Impostor kann also auch Shapeshifter werden).
+ */
+data class WishRole(val gameName: String, val team: Team, val emoji: String) {
+    val label: String get() = "$emoji $gameName"
+    val isTeamRole: Boolean get() = gameName == "Crewmate" || gameName == "Impostor"
+}
+
+val WISH_ROLES: List<WishRole> = listOf(
+    WishRole("Crewmate", Team.CREW, "🚀"),
+    WishRole("Impostor", Team.IMPOSTOR, "🔪"),
+    WishRole("Engineer", Team.CREW, "🔧"),
+    WishRole("Scientist", Team.CREW, "🧪"),
+    WishRole("Tracker", Team.CREW, "📡"),
+    WishRole("Noisemaker", Team.CREW, "📢"),
+    WishRole("Detective", Team.CREW, "🔍"),
+    WishRole("Judge", Team.CREW, "🔨"),
+    WishRole("Shapeshifter", Team.IMPOSTOR, "🎭"),
+    WishRole("Phantom", Team.IMPOSTOR, "👻"),
+    WishRole("Viper", Team.IMPOSTOR, "🐍"),
+)
+
+fun wishRole(gameName: String): WishRole? = WISH_ROLES.firstOrNull { it.gameName == gameName }
+
 // ==========================================
 // MAPS
 // ==========================================

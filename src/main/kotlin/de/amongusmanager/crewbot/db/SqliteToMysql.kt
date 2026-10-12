@@ -18,6 +18,7 @@ object SqliteToMysql {
         "mod_rounds", "mod_round_awards", "mod_round_bets", "mod_round_stats", "mod_round_achievements",
         "round_history", "round_history_players", "round_history_kills", "round_history_meetings",
         "round_history_votes", "achievements", "game_settings", "game_setting_options", "game_setting_roles",
+        "role_wishes",
     )
 
     /** In MySQL eigene Spalte `rowid` (Reihenfolge), in SQLite die eingebaute rowid. */

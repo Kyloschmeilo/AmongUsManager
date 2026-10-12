@@ -214,6 +214,25 @@ object Schema {
             chance INTEGER NOT NULL
         )
         """,
+        // Version 2: Rollenwünsche (/rollenwunsch) und Admin-Zuweisungen (/rolle-zuweisen)
+        """
+        CREATE TABLE role_wishes (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id     INTEGER NOT NULL,
+            role_name   TEXT NOT NULL,
+            kind        TEXT NOT NULL,
+            cost        INTEGER NOT NULL,
+            status      TEXT NOT NULL,
+            reason      TEXT,
+            evening     TEXT NOT NULL,
+            created_by  INTEGER NOT NULL,
+            created_at  INTEGER NOT NULL,
+            updated_at  INTEGER NOT NULL,
+            reserved_at INTEGER
+        );
+        CREATE INDEX role_wishes_status ON role_wishes (status);
+        CREATE INDEX role_wishes_user ON role_wishes (user_id, evening)
+        """,
     )
 
     /**
@@ -442,6 +461,25 @@ object Schema {
             name   VARCHAR(191) NOT NULL UNIQUE,
             count  INT NOT NULL,
             chance INT NOT NULL
+        ) $MYSQL_TABLE
+        """,
+        // Version 2
+        """
+        CREATE TABLE IF NOT EXISTS role_wishes (
+            id          BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            user_id     BIGINT NOT NULL,
+            role_name   VARCHAR(32) NOT NULL,
+            kind        VARCHAR(16) NOT NULL,
+            cost        INT NOT NULL,
+            status      VARCHAR(16) NOT NULL,
+            reason      VARCHAR(32) NULL,
+            evening     VARCHAR(16) NOT NULL,
+            created_by  BIGINT NOT NULL,
+            created_at  BIGINT NOT NULL,
+            updated_at  BIGINT NOT NULL,
+            reserved_at BIGINT NULL,
+            KEY role_wishes_status (status),
+            KEY role_wishes_user (user_id, evening)
         ) $MYSQL_TABLE
         """,
     )

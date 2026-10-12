@@ -199,6 +199,11 @@ object Rules {
     const val BET_LOCK_MAX_MINUTES = 45L // Sicherheitsnetz: so lange bleibt das Wettbüro nach Rundenstart höchstens zu
     const val BET_UNLOCK_GRACE_SECONDS = 30L // nach Rundenende ohne Ergebnis (z.B. Spiel verlassen) wieder öffnen
 
+    const val ROLE_WISH_COST = 20 // XP pro Rollenwunsch (zurück, wenn er nicht erfüllt wird)
+    const val ROLE_WISHES_PER_EVENING = 2
+    const val GAME_NIGHT_END_HOUR = 6L // ein Spieleabend geht bis 6 Uhr morgens (dann verfallen offene Wünsche)
+    const val ROLE_WISH_RESERVE_MINUTES = 3L // so lange ist ein Wunsch gesperrt, nachdem die Mod ihn abgeholt hat
+
     const val MVP_VOTING_SECONDS = 60L
     const val RECAP_HOURS = 6L // „heute Abend“ für MVP-Vorschläge
     const val EVENT_DURATION_HOURS = 2L

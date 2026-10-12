@@ -30,6 +30,7 @@ import de.amongusmanager.crewbot.services.ModRoundService
 import de.amongusmanager.crewbot.services.ModSettings
 import de.amongusmanager.crewbot.services.RoundHistoryService
 import de.amongusmanager.crewbot.services.RolePanelService
+import de.amongusmanager.crewbot.services.RoleWishService
 import de.amongusmanager.crewbot.services.RoundService
 import de.amongusmanager.crewbot.services.VoiceStatusUpdater
 import de.amongusmanager.crewbot.services.WorkerManager
@@ -90,6 +91,7 @@ class CrewBot(val db: Database) {
     val roundHistory = RoundHistoryService(db)
     val achievements = AchievementService(db, levels)
     val modRounds = ModRoundService(db, levels, bets, rounds, links, gameStats, roundHistory, achievements)
+    val roleWishes = RoleWishService(db, levels, links, { gameSettings.latest })
     val lobby = LobbyAnnouncer({ jda }, Channels.CODES, links, bets, { event, host -> buildLobbyEmbed(event, host) }, scope)
 
     // Minecraft-Plugin (CoreSMP): Rohdaten kommen im Inbox-Channel an, Ankündigungen gehen in den /dc-Channel

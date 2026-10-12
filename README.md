@@ -1,7 +1,7 @@
 # Among Us Manager 2
 
 Discord-Bot (**Kotlin**, JDA 6, SQLite oder MySQL) für unseren Among-Us- und Gaming-Server: Level & XP, Wettbüro,
-Events mit Anwesenheit, Voice-Steuerung mit Worker-Bots, Minecraft-Kopplung und die automatische
+Rollenwünsche, Events mit Anwesenheit, Voice-Steuerung mit Worker-Bots, Minecraft-Kopplung und die automatische
 Auswertung der **CrewStats-Mod** ([eigenes Repo](https://github.com/Kyloschmeilo/CrewStats)).
 
 Bis Oktober 2026 war der Bot in Python geschrieben – der letzte Stand liegt im Git-Tag `python-final`.

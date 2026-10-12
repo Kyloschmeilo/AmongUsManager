@@ -74,7 +74,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   (`/rundensettings`, nur neuester Stand), `minecraft`, `roundHistory` (jede Mod-Runde im Detail,
   normalisiert in `round_history*`-Tabellen, max. 1000), `Insights.kt` (reine Rechenfunktionen:
   Highlights, Rivalen, Recap/MVP-Kandidaten), `achievements` (Erfolge mit XP), `lobby`
-  (Lobby-Ankündigung + Wettsperre). Mehrteilige Änderungen laufen in einer DB-Transaktion; Discord-
+  (Lobby-Ankündigung + Wettsperre), `roleWishes` (`RoleWishes.kt`: Rollenwünsche, Admin-Zuweisungen,
+  Protokoll + Verschlüsselung mit der Mod). Mehrteilige Änderungen laufen in einer DB-Transaktion; Discord-
   Aufrufe (Level-Rollen) erst danach.
 - `content/` – Texte & Daten: `AmongUs.kt` (Rollen für `/rolle` inkl. Influencer, Maps),
   `GameSettingsContent.kt` (deutsche Namen/Kategorien der Lobby-Optionen), `Achievements.kt`
@@ -90,7 +91,27 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 ## Wichtige Entscheidungen
 - **Die Mod muss fair bleiben**: keine versteckten Cheats/Vorteile (z.B. heimlich Impostor
   bestimmen wurde abgelehnt). Während der Runde zeigt die Mod nichts an. Hausregeln nur offen
-  (Chat-Hinweis) und als Option.
+  (Chat-Hinweis) und als Option. Rollenwünsche/Admin-Zuweisungen hat der Nutzer ausdrücklich gewollt –
+  deshalb offen: für alle per Slash-Command, der Host kündigt die Anzahl vor dem Start im Chat an.
+- **Rollenwünsche** (`/rollenwunsch` für alle, `/rolle-zuweisen` für Admins, beide im Mod-Modul,
+  `modules/RoleWishCommands.kt`): Wunsch kostet `ROLE_WISH_COST` (20) XP sofort (Level sinkt nicht),
+  höchstens `ROLE_WISHES_PER_EVENING` (2) offene+erfüllte pro Spieleabend (bis 6 Uhr morgens Berlin,
+  `GAME_NIGHT_END_HOUR`); Ändern kostenlos, Zurückziehen erstattet. Gilt für die nächste Runde des
+  Spielers (braucht `/verknuepfen`). Mehr Wünsche als Plätze → Fehler beim Wünschen; Grundlage sind die
+  zuletzt gemeldeten Lobby-Einstellungen (`gameSettings.latest`): Spezialrolle höchstens Anzahl (nur mit
+  Chance > 0), Impostor-Team höchstens `numImpostors`; unbekannte Einstellungen → nur Crewmate/Impostor
+  (1). „Crewmate“/„Impostor“ = irgendeine Rolle des Teams; Geister-Rollen gehen nicht. Admin-Zuweisungen
+  kostenlos, haben Vorrang, ersetzen (und erstatten) den Wunsch des Spielers; Admins sehen bei vollen
+  Rollen, wer sie hat. XP zurück (+ DM), wenn die Mod den Wunsch nicht erfüllen kann; offene Wünsche
+  verfallen um 6 Uhr mit Erstattung (Schleife jede Minute, ohne DM). Tabelle `role_wishes` (Schema v2).
+- **Rollenwunsch-Protokoll** (kein offener Port): Host drückt Start → Mod schickt
+  `{"crewstats":"wishes","v":1,"data":…}` (Friendcodes der Lobby) mit `?wait=true`; der Bot bearbeitet
+  **genau diese Webhook-Nachricht** (Webhook-Token per `retrieveWebhookById`, nur im Speicher) zu
+  `wishes-reply` mit den offenen Wünschen dieser Spieler; die Mod liest sie (`GET …/messages/<id>`) und
+  löscht sie. Nach der Rollenvergabe kommt `wishes-result` (applied / failed+reason / absent). `data` ist
+  AES-256-GCM (Schlüssel SHA-256 von `"crewstats-wishes:" + Webhook-Token`, Art als AAD), damit im Channel
+  niemand die Wünsche sieht. Abgeholte Wünsche sind bis zur Rückmeldung (max. 3 min) gesperrt.
+  Im Log-Channel stehen nur Anzahlen, keine Wünsche einzelner Spieler.
 - custom_ids bestehender Buttons (`persistent_control_panel:*`, `bt_move`, `evt_*_p`,
   `persistent_role_dropdown`, `crewstats:undo:<gameId>`, `selfrole:<roleId>`) nicht ändern – sonst gehen alte Nachrichten kaputt.
 - Rollen-Panel (`/rollen-panel`, Admin, postet immer in `Channels.ROLES`): Gruppen in `SELF_ROLE_GROUPS` (`Config.kt`, eine Nachricht je Gruppe,
@@ -171,6 +192,16 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Online-Lobbys; `{"crewstats":"lobby","state":"open|started|closed","code","map","players","max",
   "host","sender"}` (Spielerzahl höchstens alle 5 s) ↔ `services/Lobby.kt`. Kurze Webhook-Meldungen
   laufen über `LatestWebhookSender` (neueste gewinnt).
+- **Rollenwünsche** (`RoleWishes.cs`, Tausch-Logik `RoleWishPlanner.cs`, Verschlüsselung `WishCrypto.cs`,
+  Config `[Rollenwuensche] Enabled`, Standard an): nur als Host, Online, normaler Modus.
+  `GameStartManager.BeginGame` → Wünsche holen → Chat-Hinweis „Rollen per Discord in dieser Runde – …“
+  (nur Anzahlen). `RoleManager.SelectRoles`-Prefix startet (nur wenn es angekündigte Wünsche gibt) das
+  Sammeln: `PlayerControl.RpcSetRole`-Prefix gibt `false` zurück und merkt sich die gewürfelten Rollen;
+  der Postfix tauscht nach `RoleWishPlanner` (Admin zuerst, dann nach Wunsch-Zeit; Tausch mit Inhaber,
+  sonst Spezialrolle neu, wenn Anzahl/Chance es erlauben; Impostor-Anzahl bleibt) und schickt dann alle
+  Rollen per `RpcSetRole` raus (immer, auch bei Fehlern). Ohne Wünsche greift die Mod nicht ein.
+  Erkennt die Mod die Rollenvergabe nicht (0 gesammelt), werden die Wünsche erstattet. Kommt der Abruf
+  zu spät oder ist der Hinweis nicht raus, gelten die Wünsche erst in der nächsten Runde.
 - **Rundeneinstellungen** (`SettingsReporter.cs`): beim Rundenstart alle Optionen generisch über
   `Int32/Float/BoolOptionNames` + Rollen-Anzahl/Chance als `crewstats-settings.json` ↔
   `services/GameSettings.kt`. Unbekannte Optionen/Rollen erscheinen roh unter „Weitere“.
@@ -200,7 +231,10 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Auto-Mute, Menü-Schalter funktionieren (überlappen aber, s.o.).
 - **Noch nicht im echten Spiel getestet**: Rundenaufzeichnung mit echten Spielern, tatsächliches
   Muten/Taubschalten durch den Bot, „Kein Skip bei Notfall“, Lobby-Ankündigung, Highlights/Erfolge/
-  Recap mit echten Daten.
+  Recap mit echten Daten, **Rollenwünsche** (Abruf über die Webhook-Nachricht, Tausch bei der
+  Rollenvergabe, Chat-Hinweis). Tausch-Logik und Verschlüsselung Bot ↔ Mod sind offline geprüft.
+- Mod-Version im csproj ist **1.3.0** (Rollenwünsche), aber **noch nicht released** – Release nur auf
+  Wunsch des Nutzers.
 - Kotlin-Bot: Logik/Embeds/Befehle/Import per Golden-Tests gegen den Python-Bot geprüft, JAR-Start
   (Fake-Token) getestet. **Noch nicht live auf Discord gelaufen.**
 - **Offen beim Nutzer**: Pelican-Server auf einen Java-Egg (17+) umstellen lassen, Startbefehl
@@ -216,7 +250,9 @@ erzeugt von `tools/golden/generate_golden.py` (braucht den Python-Bot aus Tag `p
 Inhalte, Formatierer, Parser, alle Embeds, Slash-Command-Definitionen, 665 zufällige Operationen
 (Runden, Wetten, Undo, Admin …) mit Spielerstand nach jedem Schritt, und der JSON-Import.
 `ServiceBehaviorTest.kt`: Transaktions-Rollback, Undo, Wettsperre, Events, Datenbankdatei.
-`MariaDbTests.kt`: Pipeline-, Import- und Verhaltens-Tests nochmal gegen einen echten MariaDB-Server
+`RoleWishTest.kt`: Rollenwünsche (XP, Limit, Plätze, Admin, Verfall, Mod-Rückmeldung) und das
+Protokoll inkl. eines mit der Mod (.NET) verschlüsselten Testvektors.
+`MariaDbTests.kt`: Pipeline-, Import-, Verhaltens- und Rollenwunsch-Tests nochmal gegen einen echten MariaDB-Server
 (mariaDB4j startet ihn automatisch, `TestMariaDb`; die ERROR-Zeile „mysqld … failed unexpectedly“ am
 Ende kommt nur vom Beenden des Test-Servers) + Umzug SQLite → MySQL. `JarSmokeTest.kt` startet das
 fertige JAR gegen MariaDB: `gradlew shadowJar test -DjarSmoke=true` (vor jedem Deploy sinnvoll).
