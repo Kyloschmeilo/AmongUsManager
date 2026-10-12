@@ -1,0 +1,30 @@
+# Neues Release: annotierten Tag pushen (git tag -a v2.1.0 -F notizen.txt && git push origin v2.1.0).
+# Baut das Fat-JAR und hängt es als AmongUsManager.jar ans Release; die Tag-Nachricht sind die Release-Notizen.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: JAR bauen
+        run: bash ./gradlew shadowJar --no-daemon
+      - name: Release erstellen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          gh release create "$GITHUB_REF_NAME" build/libs/AmongUsManager.jar \
+            --title "Among Us Manager ${GITHUB_REF_NAME#v}" --notes-from-tag
