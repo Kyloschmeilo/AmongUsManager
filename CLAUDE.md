@@ -21,7 +21,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   - GitHub-Release: `.github/workflows/release.yml` (Actions → „Release“ → „Run workflow“ mit Version, oder
     Tag `vX.Y.Z` pushen) baut das JAR und hängt es ans Release. Notizen in `release-notes/vX.Y.Z.md`.
     Aus der Cloud-Sitzung lassen sich keine Tags pushen → dort per workflow_dispatch starten.
-    Version auch in `build.gradle.kts` anheben.
+    Version auch in `build.gradle.kts` anheben, `content/Changelog.kt` neu schreiben (`/changelog`).
 - Produktiv läuft der Bot auf einem **Pelican-Panel** eines Freundes – ohne Zugang für Claude.
   Das Panel braucht einen **Java-Egg (17+)**, Startbefehl `java -jar AmongUsManager.jar`.
   Deploy = `AmongUsManager.jar` (+ `.env`) hochladen; `data/` auf dem Server NICHT überschreiben
@@ -79,7 +79,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Aufrufe (Level-Rollen) erst danach.
 - `content/` – Texte & Daten: `AmongUs.kt` (Rollen für `/rolle` inkl. Influencer, Maps),
   `GameSettingsContent.kt` (deutsche Namen/Kategorien der Lobby-Optionen), `Achievements.kt`
-  (Erfolge – ids nie umbenennen, sind gespeichert), `Minecraft.kt`.
+  (Erfolge – ids nie umbenennen, sind gespeichert), `Minecraft.kt`, `Changelog.kt` (Inhalt von `/changelog`).
 - `ui/` – `Embeds.kt` (`Palette`, `Tone`, `notify()`, `progressBar`, `fitLines`, `safeBuild`),
   `Text.kt` (`escapeMarkdown`/`urlQuote` wie discord.py/Python), `InsightsUi.kt`, `ProfileUi.kt`,
   `LobbyUi.kt`, `MinecraftUi.kt`, `views/` (Buttons/Menüs). Menüs mit Timeout erben von
@@ -112,6 +112,10 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   AES-256-GCM (Schlüssel SHA-256 von `"crewstats-wishes:" + Webhook-Token`, Art als AAD), damit im Channel
   niemand die Wünsche sieht. Abgeholte Wünsche sind bis zur Rückmeldung (max. 3 min) gesperrt.
   Im Log-Channel stehen nur Anzahlen, keine Wünsche einzelner Spieler.
+- **`/changelog`** (Admin, Modul Admin): postet `content/Changelog.kt` als Embed in den Channel, in dem er
+  ausgeführt wird (Kilian macht das einmal pro Update). **Bei jedem Update den Inhalt ersetzen** (nicht anhängen):
+  nur Neues seit dem letzten Changelog, kurz, für Spieler; `VERSION` = `version` in `build.gradle.kts`
+  (prüft `ChangelogTest`, ebenso dass genannte `/befehle` existieren – sie werden automatisch anklickbar).
 - custom_ids bestehender Buttons (`persistent_control_panel:*`, `bt_move`, `evt_*_p`,
   `persistent_role_dropdown`, `crewstats:undo:<gameId>`, `selfrole:<roleId>`) nicht ändern – sonst gehen alte Nachrichten kaputt.
 - Rollen-Panel (`/rollen-panel`, Admin, postet immer in `Channels.ROLES`): Gruppen in `SELF_ROLE_GROUPS` (`Config.kt`, eine Nachricht je Gruppe,

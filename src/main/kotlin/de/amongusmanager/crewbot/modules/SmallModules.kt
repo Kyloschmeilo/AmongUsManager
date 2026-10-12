@@ -3,6 +3,7 @@ package de.amongusmanager.crewbot.modules
 
 import de.amongusmanager.crewbot.Channels
 import de.amongusmanager.crewbot.SELF_ROLE_GROUPS
+import de.amongusmanager.crewbot.content.Changelog
 import de.amongusmanager.crewbot.content.verdictFor
 import de.amongusmanager.crewbot.core.CrewBot
 import de.amongusmanager.crewbot.core.CrewModule
@@ -13,6 +14,7 @@ import de.amongusmanager.crewbot.core.memberOption
 import de.amongusmanager.crewbot.services.RolePanelMessage
 import de.amongusmanager.crewbot.ui.Palette
 import de.amongusmanager.crewbot.ui.Tone
+import de.amongusmanager.crewbot.ui.buildChangelogEmbed
 import de.amongusmanager.crewbot.ui.notify
 import de.amongusmanager.crewbot.ui.field
 import de.amongusmanager.crewbot.ui.safeBuild
@@ -77,6 +79,12 @@ class AdminModule(private val bot: CrewBot) : CrewModule("Admin", "🛠️") {
             val note = if (missing.isEmpty()) "" else "\n⚠️ Diese Rollen gibt es auf dem Server nicht: " +
                 missing.joinToString(", ") { it.name }
             event.notify("✅ Rollen-Panel gepostet in ${channel.asMention}. Ältere Panels funktionieren weiter.$note", Tone.SUCCESS)
+        },
+        SlashCommand(
+            "changelog", "Postet die Neuerungen des letzten Updates in diesen Channel", Permission.ADMINISTRATOR,
+        ) { event ->
+            event.channel.sendMessageEmbeds(buildChangelogEmbed(bot::mentionCommand)).await()
+            event.notify("✅ Changelog ${Changelog.VERSION} gepostet.", Tone.SUCCESS)
         },
     )
 }
