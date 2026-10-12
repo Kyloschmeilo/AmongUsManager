@@ -75,7 +75,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   normalisiert in `round_history*`-Tabellen, max. 1000), `Insights.kt` (reine Rechenfunktionen:
   Highlights, Rivalen, Recap/MVP-Kandidaten), `achievements` (Erfolge mit XP), `lobby`
   (Lobby-Ankündigung + Wettsperre), `roleWishes` (`RoleWishes.kt`: Rollenwünsche, Admin-Zuweisungen,
-  Protokoll + Verschlüsselung mit der Mod). Mehrteilige Änderungen laufen in einer DB-Transaktion; Discord-
+  Protokoll + Verschlüsselung mit der Mod), `welcome` (Willkommens-/Abschiedsnachricht). Mehrteilige Änderungen laufen in einer DB-Transaktion; Discord-
   Aufrufe (Level-Rollen) erst danach.
 - `content/` – Texte & Daten: `AmongUs.kt` (Rollen für `/rolle` inkl. Influencer, Maps),
   `GameSettingsContent.kt` (deutsche Namen/Kategorien der Lobby-Optionen), `Achievements.kt`
@@ -124,6 +124,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Gruppen: Clans (exklusiv), Spiele, Minecraft-Events. „Nicht mehr pingen“ gibt es bewusst nicht mehr.
 - Auto-Rollen (`AUTO_ROLES`, `services/AutoRoles.kt`): jedes Mitglied (keine Bots) beim Beitreten bzw. nach
   der Mitgliederprüfung, beim Bot-Start werden fehlende an alle nachvergeben.
+- Willkommen/Abschied (`services/Welcome.kt`, `ui/WelcomeUi.kt`): kurzes Embed beim Beitreten (pingt nur das
+  neue Mitglied) und beim Verlassen, keine Bots. Channel `Channels.WELCOME`, 0 = Systemkanal des Servers.
 - Event-XP gibt es erst nach dem Event und nur bei ≥ `EVENT_MIN_ATTENDANCE_MINUTES` im Voice.
   Events werden nach Start + `EVENT_DURATION_HOURS` automatisch gesperrt; danach automatischer
   Spieleabend-Recap, falls Mod-Runden aufgezeichnet wurden.

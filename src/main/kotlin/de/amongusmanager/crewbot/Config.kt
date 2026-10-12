@@ -84,6 +84,9 @@ object Channels {
     const val ROLE_LOG = 1463920288214548684L
     const val MINECRAFT = 1463920288214548684L // Standard für Minecraft-Ankündigungen (vorerst #test, änderbar mit /dc)
     const val ROLES = 1499809856603816136L // Rollen-Channel: hier postet /rollen-panel die Rollen-Auswahl
+
+    // Willkommens- und Abschiedsnachrichten. 0 = Systemkanal des Servers (Servereinstellungen → Übersicht)
+    const val WELCOME = 0L
 }
 
 object Roles {
@@ -175,6 +178,7 @@ val SELF_ROLE_GROUPS: List<SelfRoleGroup> = listOf(
 val AUTO_ROLES: List<Long> = listOf(
     1544486785730478151L,
     1544485832860110868L,
+    1499813869508362261L,
 )
 
 /** Level -> Rolle, die ab diesem Level automatisch vergeben wird. */

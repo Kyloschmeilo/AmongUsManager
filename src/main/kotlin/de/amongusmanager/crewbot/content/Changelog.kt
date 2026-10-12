@@ -11,7 +11,7 @@ import de.amongusmanager.crewbot.Rules
 data class ChangelogSection(val title: String, val lines: List<String>)
 
 object Changelog {
-    const val VERSION = "2.1.0"
+    const val VERSION = "2.2.0"
 
     val sections: List<ChangelogSection> = listOf(
         ChangelogSection(
@@ -31,6 +31,10 @@ object Changelog {
                 "Admins legen mit /rolle-zuweisen Rollen fest",
                 "Im Spiel-Chat steht offen, wie viele Rollen per Discord kommen",
             ),
+        ),
+        ChangelogSection(
+            "👋 Willkommen",
+            listOf("Neue Mitglieder werden jetzt begrüßt – und wer geht, wird verabschiedet"),
         ),
     )
 }

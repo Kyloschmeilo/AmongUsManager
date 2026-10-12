@@ -58,13 +58,14 @@ class RolePanelTest {
 
     @Test
     fun autoRoles() {
-        assertEquals(2, AUTO_ROLES.size)
+        assertEquals(3, AUTO_ROLES.size)
+        assertEquals(AUTO_ROLES.size, AUTO_ROLES.toSet().size, "keine doppelten Auto-Rollen")
         val panelIds = SELF_ROLE_GROUPS.flatMap { group -> group.roles.map { it.roleId } }.toSet()
         assertTrue(AUTO_ROLES.none { it in panelIds }, "Auto-Rollen gehören nicht ins Panel")
-        val (a, b) = AUTO_ROLES
-        assertEquals(listOf(a, b), missingAutoRoles(emptySet()))
-        assertEquals(listOf(b), missingAutoRoles(setOf(a, 42)))
-        assertEquals(emptyList(), missingAutoRoles(setOf(a, b)))
+        val (a, b, c) = AUTO_ROLES
+        assertEquals(listOf(a, b, c), missingAutoRoles(emptySet()))
+        assertEquals(listOf(b, c), missingAutoRoles(setOf(a, 42)))
+        assertEquals(emptyList(), missingAutoRoles(setOf(a, b, c)))
     }
 
     @Test

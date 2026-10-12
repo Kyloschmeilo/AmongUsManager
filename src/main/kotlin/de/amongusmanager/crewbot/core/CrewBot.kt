@@ -33,6 +33,7 @@ import de.amongusmanager.crewbot.services.RolePanelService
 import de.amongusmanager.crewbot.services.RoleWishService
 import de.amongusmanager.crewbot.services.RoundService
 import de.amongusmanager.crewbot.services.VoiceStatusUpdater
+import de.amongusmanager.crewbot.services.WelcomeService
 import de.amongusmanager.crewbot.services.WorkerManager
 import de.amongusmanager.crewbot.ui.Tone
 import de.amongusmanager.crewbot.ui.buildLobbyEmbed
@@ -103,6 +104,7 @@ class CrewBot(val db: Database) {
     // Rollen-Panel (/rollen-panel): Rollen per Button, die Buttons zeigen die Mitgliederzahl
     val rolePanel = RolePanelService(db, { jda }, RolePanel::components, scope)
     val autoRoles = AutoRoleService()
+    val welcome = WelcomeService(::mentionCommand) // Willkommens-/Abschiedsnachricht
 
     /** Reihenfolge = Reihenfolge in /hilfe. */
     val modules: List<CrewModule> = listOf(
@@ -308,6 +310,7 @@ class CrewBot(val db: Database) {
         override fun onGuildMemberJoin(event: GuildMemberJoinEvent) {
             attach(event.jda)
             scope.launch { autoRoles.apply(event.member) }
+            scope.launch { welcome.welcome(event.member) }
         }
 
         // Mitgliederprüfung (Regeln bestätigt): erst jetzt gibt es die Auto-Rollen
@@ -319,6 +322,7 @@ class CrewBot(val db: Database) {
         override fun onGuildMemberRemove(event: GuildMemberRemoveEvent) {
             attach(event.jda)
             scope.launch { rolePanel.requestRefresh() }
+            scope.launch { welcome.farewell(event.guild, event.user, event.member) }
         }
 
         override fun onGenericGuildVoice(event: GenericGuildVoiceEvent) {
