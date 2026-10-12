@@ -105,6 +105,45 @@ val GAME_PING_ROLES: Map<String, Long> = linkedMapOf(
     "ROUNDS" to 1515459848290959601L,
 )
 
+/** Eine Rolle zum Selbst-Abholen im Rollen-Panel (/rollen-panel). */
+data class SelfRole(val emoji: String, val name: String, val roleId: Long)
+
+/**
+ * Eine Nachricht des Rollen-Panels: Überschrift + ein Button je Rolle (höchstens 25).
+ * [key] wird gespeichert – nie umbenennen. [exclusive]: man kann nur eine Rolle der Gruppe haben.
+ */
+data class SelfRoleGroup(
+    val key: String,
+    val title: String,
+    val description: String,
+    val roles: List<SelfRole>,
+    val exclusive: Boolean = false,
+)
+
+/** Rollen-Panel: jede Gruppe ist eine eigene Nachricht (Reihenfolge = Reihenfolge im Channel). */
+val SELF_ROLE_GROUPS: List<SelfRoleGroup> = listOf(
+    SelfRoleGroup(
+        key = "games",
+        title = "🎮 Spiele",
+        description = "Nehmt euch die Spiele raus, die ihr mit uns spielen wollt – " +
+            "bei Events zu diesen Spielen werdet ihr gepingt.",
+        roles = listOf(
+            SelfRole("🔪", "Among Us", GAME_PING_ROLES.getValue("Among Us")),
+            SelfRole("🎲", "Risiko", GAME_PING_ROLES.getValue("Risiko")),
+            SelfRole("👾", "R.E.P.O.", GAME_PING_ROLES.getValue("R.E.P.O.")),
+            SelfRole("🪵", "Stickfight", GAME_PING_ROLES.getValue("Stickfight")),
+            SelfRole("🐔", "Ultimate Chicken Horse", GAME_PING_ROLES.getValue("Ultimate Chicken Horse")),
+            SelfRole("🗺️", "GeoGuessr", GAME_PING_ROLES.getValue("GeoGuessr")),
+            SelfRole("🏔️", "PEAK", GAME_PING_ROLES.getValue("PEAK")),
+            SelfRole("🏭", "Lethal Company", GAME_PING_ROLES.getValue("Lethal Company")),
+            SelfRole("🌐", "Browser Games", GAME_PING_ROLES.getValue("Browser Games")),
+            SelfRole("🥊", "ROUNDS", GAME_PING_ROLES.getValue("ROUNDS")),
+            SelfRole("🎨", "Meccha Chameleon", GAME_PING_ROLES.getValue("Meccha Chameleon")),
+            SelfRole("🔫", "Lockdown Protocol", 1556707082386808883L),
+        ),
+    ),
+)
+
 /** Level -> Rolle, die ab diesem Level automatisch vergeben wird. */
 val LEVEL_ROLE_REWARDS: Map<Int, Long> = linkedMapOf(
     5 to Roles.EVENT_MANAGER,

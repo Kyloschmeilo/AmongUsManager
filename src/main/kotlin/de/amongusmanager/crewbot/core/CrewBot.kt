@@ -28,6 +28,7 @@ import de.amongusmanager.crewbot.services.MinecraftService
 import de.amongusmanager.crewbot.services.ModRoundService
 import de.amongusmanager.crewbot.services.ModSettings
 import de.amongusmanager.crewbot.services.RoundHistoryService
+import de.amongusmanager.crewbot.services.RolePanelService
 import de.amongusmanager.crewbot.services.RoundService
 import de.amongusmanager.crewbot.services.VoiceStatusUpdater
 import de.amongusmanager.crewbot.services.WorkerManager
@@ -37,12 +38,16 @@ import de.amongusmanager.crewbot.ui.notify
 import de.amongusmanager.crewbot.ui.views.ControlPanel
 import de.amongusmanager.crewbot.ui.views.EventButtons
 import de.amongusmanager.crewbot.ui.views.EventSignup
+import de.amongusmanager.crewbot.ui.views.RolePanel
 import de.amongusmanager.crewbot.ui.views.RoleSelect
 import de.amongusmanager.crewbot.ui.views.UndoRoundButton
 import de.amongusmanager.crewbot.ui.views.ViewRegistry
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.JDABuilder
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleRemoveEvent
 import net.dv8tion.jda.api.events.guild.voice.GenericGuildVoiceEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
@@ -89,6 +94,9 @@ class CrewBot(val db: Database) {
     val workers = WorkerManager({ jda }, Env.workerTokens, scope)
     val voiceStatus = VoiceStatusUpdater({ jda }, Channels.AMONG_US_VOICE, scope)
     val automute = AutoMuteService(workers, links, voiceStatus, Channels.AMONG_US_VOICE)
+
+    // Rollen-Panel (/rollen-panel): Rollen per Button, die Buttons zeigen die Mitgliederzahl
+    val rolePanel = RolePanelService(db, { jda }, RolePanel::components, scope)
 
     /** Reihenfolge = Reihenfolge in /hilfe. */
     val modules: List<CrewModule> = listOf(
@@ -158,6 +166,12 @@ class CrewBot(val db: Database) {
         }
 
         voiceStatus.refresh()
+        try {
+            rolePanel.refreshAll() // Rollen können sich geändert haben, während der Bot aus war
+        } catch (e: Exception) {
+            e.rethrowIfCancelled()
+            log.error("Rollen-Panels konnten nicht aktualisiert werden", e)
+        }
         for (module in modules) {
             try {
                 module.onReady()
@@ -207,6 +221,10 @@ class CrewBot(val db: Database) {
                 event is ButtonInteractionEvent && id == EventButtons.LEAVE -> EventSignup.leave(event)
                 event is ButtonInteractionEvent && id == EventButtons.FUN -> EventSignup.funButton(event)
                 event is StringSelectInteractionEvent && id == RoleSelect.CUSTOM_ID -> RoleSelect.onSelect(event)
+                event is ButtonInteractionEvent && RolePanel.PATTERN.matches(id) -> {
+                    val roleId = RolePanel.PATTERN.matchEntire(id)!!.groupValues[1].toLong()
+                    RolePanel.onClick(event, roleId, this)
+                }
                 event is ButtonInteractionEvent && UndoRoundButton.PATTERN.matches(id) -> {
                     val gameId = UndoRoundButton.PATTERN.matchEntire(id)!!.groupValues[1]
                     UndoRoundButton.onClick(event, gameId, modRounds, audit)
@@ -266,6 +284,22 @@ class CrewBot(val db: Database) {
                     }
                 }
             }
+        }
+
+        // Rollen-Panel: Zahlen nachziehen, wenn sich eine Panel-Rolle ändert (auch durch Admins)
+        override fun onGuildMemberRoleAdd(event: GuildMemberRoleAddEvent) {
+            attach(event.jda)
+            if (event.roles.any { it.idLong in rolePanel.roleIds }) scope.launch { rolePanel.requestRefresh() }
+        }
+
+        override fun onGuildMemberRoleRemove(event: GuildMemberRoleRemoveEvent) {
+            attach(event.jda)
+            if (event.roles.any { it.idLong in rolePanel.roleIds }) scope.launch { rolePanel.requestRefresh() }
+        }
+
+        override fun onGuildMemberRemove(event: GuildMemberRemoveEvent) {
+            attach(event.jda)
+            scope.launch { rolePanel.requestRefresh() }
         }
 
         override fun onGenericGuildVoice(event: GenericGuildVoiceEvent) {

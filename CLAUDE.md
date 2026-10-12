@@ -88,7 +88,10 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   bestimmen wurde abgelehnt). Während der Runde zeigt die Mod nichts an. Hausregeln nur offen
   (Chat-Hinweis) und als Option.
 - custom_ids bestehender Buttons (`persistent_control_panel:*`, `bt_move`, `evt_*_p`,
-  `persistent_role_dropdown`, `crewstats:undo:<gameId>`) nicht ändern – sonst gehen alte Nachrichten kaputt.
+  `persistent_role_dropdown`, `crewstats:undo:<gameId>`, `selfrole:<roleId>`) nicht ändern – sonst gehen alte Nachrichten kaputt.
+- Rollen-Panel (`/rollen-panel`, Admin): Gruppen in `SELF_ROLE_GROUPS` (`Config.kt`, eine Nachricht je Gruppe,
+  `exclusive` = nur eine Rolle der Gruppe). Buttons zeigen die Mitgliederzahl; gepostete Nachrichten stehen in
+  `settings` (`rolepanel.messages`) und werden bei Rollenänderungen gebündelt (2 s) aktualisiert.
 - Event-XP gibt es erst nach dem Event und nur bei ≥ `EVENT_MIN_ATTENDANCE_MINUTES` im Voice.
   Events werden nach Start + `EVENT_DURATION_HOURS` automatisch gesperrt; danach automatischer
   Spieleabend-Recap, falls Mod-Runden aufgezeichnet wurden.

@@ -16,24 +16,27 @@ import kotlin.test.assertEquals
  * Die Slash-Commands sind für Discord identisch zum alten Bot (Namen, Texte, Optionen, Auswahllisten, Rechte).
  * Einziger Unterschied: Die Befehle erscheinen nur noch auf dem Server (nicht in DMs) – der alte Bot hat sie dort
  * ohnehin mit „funktioniert nur auf dem Server“ abgelehnt.
+ * Neue Befehle, die es im alten Bot nicht gab, stehen in [NEW_IN_KOTLIN] und werden beim Vergleich übersprungen.
  */
 class CommandsGoldenTest {
     private val commands = Golden.section("commands")
     private val bot = CrewBot(Database.inMemory())
+
+    private val NEW_IN_KOTLIN = setOf("rollen-panel")
 
     @Test
     fun modulesAndOrderMatchHelp() {
         val expected = commands["cogs"]!!.arr.map { cog ->
             listOf(cog.arr[0].str, cog.arr[1].str, cog.arr[2].arr.map { it.str }.toString())
         }
-        val actual = bot.modules.map { m -> listOf(m.name, m.emoji, m.commands.map { it.name }.toString()) }
+        val actual = bot.modules.map { m -> listOf(m.name, m.emoji, m.commands.map { it.name }.filter { it !in NEW_IN_KOTLIN }.toString()) }
         assertEquals(expected, actual)
     }
 
     @Test
     fun commandPayloadsMatch() {
         val expected = commands["payloads"]!!.arr.associateBy { it.obj["name"]!!.str }
-        val actual = bot.modules.flatMap { it.commands }.associate { command ->
+        val actual = bot.modules.flatMap { it.commands }.filter { it.name !in NEW_IN_KOTLIN }.associate { command ->
             command.name to Json.parseToJsonElement(command.data().toData().toString()).jsonObject
         }
         assertEquals(expected.keys, actual.keys)

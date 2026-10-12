@@ -1,6 +1,7 @@
 /* Kleine Module: Spaß, Admin und die automatisch erzeugte Hilfe. */
 package de.amongusmanager.crewbot.modules
 
+import de.amongusmanager.crewbot.SELF_ROLE_GROUPS
 import de.amongusmanager.crewbot.content.verdictFor
 import de.amongusmanager.crewbot.core.CrewBot
 import de.amongusmanager.crewbot.core.CrewModule
@@ -8,10 +9,14 @@ import de.amongusmanager.crewbot.core.SlashCommand
 import de.amongusmanager.crewbot.core.author
 import de.amongusmanager.crewbot.core.await
 import de.amongusmanager.crewbot.core.memberOption
+import de.amongusmanager.crewbot.services.RolePanelMessage
 import de.amongusmanager.crewbot.ui.Palette
+import de.amongusmanager.crewbot.ui.Tone
+import de.amongusmanager.crewbot.ui.notify
 import de.amongusmanager.crewbot.ui.field
 import de.amongusmanager.crewbot.ui.safeBuild
 import de.amongusmanager.crewbot.ui.views.AdminPanelView
+import de.amongusmanager.crewbot.ui.views.RolePanel
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.interactions.commands.OptionType
@@ -48,6 +53,23 @@ class AdminModule(private val bot: CrewBot) : CrewModule("Admin", "🛠️") {
             val target = event.memberOption("user")!!
             val view = AdminPanelView(bot.levels, bot.audit, target, event.author)
             event.replyEmbeds(view.buildEmbed()).setComponents(view.components()).setEphemeral(true).await()
+        },
+        SlashCommand(
+            "rollen-panel", "Postet hier die Rollen-Auswahl mit Buttons (Spiele …)", Permission.ADMINISTRATOR,
+        ) { event ->
+            event.deferReply(true).await()
+            val guild = event.guild!!
+            for (group in SELF_ROLE_GROUPS) {
+                val counts = bot.rolePanel.counts(guild, group)
+                val message = event.channel.sendMessageEmbeds(RolePanel.embed(group))
+                    .setComponents(RolePanel.components(group, counts)).await()
+                bot.rolePanel.track(RolePanelMessage(group.key, message.channel.idLong, message.idLong))
+                bot.rolePanel.markShown(message.idLong, counts)
+            }
+            val missing = SELF_ROLE_GROUPS.flatMap { it.roles }.filter { guild.getRoleById(it.roleId) == null }
+            val note = if (missing.isEmpty()) "" else "\n⚠️ Diese Rollen gibt es auf dem Server nicht: " +
+                missing.joinToString(", ") { it.name }
+            event.notify("✅ Rollen-Panel gepostet. Ältere Panels funktionieren weiter.$note", Tone.SUCCESS)
         },
     )
 }
