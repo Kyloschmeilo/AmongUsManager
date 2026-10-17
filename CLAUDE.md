@@ -218,15 +218,20 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   der Postfix tauscht nach `RoleWishPlanner` (Admin zuerst, dann nach Wunsch-Zeit; Tausch mit Inhaber,
   sonst Spezialrolle neu, wenn Anzahl/Chance es erlauben; Impostor-Anzahl bleibt) und schickt dann alle
   Rollen per `RpcSetRole` raus (immer, auch bei Fehlern). Ohne Wünsche wird NICHT gesammelt.
-- **Rollen selbst würfeln** (`RoleShuffle.cs`, Config `[Rollen] SelbstWuerfeln`, Standard an): Prefix auf
-  `LogicRoleSelectionNormal.AssignRolesForTeam` mischt die Spielerliste (Fisher-Yates, `RandomNumberGenerator`),
-  das Spiel vergibt danach normal (welche Rollen es gibt, bleibt vom Spiel). Log je Runde: „Rollen selbst
-  gewürfelt: Spielerliste gemischt (Impostor/Crewmate, N Spieler)“. **Nicht wieder in jeder Runde alle
-  `RpcSetRole` zurückhalten/neu senden** – so lief 1.3.2, die erste Runde fror beim Intro ein (Windows
-  „Application Hang“, kein Fehler im Log; Ursache nicht endgültig bewiesen, war aber die einzige Änderung).
   Erkennt die Mod die Rollenvergabe nicht (0 gesammelt), werden die Wünsche erstattet. Kommt der Abruf
   zu spät, gelten die Wünsche erst in der nächsten Runde. Bei doppelter Vergabe an einen Spieler gilt wie
   im Spiel (`roleAssigned`) die erste Rolle (außer `canOverride`).
+- **Rollen selbst würfeln** (`RoleShuffle.cs`, Config `[Rollen] SelbstWuerfeln`, Standard an): während
+  `RoleManager.SelectRoles` ersetzen Postfixe auf `HashRandom.FastNext`/`Next(max)`/`Next(min,max)` jedes
+  Würfelergebnis durch `RandomNumberGenerator` (nur Spiel-Thread, nur im selben Frame). Die Rollenvergabe bleibt
+  die des Spiels. Log je Runde: „Rollen selbst gewürfelt (N Würfe mit echtem Zufall)“ – 0 Würfe heißt, das Spiel
+  würfelt dort nicht (mehr) mit HashRandom. **Zwei Wege sind im echten Spiel gescheitert, nicht wiederholen:**
+  1.3.2 hielt in jeder Runde alle `RpcSetRole` zurück und schickte sie neu → Intro fror ein („Application Hang“);
+  1.3.3 patchte `LogicRoleSelectionNormal.AssignRolesForTeam` (virtuell, `Nullable`- und Il2Cpp-Listen-Parameter)
+  → Absturz in `coreclr.dll` (0xc0000005) beim Aufruf. Allgemein: nur einfache Signaturen patchen.
+  Abstürze/Hänger: Windows-Ereignisprotokoll (Application Error/Hang, .NET Runtime) zeigt das Modul;
+  `LogOutput.log` wird beim nächsten Start überschrieben, Unity-Log der Sitzung davor: `Player-prev.log` in
+  `%USERPROFILE%\AppData\LocalLow\Innersloth\Among Us`.
 - **Rundeneinstellungen** (`SettingsReporter.cs`): beim Rundenstart alle Optionen generisch über
   `Int32/Float/BoolOptionNames` + Rollen-Anzahl/Chance als `crewstats-settings.json` ↔
   `services/GameSettings.kt`. Unbekannte Optionen/Rollen erscheinen roh unter „Weitere“.
@@ -238,8 +243,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Falls doch: Schalter in den Reiter „Graphics“ verschieben oder nur per Config.
 - **Verteilung & Updates**: Repo `mod/` (nur Mod + Installer, kein Bot-Code, keine Webhook-URLs!).
   Aktuelles Release: **v1.3.2** (17.10.2026: keine Chat-Nachrichten, Rollen selbst würfeln – **friert als Host
-  beim Rundenstart ein**; Fix **1.3.3** gebaut, gepusht, beim Nutzer installiert, lädt sauber, Rundenstart im
-  echten Spiel noch nicht getestet, Release offen). 1.3.0 kickt Hosts
+  beim Rundenstart ein**; Fix **1.3.4** gebaut, gepusht, beim Nutzer installiert, lädt sauber, Rundenstart im
+  echten Spiel noch nicht getestet, Release offen; 1.3.3 nie veröffentlicht – stürzte ab). 1.3.0 kickt Hosts
   mit „Nur Quick Chat“ (Fix in 1.3.1), v1.1.0 hat ein kaputtes Auto-Update. `IncludeSourceRevision-
   InInformationalVersion=false` in der csproj nicht entfernen – sonst „1.2.0+commit“ und der Updater
   kann nicht vergleichen. `installer/CrewStats-Installer.bat` (Batch/PowerShell-Hybrid, **CRLF, ohne
