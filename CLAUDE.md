@@ -245,9 +245,10 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Container; auch Weltkoordinaten-Ansatz klappte nicht) → zurückgenommen, Nutzer will es so lassen.
   Falls doch: Schalter in den Reiter „Graphics“ verschieben oder nur per Config.
 - **Verteilung & Updates**: Repo `mod/` (nur Mod + Installer, kein Bot-Code, keine Webhook-URLs!).
-  Aktuelles Release: **v1.3.2** (17.10.2026: keine Chat-Nachrichten, Rollen selbst würfeln – **friert als Host
-  beim Rundenstart ein**; Fix **1.3.4** gebaut, gepusht, beim Nutzer installiert, lädt sauber, Rundenstart im
-  echten Spiel noch nicht getestet, Release offen; 1.3.3 nie veröffentlicht – stürzte ab). 1.3.0 kickt Hosts
+  Aktuelles Release: **v1.3.4** (17.10.2026: Rollen selbst würfeln per HashRandom-Postfix, im echten Spiel
+  bestätigt). v1.3.2 friert als Host beim Rundenstart ein, 1.3.3 nie veröffentlicht (stürzte ab). Läuft das
+  Spiel, bricht `release.ps1` beim Kopieren ab → von Hand: ohne Kopieren bauen, `gh release create` mit
+  `--notes-file release-notes/vX.Y.Z.md`, DLL + Installer anhängen. 1.3.0 kickt Hosts
   mit „Nur Quick Chat“ (Fix in 1.3.1), v1.1.0 hat ein kaputtes Auto-Update. `IncludeSourceRevision-
   InInformationalVersion=false` in der csproj nicht entfernen – sonst „1.2.0+commit“ und der Updater
   kann nicht vergleichen. `installer/CrewStats-Installer.bat` (Batch/PowerShell-Hybrid, **CRLF, ohne
