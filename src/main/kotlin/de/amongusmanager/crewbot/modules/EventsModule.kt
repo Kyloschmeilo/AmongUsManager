@@ -15,6 +15,7 @@ import de.amongusmanager.crewbot.core.isNotFound
 import de.amongusmanager.crewbot.core.rethrowIfCancelled
 import de.amongusmanager.crewbot.core.stringOption
 import de.amongusmanager.crewbot.services.OpenEvent
+import de.amongusmanager.crewbot.services.PendingRecap
 import de.amongusmanager.crewbot.services.buildRecap
 import de.amongusmanager.crewbot.ui.Palette
 import de.amongusmanager.crewbot.ui.Tone
@@ -30,6 +31,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.EmbedBuilder
+import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
@@ -107,6 +109,28 @@ class EventsModule(private val bot: CrewBot) : CrewModule("Events", "📅") {
             val note = if (eventUrl != null) "" else "\n⚠️ Das Discord-Event konnte nicht erstellt werden (Rechte?)."
             event.notify("✅ Event erstellt: ${message.jumpUrl}$note", Tone.SUCCESS)
         },
+        SlashCommand(
+            "spieleabend-recap",
+            "Postet jetzt den Spieleabend-Recap (sonst automatisch ${Rules.RECAP_AFTER_HOURS} Stunden nach Event-Start)",
+            Permission.ADMINISTRATOR,
+        ) { event ->
+            val started = bot.events.pendingRecaps().filter { it.startsAt <= Instant.now() }
+            if (started.isEmpty()) {
+                event.notify(
+                    "ℹ️ Kein Spieleabend-Recap offen – es läuft kein Event, oder sein Recap ist schon gepostet." +
+                        "\nRecap der letzten Stunden ohne Event: ${bot.mentionCommand("recap")}",
+                    Tone.WARNING,
+                )
+                return@SlashCommand
+            }
+            event.deferReply(true).await()
+            val posted = started.mapNotNull { postRecap(it) }
+            if (posted.isEmpty()) {
+                event.notify("ℹ️ Seit Event-Start wurden keine Mod-Runden aufgezeichnet – kein Recap.", Tone.WARNING)
+            } else {
+                event.notify("✅ Spieleabend-Recap gepostet: ${posted.joinToString(" ") { it.jumpUrl }}", Tone.SUCCESS)
+            }
+        },
     )
 
     private suspend fun createScheduledEvent(guild: Guild, game: String, start: ZonedDateTime): String? =
@@ -141,7 +165,7 @@ class EventsModule(private val bot: CrewBot) : CrewModule("Events", "📅") {
         }
     }
 
-    /** Erinnern -> Anwesenheit messen -> nach Ende abrechnen & sperren. */
+    /** Erinnern -> Anwesenheit messen -> nach Ende abrechnen & sperren -> Spieleabend-Recap, wenn fällig. */
     private suspend fun lifecycle() {
         // Jeder Schritt ist einzeln abgesichert: ein Fehler darf nie die ganze Schleife stoppen.
         val now = Instant.now()
@@ -166,6 +190,14 @@ class EventsModule(private val bot: CrewBot) : CrewModule("Events", "📅") {
             } catch (e: Exception) {
                 e.rethrowIfCancelled()
                 log.error("Event {} konnte nicht abgeschlossen werden", event.messageId, e)
+            }
+        }
+        for (pending in bot.events.pendingRecaps().filter { it.dueAt <= now }) {
+            try {
+                postRecap(pending)
+            } catch (e: Exception) {
+                e.rethrowIfCancelled()
+                log.error("Recap für Event {} fehlgeschlagen", pending.messageId, e)
             }
         }
     }
@@ -218,12 +250,7 @@ class EventsModule(private val bot: CrewBot) : CrewModule("Events", "📅") {
             log.warn("Event {} konnte nicht gesperrt werden: {}", event.messageId, e.describe())
         }
         payAttendance(message, event)
-        try {
-            postRecap(message, event)
-        } catch (e: Exception) {
-            e.rethrowIfCancelled()
-            log.error("Recap für Event {} fehlgeschlagen", event.messageId, e)
-        }
+        // Der Spieleabend-Recap kommt später: per /spieleabend-recap oder RECAP_AFTER_HOURS nach Start
     }
 
     private suspend fun payAttendance(message: Message, event: OpenEvent) {
@@ -253,19 +280,28 @@ class EventsModule(private val bot: CrewBot) : CrewModule("Events", "📅") {
         message.replyEmbeds(embed).setAllowedMentions(emptySet()).mentionRepliedUser(false).await()
     }
 
-    /** Spieleabend-Recap aus den Mod-Runden während des Events (falls welche aufgezeichnet wurden). */
-    private suspend fun postRecap(message: Message, event: OpenEvent) {
-        val rounds = bot.roundHistory.rounds(since = event.startsAt, until = Instant.now())
-        if (rounds.isEmpty()) return
+    /**
+     * Spieleabend-Recap aus den Mod-Runden seit Event-Start als Antwort auf die Event-Nachricht.
+     * Danach ist er erledigt (auch ohne Runden). null = nichts gepostet. Wirft nur, wenn Discord die
+     * Event-Nachricht gerade nicht liefert – dann bleibt der Recap offen (nächster Versuch in 1 Min).
+     */
+    private suspend fun postRecap(pending: PendingRecap): Message? {
+        val message = fetchMessage(pending.channelId, pending.messageId)
+        bot.events.removePendingRecap(pending.messageId) // ab hier nicht wiederholen – nie doppelt posten
+        if (message == null) return null // Nachricht wurde gelöscht
+        val rounds = bot.roundHistory.rounds(since = pending.startsAt, until = Instant.now())
+        if (rounds.isEmpty()) return null
         val embed = buildRecapEmbed(buildRecap(rounds), "🌙 Spieleabend-Recap")
-        message.replyEmbeds(embed).setAllowedMentions(emptySet()).mentionRepliedUser(false).await()
+        return message.replyEmbeds(embed).setAllowedMentions(emptySet()).mentionRepliedUser(false).await()
     }
 
+    private suspend fun fetchMessage(event: OpenEvent): Message? = fetchMessage(event.channelId, event.messageId)
+
     /** Holt die Event-Nachricht. null, wenn sie (oder ihr Channel) gelöscht wurde. */
-    private suspend fun fetchMessage(event: OpenEvent): Message? {
-        val channel = bot.jda.getChannelById(GuildMessageChannel::class.java, event.channelId) ?: return null
+    private suspend fun fetchMessage(channelId: Long, messageId: Long): Message? {
+        val channel = bot.jda.getChannelById(GuildMessageChannel::class.java, channelId) ?: return null
         return try {
-            channel.retrieveMessageById(event.messageId).await()
+            channel.retrieveMessageById(messageId).await()
         } catch (e: Exception) {
             e.rethrowIfCancelled()
             if (e.isNotFound()) null else throw e

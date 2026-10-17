@@ -127,8 +127,11 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - Willkommen/Abschied (`services/Welcome.kt`, `ui/WelcomeUi.kt`): kurzes Embed beim Beitreten (pingt nur das
   neue Mitglied) und beim Verlassen, keine Bots. Channel `Channels.WELCOME`, 0 = Systemkanal des Servers.
 - Event-XP gibt es erst nach dem Event und nur bei ≥ `EVENT_MIN_ATTENDANCE_MINUTES` im Voice.
-  Events werden nach Start + `EVENT_DURATION_HOURS` automatisch gesperrt; danach automatischer
-  Spieleabend-Recap, falls Mod-Runden aufgezeichnet wurden.
+  Events werden nach Start + `EVENT_DURATION_HOURS` automatisch gesperrt (Anwesenheits-XP).
+  Der **Spieleabend-Recap** (Mod-Runden seit Event-Start, als Antwort auf die Event-Nachricht) kommt
+  NICHT mehr beim Sperren, sondern erst per `/spieleabend-recap` (Admin) oder automatisch
+  `RECAP_AFTER_HOURS` (5) nach Event-Start – Wunsch des Nutzers. Offene Recaps stehen in `settings`
+  (`events.pending_recaps`, angelegt bei `/create-event`); ohne Runden wird nichts gepostet.
 - Level sinkt nie durch Wetteinsätze (nur Admin-Panel/Undo setzen es zurück).
 - Admin-Panel-Änderungen werden gebündelt (10 s) in den Log-Channel geschrieben.
 - Leaderboard: Medaillen (🥇🥈🥉) im Nickname; beim Sync werden alle Server-Mitglieder mit Medaille

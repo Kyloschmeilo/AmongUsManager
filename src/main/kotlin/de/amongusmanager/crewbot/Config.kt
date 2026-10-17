@@ -211,6 +211,7 @@ object Rules {
     const val MVP_VOTING_SECONDS = 60L
     const val RECAP_HOURS = 6L // „heute Abend“ für MVP-Vorschläge
     const val EVENT_DURATION_HOURS = 2L
+    const val RECAP_AFTER_HOURS = 5L // Spieleabend-Recap automatisch so lange nach Event-Start (vorher per /spieleabend-recap)
     const val EVENT_REMINDER_MINUTES = 15L // Erinnerung so viele Minuten vor Start
     const val EVENT_MIN_ATTENDANCE_MINUTES = 15 // so lange muss man im Voice sein, um als anwesend zu zählen
 

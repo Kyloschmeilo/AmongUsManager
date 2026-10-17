@@ -22,6 +22,12 @@ data class OpenEvent(
     fun attended(userId: Long): Boolean = (attendance[userId] ?: 0) >= Rules.EVENT_MIN_ATTENDANCE_MINUTES
 }
 
+/** Event, dessen Spieleabend-Recap noch aussteht. */
+data class PendingRecap(val messageId: Long, val channelId: Long, val startsAt: Instant) {
+    /** Ohne /spieleabend-recap kommt der Recap automatisch zu diesem Zeitpunkt. */
+    val dueAt: Instant get() = startsAt + Duration.ofHours(Rules.RECAP_AFTER_HOURS)
+}
+
 class EventService(private val db: Database) {
     fun get(messageId: Long): OpenEvent? = all().firstOrNull { it.messageId == messageId }
 
@@ -35,6 +41,7 @@ class EventService(private val db: Database) {
                 "INSERT INTO events (message_id, channel_id, starts_at, ends_at, reminded) VALUES (?, ?, ?, ?, ?)",
                 messageId, channelId, startsAt, endsAt, event.reminded,
             )
+            savePendingRecaps(pendingRecaps().filter { it.messageId != messageId } + PendingRecap(messageId, channelId, startsAt))
         }
         return event
     }
@@ -67,8 +74,38 @@ class EventService(private val db: Database) {
         }
     }
 
+    /** Event abgeschlossen (Anwesenheit abgerechnet) – sein Recap bleibt offen. */
     fun remove(messageId: Long) {
-        db.update("DELETE FROM events WHERE message_id = ?", messageId)
+        db.transaction {
+            if (db.getSetting(RECAP_KEY) == null) savePendingRecaps(pendingRecaps()) // Recaps alter Events festhalten
+            db.update("DELETE FROM events WHERE message_id = ?", messageId)
+        }
+    }
+
+    // ---------- Spieleabend-Recap ----------
+    // Jedes Event bekommt beim Erstellen einen offenen Recap. Gepostet wird er per /spieleabend-recap oder
+    // automatisch RECAP_AFTER_HOURS nach dem Start – unabhängig vom Abschluss des Events (Anwesenheits-XP).
+
+    /** Offene Recaps in der Reihenfolge, in der die Events erstellt wurden. */
+    fun pendingRecaps(): List<PendingRecap> {
+        // Noch nie gespeichert: Events von vor dieser Funktion bekommen ihren Recap auch
+        val stored = db.getSetting(RECAP_KEY) ?: return all().map { PendingRecap(it.messageId, it.channelId, it.startsAt) }
+        return stored.split(";").mapNotNull { entry ->
+            val parts = entry.split(":")
+            if (parts.size != 3) return@mapNotNull null
+            val messageId = parts[0].toLongOrNull() ?: return@mapNotNull null
+            val channelId = parts[1].toLongOrNull() ?: return@mapNotNull null
+            val startsAt = parts[2].toLongOrNull()?.let(Instant::ofEpochMilli) ?: return@mapNotNull null
+            PendingRecap(messageId, channelId, startsAt)
+        }
+    }
+
+    fun removePendingRecap(messageId: Long) {
+        db.transaction { savePendingRecaps(pendingRecaps().filter { it.messageId != messageId }) }
+    }
+
+    private fun savePendingRecaps(recaps: List<PendingRecap>) {
+        db.setSetting(RECAP_KEY, recaps.joinToString(";") { "${it.messageId}:${it.channelId}:${it.startsAt.toEpochMilli()}" })
     }
 
     /** Alle offenen Events in der Reihenfolge, in der sie erstellt wurden. */
@@ -88,5 +125,9 @@ class EventService(private val db: Database) {
                 attendance = attendance[messageId] ?: emptyMap(),
             )
         }
+    }
+
+    companion object {
+        const val RECAP_KEY = "events.pending_recaps"
     }
 }

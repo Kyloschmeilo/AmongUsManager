@@ -9,6 +9,7 @@ import de.amongusmanager.crewbot.services.LobbyAnnouncer
 import de.amongusmanager.crewbot.services.LobbyEvent
 import de.amongusmanager.crewbot.services.ModRound
 import de.amongusmanager.crewbot.services.ModRoundError
+import de.amongusmanager.crewbot.services.PendingRecap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Runnable
@@ -151,6 +152,35 @@ open class ServiceBehaviorTest {
         s.events.remove(1)
         assertEquals(listOf(2L), s.events.all().map { it.messageId })
         assertEquals(0, s.db.queryOne("SELECT COUNT(*) AS n FROM event_attendance") { it.int("n") })
+    }
+
+    @Test
+    fun pendingRecapsOutliveTheEvent() {
+        val s = TestServices(newDb())
+        val start = Instant.parse("2026-10-20T17:00:00Z")
+        val end = start + Duration.ofHours(2)
+
+        // Event von vor den Recaps (noch nichts gespeichert): bekommt seinen Recap trotzdem
+        s.db.update(
+            "INSERT INTO events (message_id, channel_id, starts_at, ends_at, reminded) VALUES (?, ?, ?, ?, ?)",
+            1L, 10L, start, end, true,
+        )
+        assertEquals(listOf(PendingRecap(1, 10, start)), s.events.pendingRecaps())
+        assertEquals(start + Duration.ofHours(Rules.RECAP_AFTER_HOURS), s.events.pendingRecaps()[0].dueAt)
+
+        // Abschluss des Events (Anwesenheits-XP) lässt den Recap offen
+        s.events.remove(1)
+        assertEquals(listOf(PendingRecap(1, 10, start)), s.events.pendingRecaps())
+
+        val later = start + Duration.ofHours(1)
+        s.events.add(2, 20, later, end, start)
+        s.events.add(2, 20, later, end, start) // nochmal: kein doppelter Recap
+        assertEquals(listOf(1L, 2L), s.events.pendingRecaps().map { it.messageId })
+
+        s.events.removePendingRecap(1)
+        assertEquals(listOf(PendingRecap(2, 20, later)), s.events.pendingRecaps())
+        s.events.removePendingRecap(2)
+        assertEquals(emptyList(), s.events.pendingRecaps()) // Event 2 ist noch offen, sein Recap aber erledigt
     }
 
     @Test

@@ -22,7 +22,7 @@ class CommandsGoldenTest {
     private val commands = Golden.section("commands")
     private val bot = CrewBot(Database.inMemory())
 
-    private val NEW_IN_KOTLIN = setOf("rollen-panel", "rollenwunsch", "rolle-zuweisen", "changelog")
+    private val NEW_IN_KOTLIN = setOf("rollen-panel", "rollenwunsch", "rolle-zuweisen", "changelog", "spieleabend-recap")
 
     @Test
     fun modulesAndOrderMatchHelp() {
