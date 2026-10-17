@@ -217,10 +217,13 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Sammeln: `PlayerControl.RpcSetRole`-Prefix gibt `false` zurück und merkt sich die gewürfelten Rollen;
   der Postfix tauscht nach `RoleWishPlanner` (Admin zuerst, dann nach Wunsch-Zeit; Tausch mit Inhaber,
   sonst Spezialrolle neu, wenn Anzahl/Chance es erlauben; Impostor-Anzahl bleibt) und schickt dann alle
-  Rollen per `RpcSetRole` raus (immer, auch bei Fehlern). Mit `[Rollen] SelbstWuerfeln` (Standard an) wird in
-  JEDER Runde gesammelt und vor den Wünschen neu verteilt (`Shuffle`: Fisher-Yates mit `RandomNumberGenerator`;
-  welche Rollen es gibt, kommt weiter vom Spiel). Ohne Wünsche und mit `SelbstWuerfeln = false` greift die Mod
-  nicht ein.
+  Rollen per `RpcSetRole` raus (immer, auch bei Fehlern). Ohne Wünsche wird NICHT gesammelt.
+- **Rollen selbst würfeln** (`RoleShuffle.cs`, Config `[Rollen] SelbstWuerfeln`, Standard an): Prefix auf
+  `LogicRoleSelectionNormal.AssignRolesForTeam` mischt die Spielerliste (Fisher-Yates, `RandomNumberGenerator`),
+  das Spiel vergibt danach normal (welche Rollen es gibt, bleibt vom Spiel). Log je Runde: „Rollen selbst
+  gewürfelt: Spielerliste gemischt (Impostor/Crewmate, N Spieler)“. **Nicht wieder in jeder Runde alle
+  `RpcSetRole` zurückhalten/neu senden** – so lief 1.3.2, die erste Runde fror beim Intro ein (Windows
+  „Application Hang“, kein Fehler im Log; Ursache nicht endgültig bewiesen, war aber die einzige Änderung).
   Erkennt die Mod die Rollenvergabe nicht (0 gesammelt), werden die Wünsche erstattet. Kommt der Abruf
   zu spät, gelten die Wünsche erst in der nächsten Runde. Bei doppelter Vergabe an einen Spieler gilt wie
   im Spiel (`roleAssigned`) die erste Rolle (außer `canOverride`).
@@ -234,7 +237,9 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Container; auch Weltkoordinaten-Ansatz klappte nicht) → zurückgenommen, Nutzer will es so lassen.
   Falls doch: Schalter in den Reiter „Graphics“ verschieben oder nur per Config.
 - **Verteilung & Updates**: Repo `mod/` (nur Mod + Installer, kein Bot-Code, keine Webhook-URLs!).
-  Aktuelles Release: **v1.3.2** (17.10.2026: keine Chat-Nachrichten, Rollen selbst würfeln). 1.3.0 kickt Hosts
+  Aktuelles Release: **v1.3.2** (17.10.2026: keine Chat-Nachrichten, Rollen selbst würfeln – **friert als Host
+  beim Rundenstart ein**; Fix **1.3.3** gebaut, gepusht, beim Nutzer installiert, lädt sauber, Rundenstart im
+  echten Spiel noch nicht getestet, Release offen). 1.3.0 kickt Hosts
   mit „Nur Quick Chat“ (Fix in 1.3.1), v1.1.0 hat ein kaputtes Auto-Update. `IncludeSourceRevision-
   InInformationalVersion=false` in der csproj nicht entfernen – sonst „1.2.0+commit“ und der Updater
   kann nicht vergleichen. `installer/CrewStats-Installer.bat` (Batch/PowerShell-Hybrid, **CRLF, ohne
