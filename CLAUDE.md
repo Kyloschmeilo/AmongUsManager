@@ -93,6 +93,9 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   bestimmen wurde abgelehnt). Die Mod schreibt **keine Nachrichten ins Spiel** (Nutzer: „nerven nur“,
   seit 1.3.2). Hausregeln nur als Option. Rollenwünsche/Admin-Zuweisungen hat der Nutzer ausdrücklich
   gewollt – offen für alle per Slash-Command (eine Ankündigung im Chat gab es bis 1.3.1, auf Wunsch entfernt).
+  Seit 1.3.2 würfelt die Mod als Host **selbst**, wer welche Rolle bekommt (`[Rollen] SelbstWuerfeln`, Standard
+  an) – Nutzer meinte, nach Wünschen kämen immer dieselben als Crewmate (Daten zeigten Zufall; das Spiel speichert
+  keine Rollen-Historie). Muss gleichverteilt bleiben (`RandomNumberGenerator`, Host ohne Vorteil).
 - **Rollenwünsche** (`/rollenwunsch` für alle, `/rolle-zuweisen` für Admins, beide im Mod-Modul,
   `modules/RoleWishCommands.kt`): Wunsch kostet `ROLE_WISH_COST` (20) XP sofort (Level sinkt nicht),
   höchstens `ROLE_WISHES_PER_EVENING` (2) offene+erfüllte pro Spieleabend (bis 6 Uhr morgens Berlin,
@@ -214,7 +217,10 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Sammeln: `PlayerControl.RpcSetRole`-Prefix gibt `false` zurück und merkt sich die gewürfelten Rollen;
   der Postfix tauscht nach `RoleWishPlanner` (Admin zuerst, dann nach Wunsch-Zeit; Tausch mit Inhaber,
   sonst Spezialrolle neu, wenn Anzahl/Chance es erlauben; Impostor-Anzahl bleibt) und schickt dann alle
-  Rollen per `RpcSetRole` raus (immer, auch bei Fehlern). Ohne Wünsche greift die Mod nicht ein.
+  Rollen per `RpcSetRole` raus (immer, auch bei Fehlern). Mit `[Rollen] SelbstWuerfeln` (Standard an) wird in
+  JEDER Runde gesammelt und vor den Wünschen neu verteilt (`Shuffle`: Fisher-Yates mit `RandomNumberGenerator`;
+  welche Rollen es gibt, kommt weiter vom Spiel). Ohne Wünsche und mit `SelbstWuerfeln = false` greift die Mod
+  nicht ein.
   Erkennt die Mod die Rollenvergabe nicht (0 gesammelt), werden die Wünsche erstattet. Kommt der Abruf
   zu spät, gelten die Wünsche erst in der nächsten Runde. Bei doppelter Vergabe an einen Spieler gilt wie
   im Spiel (`roleAssigned`) die erste Rolle (außer `canOverride`).
@@ -229,7 +235,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Falls doch: Schalter in den Reiter „Graphics“ verschieben oder nur per Config.
 - **Verteilung & Updates**: Repo `mod/` (nur Mod + Installer, kein Bot-Code, keine Webhook-URLs!).
   Aktuelles Release: **v1.3.1** (17.10.2026, Quick-Chat-Kick-Fix; 1.3.0 kickt Hosts mit „Nur Quick Chat“,
-  v1.1.0 hat ein kaputtes Auto-Update). **1.3.2** (keine Chat-Nachrichten) gebaut, gepusht, beim Nutzer
+  v1.1.0 hat ein kaputtes Auto-Update). **1.3.2** (keine Chat-Nachrichten, Rollen selbst würfeln) gebaut, gepusht, beim Nutzer
   lokal installiert – Release offen (Notizen in `release-notes/v1.3.2.md`). `IncludeSourceRevision-
   InInformationalVersion=false` in der csproj nicht entfernen – sonst „1.2.0+commit“ und der Updater
   kann nicht vergleichen. `installer/CrewStats-Installer.bat` (Batch/PowerShell-Hybrid, **CRLF, ohne
