@@ -90,9 +90,9 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 
 ## Wichtige Entscheidungen
 - **Die Mod muss fair bleiben**: keine versteckten Cheats/Vorteile (z.B. heimlich Impostor
-  bestimmen wurde abgelehnt). Während der Runde zeigt die Mod nichts an. Hausregeln nur offen
-  (Chat-Hinweis) und als Option. Rollenwünsche/Admin-Zuweisungen hat der Nutzer ausdrücklich gewollt –
-  deshalb offen: für alle per Slash-Command, der Host kündigt die Anzahl vor dem Start im Chat an.
+  bestimmen wurde abgelehnt). Die Mod schreibt **keine Nachrichten ins Spiel** (Nutzer: „nerven nur“,
+  seit 1.3.2). Hausregeln nur als Option. Rollenwünsche/Admin-Zuweisungen hat der Nutzer ausdrücklich
+  gewollt – offen für alle per Slash-Command (eine Ankündigung im Chat gab es bis 1.3.1, auf Wunsch entfernt).
 - **Rollenwünsche** (`/rollenwunsch` für alle, `/rolle-zuweisen` für Admins, beide im Mod-Modul,
   `modules/RoleWishCommands.kt`): Wunsch kostet `ROLE_WISH_COST` (20) XP sofort (Level sinkt nicht),
   höchstens `ROLE_WISHES_PER_EVENING` (2) offene+erfüllte pro Spieleabend (bis 6 Uhr morgens Berlin,
@@ -195,30 +195,29 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Anfrage raus (`editMemberVoice`, bewusst ohne JDAs Cache-Abkürzung), verteilt auf die Worker-Bots.
 - **Hausregel „Kein Skip bei Notfall“** (`NoSkipRule.cs`, Config `[Regeln] NoSkipOnEmergency`,
   Standard aus): nur als Host. `CastVote`-Prefix lehnt Skip-Stimmen in Meetings ohne Leiche ab und
-  ruft `RpcClearVote` (Spieler kann neu wählen, klappt auch ohne Mod); Chat-Hinweis beim Meeting-Start.
-  Nicht-Abstimmen bleibt möglich.
-- **Chat nur über `GameChat.cs`, nie direkt `RpcSendChat`**: Hat der Spieler im Spiel „Nur Quick Chat“
-  (`DataManager.Settings.Multiplayer.ChatMode == QuickChatOnly`, in `settings.amogus` `"chatMode": 2`),
-  wirft der Among-Us-Server ihn bei jedem freien Chat-Text raus („Client DC because Hacking“, danach
-  „Banned“ für diese Lobby). So in 1.3.0 passiert (Rollenwunsch-Hinweis beim Start, Kein-Skip-Hinweis).
-  `GameChat.TrySend` sendet nur mit Free Chat und nach der Sende-Pause (3 s), sonst `ShowLocal`
-  (`AddChatWarning`, nur lokal). Ohne Free Chat: Rollenwünsche werden nicht angewendet (sofort `absent`,
-  bleiben beim Bot offen), Kein-Skip-Regel gilt, Hinweis nur beim Host. Seit 1.3.1.
-  Der Nutzer selbst hat „Nur Quick Chat“ eingestellt.
+  ruft `RpcClearVote` (Spieler kann neu wählen, klappt auch ohne Mod); kein Chat-Hinweis (Host sagt
+  die Regel im Voice an). Nicht-Abstimmen bleibt möglich.
+- **Kein Chat aus der Mod** (seit 1.3.2 gar keine Chat-Nachrichten). Falls doch mal wieder nötig: Hat der
+  Spieler „Nur Quick Chat“ (`DataManager.Settings.Multiplayer.ChatMode == QuickChatOnly`, in
+  `settings.amogus` `"chatMode": 2`), wirft der Among-Us-Server ihn bei jedem freien Chat-Text
+  (`RpcSendChat`) raus („Client DC because Hacking“, danach „Banned“ für diese Lobby) – so in 1.3.0
+  passiert. 1.3.1 hatte dafür `GameChat.cs` (nur mit Free Chat + 3 s Sende-Pause, sonst `AddChatWarning`
+  lokal) – steht in der Git-Historie des Mod-Repos.
 - **Lobby-Ankündigung** (`LobbyReporter.cs`, Config `[Lobby] Announce`, Standard an): nur als Host in
   Online-Lobbys; `{"crewstats":"lobby","state":"open|started|closed","code","map","players","max",
   "host","sender"}` (Spielerzahl höchstens alle 5 s) ↔ `services/Lobby.kt`. Kurze Webhook-Meldungen
   laufen über `LatestWebhookSender` (neueste gewinnt).
 - **Rollenwünsche** (`RoleWishes.cs`, Tausch-Logik `RoleWishPlanner.cs`, Verschlüsselung `WishCrypto.cs`,
   Config `[Rollenwuensche] Enabled`, Standard an): nur als Host, Online, normaler Modus.
-  `GameStartManager.BeginGame` → Wünsche holen → Chat-Hinweis „Rollen per Discord in dieser Runde – …“
-  (nur Anzahlen). `RoleManager.SelectRoles`-Prefix startet (nur wenn es angekündigte Wünsche gibt) das
+  `GameStartManager.BeginGame` → Wünsche holen (kein Hinweis im Spiel, klappt auch mit „Nur Quick Chat“).
+  `RoleManager.SelectRoles`-Prefix startet (nur wenn es Wünsche gibt, Abruf ≤ 2 min alt) das
   Sammeln: `PlayerControl.RpcSetRole`-Prefix gibt `false` zurück und merkt sich die gewürfelten Rollen;
   der Postfix tauscht nach `RoleWishPlanner` (Admin zuerst, dann nach Wunsch-Zeit; Tausch mit Inhaber,
   sonst Spezialrolle neu, wenn Anzahl/Chance es erlauben; Impostor-Anzahl bleibt) und schickt dann alle
   Rollen per `RpcSetRole` raus (immer, auch bei Fehlern). Ohne Wünsche greift die Mod nicht ein.
   Erkennt die Mod die Rollenvergabe nicht (0 gesammelt), werden die Wünsche erstattet. Kommt der Abruf
-  zu spät oder ist der Hinweis nicht raus, gelten die Wünsche erst in der nächsten Runde.
+  zu spät, gelten die Wünsche erst in der nächsten Runde. Bei doppelter Vergabe an einen Spieler gilt wie
+  im Spiel (`roleAssigned`) die erste Rolle (außer `canOverride`).
 - **Rundeneinstellungen** (`SettingsReporter.cs`): beim Rundenstart alle Optionen generisch über
   `Int32/Float/BoolOptionNames` + Rollen-Anzahl/Chance als `crewstats-settings.json` ↔
   `services/GameSettings.kt`. Unbekannte Optionen/Rollen erscheinen roh unter „Weitere“.
@@ -230,7 +229,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Falls doch: Schalter in den Reiter „Graphics“ verschieben oder nur per Config.
 - **Verteilung & Updates**: Repo `mod/` (nur Mod + Installer, kein Bot-Code, keine Webhook-URLs!).
   Aktuelles Release: **v1.3.1** (17.10.2026, Quick-Chat-Kick-Fix; 1.3.0 kickt Hosts mit „Nur Quick Chat“,
-  v1.1.0 hat ein kaputtes Auto-Update). `IncludeSourceRevision-
+  v1.1.0 hat ein kaputtes Auto-Update). **1.3.2** (keine Chat-Nachrichten) gebaut, gepusht, beim Nutzer
+  lokal installiert – Release offen (Notizen in `release-notes/v1.3.2.md`). `IncludeSourceRevision-
   InInformationalVersion=false` in der csproj nicht entfernen – sonst „1.2.0+commit“ und der Updater
   kann nicht vergleichen. `installer/CrewStats-Installer.bat` (Batch/PowerShell-Hybrid, **CRLF, ohne
   BOM** – `sed` entfernt CRLF, danach wiederherstellen) findet Among Us über Steam, installiert
@@ -248,11 +248,11 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 
 ## Stand / offen
 - Im echten Spiel bestätigt: Mod lädt (x64), Auto-Update, Webhook-Upload, Phasenerkennung des
-  Auto-Mute, Menü-Schalter funktionieren (überlappen aber, s.o.).
-- **Noch nicht im echten Spiel getestet**: Rundenaufzeichnung mit echten Spielern, tatsächliches
-  Muten/Taubschalten durch den Bot, „Kein Skip bei Notfall“, Lobby-Ankündigung, Highlights/Erfolge/
-  Recap mit echten Daten, **Rollenwünsche** (Abruf über die Webhook-Nachricht, Tausch bei der
-  Rollenvergabe, Chat-Hinweis). Tausch-Logik und Verschlüsselung Bot ↔ Mod sind offline geprüft.
+  Auto-Mute, Menü-Schalter funktionieren (überlappen aber, s.o.). Am 17.10.2026 mit 10 Spielern:
+  Rundenaufzeichnung + Senden, **Rollenwünsche** (Abruf und Tausch: „1 erfüllt“, „2 erfüllt“).
+- **Noch nicht im echten Spiel bestätigt**: tatsächliches Muten/Taubschalten durch den Bot,
+  „Kein Skip bei Notfall“ (`RpcClearVote`), Lobby-Ankündigung im Discord, Highlights/Erfolge/Recap
+  mit echten Daten.
 - Released am 12.10.2026: Bot **v2.2.0** (Rollenwünsche, `/changelog`, Willkommen/Abschied, dritte Auto-Rolle;
   JAR am GitHub-Release, Deploy aufs Panel macht der Nutzer) und Mod **v1.3.0** (Rollenwünsche, aktualisiert alle Spieler).
 - Kotlin-Bot: Logik/Embeds/Befehle/Import per Golden-Tests gegen den Python-Bot geprüft, JAR-Start
