@@ -180,7 +180,10 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   **IL2CPP-win-x64**-Variante sein (alte x86-Dateien in `Among Us\_backup_bepinex_x86`).
   Installiert in `D:\SteamLibrary\steamapps\common\Among Us`. Spielversion beim Bau: **2026.9.29**.
   Das Spiel startet nur einmal gleichzeitig (single-instance) → kein Mehrspieler-Test allein.
-- Bauen: `dotnet build -c Release` (.NET 8 SDK) – kopiert die DLL nach `BepInEx/plugins`. Läuft
+- Bauen: `dotnet build -c Release` (.NET 8 SDK) – kopiert die DLL nach `BepInEx/plugins`.
+  **Nur ins Spiel des Nutzers installieren, wenn er es sagt** (Wunsch vom 17.10.2026) – sonst bauen mit
+  `dotnet build CrewStats -c Release -p:AmongUs=C:/nicht-kopieren` (DLL nur in `bin/Release/net6.0`).
+  Achtung: auch `release.ps1` baut mit Kopieren. Läuft
   das Spiel, ist die DLL gesperrt: dann umbenennen (`.old`) und die neue daneben legen (aktiv ab
   nächstem Start, `.old` löscht die Mod selbst). Nach Among-Us-Updates `AmongUs.GameLibs.Steam`
   in `CrewStats.csproj` anheben (Feed: nuget.bepinex.dev). Spiel-APIs vorher prüfen – Typen
