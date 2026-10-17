@@ -43,6 +43,7 @@ import de.amongusmanager.crewbot.ui.views.EventButtons
 import de.amongusmanager.crewbot.ui.views.EventSignup
 import de.amongusmanager.crewbot.ui.views.RolePanel
 import de.amongusmanager.crewbot.ui.views.RoleSelect
+import de.amongusmanager.crewbot.ui.views.SpecialRoleSelect
 import de.amongusmanager.crewbot.ui.views.UndoRoundButton
 import de.amongusmanager.crewbot.ui.views.ViewRegistry
 import kotlinx.coroutines.launch
@@ -231,6 +232,8 @@ class CrewBot(val db: Database) {
                 event is ButtonInteractionEvent && id == EventButtons.LEAVE -> EventSignup.leave(event)
                 event is ButtonInteractionEvent && id == EventButtons.FUN -> EventSignup.funButton(event)
                 event is StringSelectInteractionEvent && id == RoleSelect.CUSTOM_ID -> RoleSelect.onSelect(event)
+                event is StringSelectInteractionEvent && id.startsWith(SpecialRoleSelect.PREFIX) ->
+                    SpecialRoleSelect.onSelect(event)
                 event is ButtonInteractionEvent && RolePanel.PATTERN.matches(id) -> {
                     val roleId = RolePanel.PATTERN.matchEntire(id)!!.groupValues[1].toLong()
                     RolePanel.onClick(event, roleId, this)

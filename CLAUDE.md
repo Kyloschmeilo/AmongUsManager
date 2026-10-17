@@ -77,7 +77,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   (Lobby-Ankündigung + Wettsperre), `roleWishes` (`RoleWishes.kt`: Rollenwünsche, Admin-Zuweisungen,
   Protokoll + Verschlüsselung mit der Mod), `welcome` (Willkommens-/Abschiedsnachricht). Mehrteilige Änderungen laufen in einer DB-Transaktion; Discord-
   Aufrufe (Level-Rollen) erst danach.
-- `content/` – Texte & Daten: `AmongUs.kt` (Rollen für `/rolle` inkl. Influencer, Maps),
+- `content/` – Texte & Daten: `AmongUs.kt` (Rollen für `/rolle` inkl. Influencer, Maps), `SpecialRoles.kt`
+  (30 Rollen + Modifikatoren der geplanten Rollen-Mod für `/special-rolle`, zwei Menüs wegen Discords 25er-Grenze),
   `GameSettingsContent.kt` (deutsche Namen/Kategorien der Lobby-Optionen), `Achievements.kt`
   (Erfolge – ids nie umbenennen, sind gespeichert), `Minecraft.kt`, `Changelog.kt` (Inhalt von `/changelog`).
 - `ui/` – `Embeds.kt` (`Palette`, `Tone`, `notify()`, `progressBar`, `fitLines`, `safeBuild`),
@@ -119,6 +120,10 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   ausgeführt wird (Kilian macht das einmal pro Update). **Bei jedem Update den Inhalt ersetzen** (nicht anhängen):
   nur Neues seit dem letzten Changelog, kurz, für Spieler; `VERSION` = `version` in `build.gradle.kts`
   (prüft `ChangelogTest`, ebenso dass genannte `/befehle` existieren – sie werden automatisch anklickbar).
+- **Rollen-Mod (geplant, 17.10.2026)**: eigene Among-Us-Mod mit 30 neuen Rollen, **unabhängig von CrewStats**
+  (keine Rollenwünsche dafür). Rollenliste: `content/SpecialRoles.kt` (17 Crew, 11 Impostor, 2 Neutral + Modifikator
+  Flash; Erpresser höchstens 2× pro Spiel). Bot-Seite: `/special-rolle` (Modul Wissen) ergänzt `/rolle`.
+  Planung: `/mnt/project-files/rollen-mod/rollen-vorschlaege.md` (Projektordner).
 - custom_ids bestehender Buttons (`persistent_control_panel:*`, `bt_move`, `evt_*_p`,
   `persistent_role_dropdown`, `crewstats:undo:<gameId>`, `selfrole:<roleId>`) nicht ändern – sonst gehen alte Nachrichten kaputt.
 - Rollen-Panel (`/rollen-panel`, Admin, postet immer in `Channels.ROLES`): Gruppen in `SELF_ROLE_GROUPS` (`Config.kt`, eine Nachricht je Gruppe,

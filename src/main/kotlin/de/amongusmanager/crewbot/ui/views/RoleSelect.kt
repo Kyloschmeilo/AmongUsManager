@@ -2,7 +2,6 @@
 package de.amongusmanager.crewbot.ui.views
 
 import de.amongusmanager.crewbot.Channels
-import de.amongusmanager.crewbot.content.AmongUsRole
 import de.amongusmanager.crewbot.content.ROLES
 import de.amongusmanager.crewbot.core.await
 import de.amongusmanager.crewbot.core.describe
@@ -44,16 +43,17 @@ object RoleSelect {
             .field("Team", role.team.label)
             .build()
         event.replyEmbeds(embed).setEphemeral(true).await()
-        logSelection(event, role)
+        logSelection(event, role.name)
     }
 
-    private suspend fun logSelection(event: StringSelectInteractionEvent, role: AmongUsRole) {
+    /** Schreibt ins Rollen-Log, wer sich welche Rolle angesehen hat (auch für /special-rolle). */
+    suspend fun logSelection(event: StringSelectInteractionEvent, roleName: String) {
         val channel = event.jda.getChannelById(GuildMessageChannel::class.java, Channels.ROLE_LOG) ?: return
         val user = event.user
         val displayName = event.member?.effectiveName ?: user.effectiveName
         val embed = EmbedBuilder()
             .setTitle("🔍 Rollen-Auswahl")
-            .setDescription("${user.asMention} ($displayName) hat sich die Rolle **${role.name}** anzeigen lassen.")
+            .setDescription("${user.asMention} ($displayName) hat sich die Rolle **$roleName** anzeigen lassen.")
             .setColor(Palette.INFO)
             .setFooter("User-ID: ${user.id}")
             .build()

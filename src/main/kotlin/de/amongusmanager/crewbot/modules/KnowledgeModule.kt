@@ -1,4 +1,4 @@
-/* Among-Us-Wissen: Vent-Karten, Map-Infos und Rollen-Erklärungen. */
+/* Among-Us-Wissen: Vent-Karten, Map-Infos und Rollen-Erklärungen (Spiel und Rollen-Mod). */
 package de.amongusmanager.crewbot.modules
 
 import de.amongusmanager.crewbot.content.MAPS
@@ -10,6 +10,7 @@ import de.amongusmanager.crewbot.core.stringOption
 import de.amongusmanager.crewbot.ui.Palette
 import de.amongusmanager.crewbot.ui.field
 import de.amongusmanager.crewbot.ui.views.RoleSelect
+import de.amongusmanager.crewbot.ui.views.SpecialRoleSelect
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.commands.OptionType
@@ -50,6 +51,12 @@ class KnowledgeModule : CrewModule("Among Us Wissen", "📚") {
         SlashCommand("rolle", "Erklärt dir eine Among Us Rolle") { event ->
             event.reply("Wähle eine Rolle aus dem Menü, um ihre Erklärung zu lesen:")
                 .setComponents(RoleSelect.row())
+                .setEphemeral(true)
+                .await()
+        },
+        SlashCommand("special-rolle", "Erklärt dir eine Rolle aus unserer Rollen-Mod") { event ->
+            event.reply("Wähle eine Spezialrolle aus einem der Menüs, um ihre Erklärung zu lesen:")
+                .setComponents(SpecialRoleSelect.rows())
                 .setEphemeral(true)
                 .await()
         },
