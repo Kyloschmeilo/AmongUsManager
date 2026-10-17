@@ -234,9 +234,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Container; auch Weltkoordinaten-Ansatz klappte nicht) → zurückgenommen, Nutzer will es so lassen.
   Falls doch: Schalter in den Reiter „Graphics“ verschieben oder nur per Config.
 - **Verteilung & Updates**: Repo `mod/` (nur Mod + Installer, kein Bot-Code, keine Webhook-URLs!).
-  Aktuelles Release: **v1.3.1** (17.10.2026, Quick-Chat-Kick-Fix; 1.3.0 kickt Hosts mit „Nur Quick Chat“,
-  v1.1.0 hat ein kaputtes Auto-Update). **1.3.2** (keine Chat-Nachrichten, Rollen selbst würfeln) gebaut, gepusht, beim Nutzer
-  lokal installiert – Release offen (Notizen in `release-notes/v1.3.2.md`). `IncludeSourceRevision-
+  Aktuelles Release: **v1.3.2** (17.10.2026: keine Chat-Nachrichten, Rollen selbst würfeln). 1.3.0 kickt Hosts
+  mit „Nur Quick Chat“ (Fix in 1.3.1), v1.1.0 hat ein kaputtes Auto-Update. `IncludeSourceRevision-
   InInformationalVersion=false` in der csproj nicht entfernen – sonst „1.2.0+commit“ und der Updater
   kann nicht vergleichen. `installer/CrewStats-Installer.bat` (Batch/PowerShell-Hybrid, **CRLF, ohne
   BOM** – `sed` entfernt CRLF, danach wiederherstellen) findet Among Us über Steam, installiert
