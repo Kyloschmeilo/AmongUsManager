@@ -203,7 +203,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   „Banned“ für diese Lobby). So in 1.3.0 passiert (Rollenwunsch-Hinweis beim Start, Kein-Skip-Hinweis).
   `GameChat.TrySend` sendet nur mit Free Chat und nach der Sende-Pause (3 s), sonst `ShowLocal`
   (`AddChatWarning`, nur lokal). Ohne Free Chat: Rollenwünsche werden nicht angewendet (sofort `absent`,
-  bleiben beim Bot offen), Kein-Skip-Regel gilt, Hinweis nur beim Host. Seit 1.3.1 (noch nicht released).
+  bleiben beim Bot offen), Kein-Skip-Regel gilt, Hinweis nur beim Host. Seit 1.3.1.
   Der Nutzer selbst hat „Nur Quick Chat“ eingestellt.
 - **Lobby-Ankündigung** (`LobbyReporter.cs`, Config `[Lobby] Announce`, Standard an): nur als Host in
   Online-Lobbys; `{"crewstats":"lobby","state":"open|started|closed","code","map","players","max",
@@ -229,8 +229,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Container; auch Weltkoordinaten-Ansatz klappte nicht) → zurückgenommen, Nutzer will es so lassen.
   Falls doch: Schalter in den Reiter „Graphics“ verschieben oder nur per Config.
 - **Verteilung & Updates**: Repo `mod/` (nur Mod + Installer, kein Bot-Code, keine Webhook-URLs!).
-  Aktuelles Release: **v1.3.0** (Rollenwünsche; v1.1.0 hat ein kaputtes Auto-Update; **1.3.0 kickt
-  Hosts mit „Nur Quick Chat“** – Fix 1.3.1 gebaut, gepusht, beim Nutzer lokal installiert, Release offen). `IncludeSourceRevision-
+  Aktuelles Release: **v1.3.1** (17.10.2026, Quick-Chat-Kick-Fix; 1.3.0 kickt Hosts mit „Nur Quick Chat“,
+  v1.1.0 hat ein kaputtes Auto-Update). `IncludeSourceRevision-
   InInformationalVersion=false` in der csproj nicht entfernen – sonst „1.2.0+commit“ und der Updater
   kann nicht vergleichen. `installer/CrewStats-Installer.bat` (Batch/PowerShell-Hybrid, **CRLF, ohne
   BOM** – `sed` entfernt CRLF, danach wiederherstellen) findet Among Us über Steam, installiert
