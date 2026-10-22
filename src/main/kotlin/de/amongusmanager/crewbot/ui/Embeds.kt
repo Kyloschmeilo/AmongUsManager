@@ -17,6 +17,7 @@ object Palette {
     const val PURPLE = 0x9B59B6
     const val EVENT = 0xFF00FF
     const val CARD = 0xF5F5F7
+    const val ACCENT = 0x1FBF7A // Akzent des Standard-Designs (Smaragdgrün), z.B. für /tutorial
 
     // Weitere Farben wie in discord.py
     const val BLURPLE = 0x5865F2

@@ -4,6 +4,8 @@ package de.amongusmanager.crewbot.modules
 import de.amongusmanager.crewbot.Channels
 import de.amongusmanager.crewbot.SELF_ROLE_GROUPS
 import de.amongusmanager.crewbot.content.Changelog
+import de.amongusmanager.crewbot.content.TUTORIALS
+import de.amongusmanager.crewbot.content.tutorial
 import de.amongusmanager.crewbot.content.verdictFor
 import de.amongusmanager.crewbot.core.CrewBot
 import de.amongusmanager.crewbot.core.CrewModule
@@ -11,10 +13,12 @@ import de.amongusmanager.crewbot.core.SlashCommand
 import de.amongusmanager.crewbot.core.author
 import de.amongusmanager.crewbot.core.await
 import de.amongusmanager.crewbot.core.memberOption
+import de.amongusmanager.crewbot.core.stringOption
 import de.amongusmanager.crewbot.services.RolePanelMessage
 import de.amongusmanager.crewbot.ui.Palette
 import de.amongusmanager.crewbot.ui.Tone
 import de.amongusmanager.crewbot.ui.buildChangelogEmbed
+import de.amongusmanager.crewbot.ui.buildTutorialEmbed
 import de.amongusmanager.crewbot.ui.notify
 import de.amongusmanager.crewbot.ui.field
 import de.amongusmanager.crewbot.ui.safeBuild
@@ -23,6 +27,7 @@ import de.amongusmanager.crewbot.ui.views.RolePanel
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
+import net.dv8tion.jda.api.interactions.commands.Command
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import kotlin.random.Random
@@ -85,6 +90,21 @@ class AdminModule(private val bot: CrewBot) : CrewModule("Admin", "🛠️") {
         ) { event ->
             event.channel.sendMessageEmbeds(buildChangelogEmbed(bot::mentionCommand)).await()
             event.notify("✅ Changelog ${Changelog.VERSION} gepostet.", Tone.SUCCESS)
+        },
+        SlashCommand(
+            "tutorial", "Postet ein Tutorial für Spieler in diesen Channel oder Thread", Permission.ADMINISTRATOR,
+            options = listOf(
+                OptionData(OptionType.STRING, "thema", "Welches Tutorial?", true)
+                    .addChoices(TUTORIALS.map { Command.Choice(it.label, it.key) }),
+            ),
+        ) { event ->
+            val tutorial = tutorial(event.stringOption("thema"))
+            if (tutorial == null) {
+                event.notify("❌ Dieses Tutorial gibt es nicht.", Tone.ERROR)
+                return@SlashCommand
+            }
+            event.channel.sendMessageEmbeds(buildTutorialEmbed(tutorial, bot::mentionCommand)).await()
+            event.notify("✅ Tutorial „${tutorial.label}“ gepostet.", Tone.SUCCESS)
         },
     )
 }

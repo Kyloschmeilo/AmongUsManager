@@ -80,7 +80,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - `content/` – Texte & Daten: `AmongUs.kt` (Rollen für `/rolle` inkl. Influencer, Maps), `SpecialRoles.kt`
   (30 Rollen + Modifikatoren der Rollen-Mod SpecialRoles für `/special-rolle`, zwei Menüs wegen Discords 25er-Grenze),
   `GameSettingsContent.kt` (deutsche Namen/Kategorien der Lobby-Optionen), `Achievements.kt`
-  (Erfolge – ids nie umbenennen, sind gespeichert), `Minecraft.kt`, `Changelog.kt` (Inhalt von `/changelog`).
+  (Erfolge – ids nie umbenennen, sind gespeichert), `Minecraft.kt`, `Changelog.kt` (Inhalt von `/changelog`), `Tutorials.kt` (Inhalt von `/tutorial`).
 - `ui/` – `Embeds.kt` (`Palette`, `Tone`, `notify()`, `progressBar`, `fitLines`, `safeBuild`),
   `Text.kt` (`escapeMarkdown`/`urlQuote` wie discord.py/Python), `InsightsUi.kt`, `ProfileUi.kt`,
   `LobbyUi.kt`, `MinecraftUi.kt`, `views/` (Buttons/Menüs). Menüs mit Timeout erben von
@@ -120,6 +120,11 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   ausgeführt wird (Kilian macht das einmal pro Update). **Bei jedem Update den Inhalt ersetzen** (nicht anhängen):
   nur Neues seit dem letzten Changelog, kurz, für Spieler; `VERSION` = `version` in `build.gradle.kts`
   (prüft `ChangelogTest`, ebenso dass genannte `/befehle` existieren – sie werden automatisch anklickbar).
+- **`/tutorial`** (Admin, Modul Admin, Auswahl `thema`): postet ein Spieler-Tutorial als Embed in den aktuellen
+  Channel/Thread – wichtigste Befehle, Account verknüpfen, Special-Rollen (`content/Tutorials.kt`, `ui/TutorialUi.kt`).
+  Im Standard-Design (Akzent `Palette.ACCENT` #1FBF7A, Abschnitte in Großbuchstaben, keine Emoji-Aufzählungen).
+  `/befehle` im Text werden anklickbar (`linkCommands` in `ui/Text.kt`), `TutorialTest` prüft, dass es sie gibt.
+  Special-Rollen-Text bei Änderungen an Installation/Bedienung der Rollen-Mod mitziehen.
 - **Rollen-Mod SpecialRoles** (Repo Kyloschmeilo/SpecialRoles, seit 22.10.2026 alle 30 Rollen in 0.2.0): eigene
   Among-Us-Mod, **unabhängig von CrewStats** (keine Rollenwünsche dafür). Rollenliste: `content/SpecialRoles.kt`
   (17 Crew, 11 Impostor, 2 Neutral + Modifikator Flash; Erpresser höchstens 2× pro Spiel). Bot-Seite:

@@ -38,3 +38,12 @@ fun urlQuote(text: String): String {
     }
     return result.toString()
 }
+
+/** „/befehl“ im Text (nicht in Links oder Mentions). */
+private val COMMAND = Regex("""(?<![\w</:])/([a-z0-9-]+)""")
+
+/** Befehle, die im Text vorkommen (für Tests, ob es sie gibt). */
+fun commandsIn(text: String): Set<String> = COMMAND.findAll(text).map { it.groupValues[1] }.toSet()
+
+/** Macht „/befehl“ im Text anklickbar; `mention` ist `bot.mentionCommand`. */
+fun linkCommands(text: String, mention: (String) -> String): String = COMMAND.replace(text) { mention(it.groupValues[1]) }
