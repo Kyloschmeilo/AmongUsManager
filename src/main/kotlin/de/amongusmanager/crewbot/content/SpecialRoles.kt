@@ -20,7 +20,8 @@ val SPECIAL_ROLES: Map<String, SpecialRole> = listOf(
     ),
     SpecialRole(
         "Medic", SpecialTeam.CREW, "🩺",
-        "Du gibst einem Spieler einen Schild, der einen Angriff abwehrt. Wird der Schild gebrochen, erfährst du es.",
+        "Du gibst einem Spieler einen Schild, der einen Angriff abwehrt. Wird der Schild gebrochen, erfahrt ihr" +
+            " es beide, und nach kurzer Zeit kannst du einen neuen vergeben.",
     ),
     SpecialRole(
         "Bürgermeister", SpecialTeam.CREW, "🎩",
@@ -41,7 +42,7 @@ val SPECIAL_ROLES: Map<String, SpecialRole> = listOf(
     ),
     SpecialRole(
         "Fallensteller", SpecialTeam.CREW, "🪤",
-        "Du stellst eine Falle auf. Wer hineinläuft, steht kurz fest, und du erfährst seine Farbe.",
+        "Du stellst Fallen auf, die nur du siehst. Läuft jemand hinein, erfährst du, wer es war.",
     ),
     SpecialRole(
         "Medium", SpecialTeam.CREW, "🔮",
@@ -61,19 +62,19 @@ val SPECIAL_ROLES: Map<String, SpecialRole> = listOf(
     ),
     SpecialRole(
         "Mechaniker", SpecialTeam.CREW, "🔩",
-        "Du reparierst einmal pro Runde eine Sabotage von überall auf der Map.",
+        "Du reparierst einmal pro Runde alle Sabotagen von überall auf der Map.",
     ),
     SpecialRole(
         "Transporter", SpecialTeam.CREW, "🔄",
-        "Du tauschst die Plätze zweier Spieler auf der Karte.",
+        "Du markierst einen Spieler und tauschst ihn dann mit einem zweiten – beide landen am Platz des anderen.",
     ),
     SpecialRole(
         "Orakel", SpecialTeam.CREW, "🧿",
-        "Du wählst einen Spieler. Stirbst du, wird im nächsten Meeting verraten, in welchem Team er ist.",
+        "Du wählst einen Spieler. Stirbst du, erfahren alle, in welchem Team er ist – auch im Meeting an seinem Namen.",
     ),
     SpecialRole(
         "Kameramann", SpecialTeam.CREW, "🎥",
-        "Du stellst zwei eigene Kameras irgendwo auf der Map auf, die man in Security sehen kann.",
+        "Du stellst zwei eigene Kameras irgendwo auf der Map auf und schaust durch sie hindurch. Nur du siehst sie.",
     ),
     SpecialRole(
         "Türwächter", SpecialTeam.CREW, "🚪",
@@ -81,7 +82,7 @@ val SPECIAL_ROLES: Map<String, SpecialRole> = listOf(
     ),
     SpecialRole(
         "Glückspilz", SpecialTeam.CREW, "🍀",
-        "Wirst du angegriffen, überlebst du einmal mit 50 % Chance. Der Impostor weiß nicht, dass du es bist.",
+        "Wirst du angegriffen, überlebst du einmal mit 50 % Chance. Der Angreifer merkt nur, dass es nicht geklappt hat.",
     ),
     // ---------- Impostor ----------
     SpecialRole(
@@ -94,11 +95,13 @@ val SPECIAL_ROLES: Map<String, SpecialRole> = listOf(
     ),
     SpecialRole(
         "Vampir", SpecialTeam.IMPOSTOR, "🧛",
-        "Du beißt statt zu töten: Dein Opfer stirbt erst 10 Sekunden später – dann bist du längst weg.",
+        "Du beißt statt zu töten: Dein Opfer stirbt erst 10 Sekunden später – dann bist du längst weg. Wird vorher" +
+            " ein Meeting einberufen, stirbt es sofort.",
     ),
     SpecialRole(
         "Bomber", SpecialTeam.IMPOSTOR, "💣",
-        "Du klebst einem Spieler eine Bombe an. Nach ein paar Sekunden explodiert sie und tötet alle in der Nähe.",
+        "Du klebst einem Spieler eine Bombe an. Nach ein paar Sekunden explodiert sie und tötet ihn und alle" +
+            " Crewmates in der Nähe. Kommt vorher ein Meeting, ist sie entschärft.",
     ),
     SpecialRole(
         "Grenadier", SpecialTeam.IMPOSTOR, "💥",
@@ -106,12 +109,12 @@ val SPECIAL_ROLES: Map<String, SpecialRole> = listOf(
     ),
     SpecialRole(
         "Maulwurf", SpecialTeam.IMPOSTOR, "🕳️",
-        "Du baust bis zu drei eigene Vents, die nur Impostor benutzen können.",
+        "Du baust bis zu drei eigene Vents, die miteinander verbunden sind.",
     ),
     SpecialRole(
         "Erpresser", SpecialTeam.IMPOSTOR, "🤐",
-        "Ein Spieler darf im nächsten Meeting nicht reden (er bekommt ein Symbol am Namen). Höchstens zweimal" +
-            " pro Spiel.",
+        "Ein Spieler darf im nächsten Meeting nicht schreiben und nicht reden (hinter seinem Namen steht" +
+            " „erpresst“). Höchstens zweimal pro Spiel.",
     ),
     SpecialRole(
         "Tarner", SpecialTeam.IMPOSTOR, "🫥",
@@ -119,7 +122,8 @@ val SPECIAL_ROLES: Map<String, SpecialRole> = listOf(
     ),
     SpecialRole(
         "Hexenmeister", SpecialTeam.IMPOSTOR, "🧙",
-        "Du verfluchst einen Spieler. Dein nächster Kill passiert durch seine Hand – er steht neben der Leiche.",
+        "Du verfluchst einen Spieler und löst den Fluch später aus: Wer dann neben ihm steht, stirbt – er steht" +
+            " neben der Leiche, du kannst weit weg sein.",
     ),
     SpecialRole(
         "Armor", SpecialTeam.IMPOSTOR, "🦺",
@@ -128,7 +132,7 @@ val SPECIAL_ROLES: Map<String, SpecialRole> = listOf(
     ),
     SpecialRole(
         "Saboteur", SpecialTeam.IMPOSTOR, "🔌",
-        "Deine Sabotagen haben einen kürzeren Cooldown, und Türen bleiben bei dir länger zu.",
+        "Solange du lebst, sind Sabotagen doppelt so schnell wieder bereit.",
     ),
     // ---------- Neutral ----------
     SpecialRole(
@@ -137,7 +141,8 @@ val SPECIAL_ROLES: Map<String, SpecialRole> = listOf(
     ),
     SpecialRole(
         "Vergesslicher", SpecialTeam.NEUTRAL, "🧠",
-        "Du weißt noch nicht, wer du bist: Stell dich an eine Leiche und übernimm ihre Rolle.",
+        "Du weißt noch nicht, wer du bist: Stell dich an eine Leiche und übernimm ihre Rolle. War sie Impostor," +
+            " wirst du Impostor.",
     ),
     // ---------- Modifikatoren (zusätzlich zur Rolle, zählen nicht zu den 30) ----------
     SpecialRole(
