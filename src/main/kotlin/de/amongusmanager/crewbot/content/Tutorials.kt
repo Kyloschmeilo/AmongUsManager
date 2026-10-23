@@ -1,7 +1,8 @@
 /*
  * Inhalt von /tutorial: Anleitungen für Spieler, die ein Admin in einen Channel oder Thread postet.
  * „/befehl“ im Text wird automatisch anklickbar (ein Test prüft, dass es die Befehle gibt).
- * Das Special-Rollen-Tutorial beschreibt die Rollen-Mod SpecialRoles – mit deren README gemeinsam ändern.
+ * Die Special-Rollen-Tutorials beschreiben die Mod The Other Roles (GMIA) und unseren TheOtherRoles-Installer
+ * (liegt nicht auf GitHub, Kilian postet die .bat im Discord) – bei Änderungen am Installer mitziehen.
  */
 package de.amongusmanager.crewbot.content
 
@@ -20,7 +21,9 @@ data class Tutorial(
     val footer: String,
 )
 
-private const val SPECIAL_ROLES_RELEASES = "https://github.com/Kyloschmeilo/SpecialRoles/releases"
+const val TOR_GITHUB = "https://github.com/GMIA-Nexus/TheOtherRolesGMIA"
+
+private fun teamCount(team: SpecialTeam) = SPECIAL_ROLES.values.count { it.team == team }
 
 val TUTORIALS: List<Tutorial> = listOf(
     Tutorial(
@@ -64,7 +67,7 @@ val TUTORIALS: List<Tutorial> = listOf(
             TutorialSection(
                 "WISSEN",
                 listOf(
-                    "/rolle und /special-rolle – erklären jede Rolle aus dem Spiel und aus unserer Rollen-Mod",
+                    "/rolle und /special-rolle – erklären jede Rolle aus dem Spiel und aus der Mod The Other Roles",
                     "/map-info und /vents – Kameras, Gefahrenzonen und das Vent-Netz jeder Map",
                     "/rundensettings – die Lobby-Einstellungen der letzten Runde",
                 ),
@@ -124,46 +127,51 @@ val TUTORIALS: List<Tutorial> = listOf(
     ),
     Tutorial(
         key = "special-rollen",
-        label = "Special-Rollen",
-        title = "Special-Rollen: 30 neue Rollen",
-        intro = "Unsere eigene Mod **SpecialRoles** bringt 30 neue Rollen ins Spiel: 17 für die Crew, 11 für" +
-            " Impostor und 2 neutrale, dazu den Modifikator Flash.",
+        label = "Special-Rollen (The Other Roles)",
+        title = "The Other Roles: über 90 neue Rollen",
+        intro = "Wir spielen mit der Mod **The Other Roles** (Version GMIA). Sie bringt" +
+            " ${teamCount(SpecialTeam.CREW)} Crew-, ${teamCount(SpecialTeam.IMPOSTOR)} Impostor- und" +
+            " ${teamCount(SpecialTeam.NEUTRAL)} neutrale Rollen, ${teamCount(SpecialTeam.BOTH)} Rollen für beide Teams und" +
+            " ${teamCount(SpecialTeam.MODIFIER)} Modifikatoren ins Spiel.",
         sections = listOf(
             TutorialSection(
                 "INSTALLIEREN",
                 listOf(
-                    "1. Auf [GitHub]($SPECIAL_ROLES_RELEASES) beim neuesten Release `SpecialRoles-Installer.bat`" +
-                        " herunterladen",
+                    "1. Lade die Datei `TheOtherRoles-Installer.bat` herunter, die hier im Channel gepostet ist",
                     "2. Doppelklicken. Warnt Windows, klick **Weitere Informationen → Trotzdem ausführen**",
-                    "3. Enter drücken – der Installer findet Among Us und installiert BepInEx und die Mod",
-                    "Der erste Spielstart dauert 1–2 Minuten. Updates installiert die Mod beim Spielstart selbst," +
-                        " danach Among Us neu starten. Deinstallieren: Installer starten und `2` wählen",
+                    "3. Enter drücken – der Installer findet Among Us, legt daneben eine eigene Kopie für die Mod an" +
+                        " und installiert dort alles. Dein normales Among Us bleibt unverändert",
+                    "4. Starte die Mod über die neue Desktop-Verknüpfung **Among Us - The Other Roles** (Steam muss" +
+                        " laufen). Über Steam startest du weiter das normale Among Us",
+                    "Der erste Start dauert 1–2 Minuten. Neue Version oder Among-Us-Update? Installer nochmal" +
+                        " starten. Deinstallieren: Installer starten und `2` wählen",
                 ),
             ),
             TutorialSection(
                 "WICHTIG",
                 listOf(
                     "**Alle Spieler der Lobby** brauchen die Mod in derselben Version",
-                    "Nur für Among Us auf Steam (64-Bit)",
+                    "Gespielt wird auf dem Server **Modded EU** – der Installer stellt ihn schon ein." +
+                        " Auf den normalen Among-Us-Servern geht die Mod nicht",
+                    "Nur für Among Us auf Steam (Windows, 64-Bit). Die Mod selbst: [GitHub]($TOR_GITHUB)",
                 ),
             ),
             TutorialSection(
                 "IM SPIEL",
                 listOf(
-                    "Der Host verteilt die Rollen beim Rundenstart fair per Zufall – zusätzlich zu deiner Spielrolle." +
-                        " Crewmates bekommen Crew- oder Neutral-Rollen, Impostor nur Impostor-Rollen",
-                    "Deine Rolle steht unter deinem Namen und oben in der Aufgabenliste. Nur du siehst sie",
-                    "Fähigkeiten liegen auf einem eigenen Knopf neben dem Kill-Knopf, Taste `F`" +
-                        " (Sheriff `Q`, Kameramann zusätzlich `G`)",
-                    "Hinweise wie „Dein Schild hat dich gerettet“ erscheinen oben in der Bildschirmmitte – nie im Chat",
+                    "Deine Rolle siehst du beim Rundenstart und unter deinem Namen – nur du siehst sie",
+                    "Fähigkeiten liegen auf eigenen Knöpfen unten rechts neben dem Kill-Knopf",
+                    "Die Mod ist auf Englisch – die Rollen heißen im Spiel genauso wie bei /special-rolle",
+                    "Welche Rollen wie oft vorkommen, stellt der Host in der Lobby in den Spiel-Einstellungen ein",
                 ),
             ),
             TutorialSection(
                 "DIE ROLLEN",
                 listOf(
                     "Was jede Rolle kann, erklärt dir /special-rolle",
-                    "Neutral: Der **Narr** gewinnt allein, wenn er rausgewählt wird." +
-                        " Als **Vergesslicher** übernimmst du an einer Leiche deren Rolle",
+                    "Neutrale spielen für sich: Der **Jester** gewinnt, wenn er rausgewählt wird," +
+                        " der **Jackal** will alle anderen ausschalten",
+                    "Modifikatoren wie **Lovers** oder **Mini** bekommst du zusätzlich zu deiner Rolle",
                 ),
             ),
         ),
@@ -172,17 +180,17 @@ val TUTORIALS: List<Tutorial> = listOf(
     Tutorial(
         key = "special-rollen-liste",
         label = "Alle Special-Rollen erklärt",
-        title = "Alle Special-Rollen auf einen Blick",
-        intro = "Das kann jede Rolle der Rollen-Mod. Fähigkeiten liegen auf Taste `F` (Sheriff `Q`," +
-            " Kameramann zusätzlich `G`). Eine einzelne Rolle mit allen Details zeigt dir /special-rolle.",
+        title = "Alle Rollen aus The Other Roles",
+        intro = "Das kann jede Rolle der Mod The Other Roles. Eine einzelne Rolle zeigt dir /special-rolle.",
         sections = SpecialTeam.entries.mapNotNull { team ->
-            val roles = SPECIAL_ROLES.values.filter { it.team == team }
+            val roles = SPECIAL_ROLES.values.filter { it.team == team }.sortedBy { it.name }
             if (roles.isEmpty()) return@mapNotNull null
             val title = when (team) {
                 SpecialTeam.CREW -> "CREWMATES · ${roles.size}"
                 SpecialTeam.IMPOSTOR -> "IMPOSTOR · ${roles.size}"
-                SpecialTeam.NEUTRAL -> "NEUTRAL · ${roles.size} · GEWINNEN ALLEIN"
-                SpecialTeam.MODIFIER -> "MODIFIKATOR · ZUSÄTZLICH ZUR ROLLE"
+                SpecialTeam.NEUTRAL -> "NEUTRAL · ${roles.size} · SPIELEN FÜR SICH"
+                SpecialTeam.BOTH -> "CREW ODER IMPOSTOR · ${roles.size}"
+                SpecialTeam.MODIFIER -> "MODIFIKATOREN · ${roles.size} · ZUSÄTZLICH ZUR ROLLE"
             }
             TutorialSection(title, roles.map { "**${it.name}** – ${it.description}" })
         },

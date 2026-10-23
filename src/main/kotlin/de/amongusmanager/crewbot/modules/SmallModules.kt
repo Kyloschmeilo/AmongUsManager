@@ -18,7 +18,7 @@ import de.amongusmanager.crewbot.services.RolePanelMessage
 import de.amongusmanager.crewbot.ui.Palette
 import de.amongusmanager.crewbot.ui.Tone
 import de.amongusmanager.crewbot.ui.buildChangelogEmbed
-import de.amongusmanager.crewbot.ui.buildTutorialEmbed
+import de.amongusmanager.crewbot.ui.buildTutorialEmbeds
 import de.amongusmanager.crewbot.ui.notify
 import de.amongusmanager.crewbot.ui.field
 import de.amongusmanager.crewbot.ui.safeBuild
@@ -103,7 +103,8 @@ class AdminModule(private val bot: CrewBot) : CrewModule("Admin", "🛠️") {
                 event.notify("❌ Dieses Tutorial gibt es nicht.", Tone.ERROR)
                 return@SlashCommand
             }
-            event.channel.sendMessageEmbeds(buildTutorialEmbed(tutorial, bot::mentionCommand)).await()
+            // Lange Tutorials (alle Rollen) kommen in mehreren Nachrichten nacheinander
+            for (embed in buildTutorialEmbeds(tutorial, bot::mentionCommand)) event.channel.sendMessageEmbeds(embed).await()
             event.notify("✅ Tutorial „${tutorial.label}“ gepostet.", Tone.SUCCESS)
         },
     )

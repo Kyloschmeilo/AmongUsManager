@@ -78,7 +78,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Protokoll + Verschlüsselung mit der Mod), `welcome` (Willkommens-/Abschiedsnachricht). Mehrteilige Änderungen laufen in einer DB-Transaktion; Discord-
   Aufrufe (Level-Rollen) erst danach.
 - `content/` – Texte & Daten: `AmongUs.kt` (Rollen für `/rolle` inkl. Influencer, Maps), `SpecialRoles.kt`
-  (30 Rollen + Modifikatoren der Rollen-Mod SpecialRoles für `/special-rolle`, zwei Menüs wegen Discords 25er-Grenze),
+  (92 Rollen + Modifikatoren der Mod The Other Roles (GMIA) für `/special-rolle`, fünf Menüs wegen Discords 25er-Grenze),
   `GameSettingsContent.kt` (deutsche Namen/Kategorien der Lobby-Optionen), `Achievements.kt`
   (Erfolge – ids nie umbenennen, sind gespeichert), `Minecraft.kt`, `Changelog.kt` (Inhalt von `/changelog`), `Tutorials.kt` (Inhalt von `/tutorial`).
 - `ui/` – `Embeds.kt` (`Palette`, `Tone`, `notify()`, `progressBar`, `fitLines`, `safeBuild`),
@@ -122,15 +122,28 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   (prüft `ChangelogTest`, ebenso dass genannte `/befehle` existieren – sie werden automatisch anklickbar).
 - **`/tutorial`** (Admin, Modul Admin, Auswahl `thema`): postet ein Spieler-Tutorial als Embed in den aktuellen
   Channel/Thread – wichtigste Befehle, Account verknüpfen, Special-Rollen (Installation/Bedienung) und alle Special-Rollen
-  erklärt (aus `SPECIAL_ROLES` erzeugt, lange Abschnitte per `addChunked` auf mehrere Felder) (`content/Tutorials.kt`, `ui/TutorialUi.kt`).
+  erklärt (aus `SPECIAL_ROLES` erzeugt, lange Abschnitte per `addChunked` auf mehrere Felder; passt es nicht in 6000 Zeichen,
+  verteilt `buildTutorialEmbeds` es auf mehrere Nachrichten) (`content/Tutorials.kt`, `ui/TutorialUi.kt`).
   Im Standard-Design (Akzent `Palette.ACCENT` #1FBF7A, Abschnitte in Großbuchstaben, keine Emoji-Aufzählungen).
   `/befehle` im Text werden anklickbar (`linkCommands` in `ui/Text.kt`), `TutorialTest` prüft, dass es sie gibt.
-  Special-Rollen-Text bei Änderungen an Installation/Bedienung der Rollen-Mod mitziehen.
-- **Rollen-Mod SpecialRoles** (Repo Kyloschmeilo/SpecialRoles, alle 30 Rollen, seit 23.10.2026 als **1.0.0** veröffentlicht, ab **1.0.1** mit Auto-Update): eigene
+  Special-Rollen-Text bei Änderungen am TheOtherRoles-Installer mitziehen.
+- **The Other Roles** (seit 23.10.2026, Kilian: „ganz anderer Ansatz“ – ersetzt die eigene Rollen-Mod SpecialRoles):
+  Das Original (TheOtherRolesAU, letzte Version 4.8.0 für Among Us 2024.11.26, 32-Bit) läuft nicht mit 2026.9.29 →
+  Kilian hat **TheOtherRoles GMIA** gewählt (github.com/GMIA-Nexus/TheOtherRolesGMIA, 1.4.1 vom 11.10.2026, GameLibs
+  2026.9.29, BepInEx be.735 x64, Reactor; spielt auf „Modded EU“, Mini.RegionInstall entfernt die normalen Server; Mod-Texte
+  nur Englisch/Japanisch/Chinesisch). `content/SpecialRoles.kt` = deren Rollen (Texte aus `stringData.json` in der DLL),
+  `/special-rolle` (Modul Wissen) + Tutorials beschreiben sie. **Installer** `TheOtherRoles-Installer.bat` liegt **nicht
+  auf GitHub** (Kilian: „gib mir nur die Datei“), sondern in `/mnt/project-files/theotherroles/`; Kilian postet ihn im
+  Discord. Er kopiert das Steam-Among-Us nach `Among Us - The Other Roles` (ohne BepInEx/Mods, Marker
+  `.theotherroles-installer`), entpackt dort das neueste GMIA-Release-Zip (Fallback 1.4.1), übernimmt auf Wunsch CrewStats
+  (+ Config) und legt eine Desktop-Verknüpfung an; Start der Kopie direkt per exe (Steam muss laufen). Testen mit
+  `TOR_GAME_DIR`, `TOR_COPY_DIR`, `TOR_ZIP` (portables pwsh, `Read-Host` per Funktion überschreiben). CRLF, ohne BOM;
+  kein „ “/„ in doppelt quotierten PowerShell-Strings (zählen dort als Anführungszeichen).
+  CrewStats mit TOR (Rollenwünsche/Selbst-Würfeln) ist ungetestet.
+- **Rollen-Mod SpecialRoles** (nicht mehr im Bot, seit 23.10.2026 durch The Other Roles ersetzt; Repo Kyloschmeilo/SpecialRoles, alle 30 Rollen, seit 23.10.2026 als **1.0.0** veröffentlicht, ab **1.0.1** mit Auto-Update): eigene
   Among-Us-Mod, **unabhängig von CrewStats** (keine Rollenwünsche dafür). Rollenliste: `content/SpecialRoles.kt`
-  (17 Crew, 11 Impostor, 2 Neutral + Modifikator Flash; Erpresser höchstens 2× pro Spiel). Bot-Seite:
-  `/special-rolle` (Modul Wissen) ergänzt `/rolle`. Texte beschreiben das Verhalten der Mod – mit `Core/Roles.cs`
-  dort gemeinsam ändern. Planung: `/mnt/project-files/rollen-mod/rollen-vorschlaege.md` (Projektordner).
+  (17 Crew, 11 Impostor, 2 Neutral + Modifikator Flash; Erpresser höchstens 2× pro Spiel). Die alten Bot-Texte dazu
+  stehen in der Git-Historie (bis v2.3.0). Planung: `/mnt/project-files/rollen-mod/rollen-vorschlaege.md` (Projektordner).
 - custom_ids bestehender Buttons (`persistent_control_panel:*`, `bt_move`, `evt_*_p`,
   `persistent_role_dropdown`, `crewstats:undo:<gameId>`, `selfrole:<roleId>`) nicht ändern – sonst gehen alte Nachrichten kaputt.
 - Rollen-Panel (`/rollen-panel`, Admin, postet immer in `Channels.ROLES`): Gruppen in `SELF_ROLE_GROUPS` (`Config.kt`, eine Nachricht je Gruppe,
@@ -284,6 +297,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - **Noch nicht im echten Spiel bestätigt**: tatsächliches Muten/Taubschalten durch den Bot,
   „Kein Skip bei Notfall“ (`RpcClearVote`), Lobby-Ankündigung im Discord, Highlights/Erfolge/Recap
   mit echten Daten.
+- Bot **v2.4.0** (23.10.2026, The Other Roles in `/special-rolle` + Tutorials): auf `main`, noch nicht released/deployt.
 - Released am 23.10.2026: Bot **v2.3.0** (`/tutorial`, `/special-rolle`, Recap erst nach 5 h).
 - Released am 12.10.2026: Bot **v2.2.0** (Rollenwünsche, `/changelog`, Willkommen/Abschied, dritte Auto-Rolle;
   JAR am GitHub-Release, Deploy aufs Panel macht der Nutzer) und Mod **v1.3.0** (Rollenwünsche, aktualisiert alle Spieler).
