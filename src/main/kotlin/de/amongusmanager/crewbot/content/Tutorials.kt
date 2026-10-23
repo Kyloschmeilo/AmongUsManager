@@ -127,7 +127,7 @@ val TUTORIALS: List<Tutorial> = listOf(
         label = "Special-Rollen",
         title = "Special-Rollen: 30 neue Rollen",
         intro = "Unsere eigene Mod **SpecialRoles** bringt 30 neue Rollen ins Spiel: 17 für die Crew, 11 für" +
-            " Impostor und 2 neutrale, dazu den Modifikator Flash. Sie ist noch in der Testphase.",
+            " Impostor und 2 neutrale, dazu den Modifikator Flash.",
         sections = listOf(
             TutorialSection(
                 "INSTALLIEREN",
@@ -136,8 +136,8 @@ val TUTORIALS: List<Tutorial> = listOf(
                         " herunterladen",
                     "2. Doppelklicken. Warnt Windows, klick **Weitere Informationen → Trotzdem ausführen**",
                     "3. Enter drücken – der Installer findet Among Us und installiert BepInEx und die Mod",
-                    "Der erste Spielstart dauert 1–2 Minuten. Neue Version: Installer einfach nochmal starten." +
-                        " Deinstallieren: Installer starten und `2` wählen",
+                    "Der erste Spielstart dauert 1–2 Minuten. Updates installiert die Mod beim Spielstart selbst," +
+                        " danach Among Us neu starten. Deinstallieren: Installer starten und `2` wählen",
                 ),
             ),
             TutorialSection(
