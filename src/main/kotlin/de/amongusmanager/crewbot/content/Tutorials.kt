@@ -169,6 +169,25 @@ val TUTORIALS: List<Tutorial> = listOf(
         ),
         footer = "Fehler gefunden? Sag dem Host Bescheid, was passiert ist.",
     ),
+    Tutorial(
+        key = "special-rollen-liste",
+        label = "Alle Special-Rollen erklärt",
+        title = "Alle Special-Rollen auf einen Blick",
+        intro = "Das kann jede Rolle der Rollen-Mod. Fähigkeiten liegen auf Taste `F` (Sheriff `Q`," +
+            " Kameramann zusätzlich `G`). Eine einzelne Rolle mit allen Details zeigt dir /special-rolle.",
+        sections = SpecialTeam.entries.mapNotNull { team ->
+            val roles = SPECIAL_ROLES.values.filter { it.team == team }
+            if (roles.isEmpty()) return@mapNotNull null
+            val title = when (team) {
+                SpecialTeam.CREW -> "CREWMATES · ${roles.size}"
+                SpecialTeam.IMPOSTOR -> "IMPOSTOR · ${roles.size}"
+                SpecialTeam.NEUTRAL -> "NEUTRAL · ${roles.size} · GEWINNEN ALLEIN"
+                SpecialTeam.MODIFIER -> "MODIFIKATOR · ZUSÄTZLICH ZUR ROLLE"
+            }
+            TutorialSection(title, roles.map { "**${it.name}** – ${it.description}" })
+        },
+        footer = "Jeder sieht nur seine eigene Rolle.",
+    ),
 )
 
 fun tutorial(key: String?): Tutorial? = TUTORIALS.firstOrNull { it.key == key }

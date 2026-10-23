@@ -25,7 +25,8 @@ fun buildTutorialEmbed(tutorial: Tutorial, mention: (String) -> String): Message
             val text = linkCommands(line, mention)
             if (line.first().isDigit()) text else "• $text"
         }
-        embed.field(section.title, fitLines(lines), inline = false)
+        // Lange Abschnitte (z.B. alle Crew-Rollen) gehen auf mehrere Felder über statt abgeschnitten zu werden
+        embed.addChunked(section.title, lines)
     }
     return safeBuild(embed)
 }

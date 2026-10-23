@@ -31,8 +31,7 @@ class ChangelogTest {
     fun embedIsClickableAndFits() {
         val embed = buildChangelogEmbed { name -> "</$name:1>" }
         val text = embed.fields.joinToString("\n") { it.value ?: "" }
-        assertTrue("</rollenwunsch:1>" in text && "</rolle-zuweisen:1>" in text)
-        assertTrue("<#${Channels.ROLES}>" in text, "Channel-Mention bleibt unverändert")
+        assertTrue("</special-rolle:1>" in text && "</verknuepfen:1>" in text)
         assertTrue(embed.length <= 6000 && embed.fields.size == Changelog.sections.size)
     }
 }

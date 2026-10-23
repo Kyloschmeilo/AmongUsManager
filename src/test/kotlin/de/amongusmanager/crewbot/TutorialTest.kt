@@ -1,5 +1,6 @@
 package de.amongusmanager.crewbot
 
+import de.amongusmanager.crewbot.content.SPECIAL_ROLES
 import de.amongusmanager.crewbot.content.TUTORIALS
 import de.amongusmanager.crewbot.content.tutorial
 import de.amongusmanager.crewbot.core.CrewBot
@@ -15,7 +16,7 @@ import kotlin.test.assertTrue
 class TutorialTest {
     @Test
     fun threeTutorialsWithUniqueKeys() {
-        assertEquals(listOf("befehle", "verknuepfen", "special-rollen"), TUTORIALS.map { it.key })
+        assertEquals(listOf("befehle", "verknuepfen", "special-rollen", "special-rollen-liste"), TUTORIALS.map { it.key })
         assertEquals(TUTORIALS.size, TUTORIALS.map { it.label }.toSet().size)
         assertEquals("verknuepfen", tutorial("verknuepfen")?.key)
         assertNull(tutorial("gibt-es-nicht"))
@@ -35,9 +36,17 @@ class TutorialTest {
             val embed = buildTutorialEmbed(tutorial) { name -> "</$name:1>" }
             val text = (embed.description ?: "") + embed.fields.joinToString("\n") { it.value ?: "" }
             assertTrue("</" in text, "${tutorial.key}: Befehle sind anklickbar")
-            assertTrue(embed.length <= 6000 && embed.fields.size == tutorial.sections.size, tutorial.key)
-            assertTrue(embed.fields.none { (it.value ?: "").contains("… und") }, "${tutorial.key}: nichts abgeschnitten")
+            assertTrue(embed.length <= 6000 && embed.fields.size >= tutorial.sections.size, tutorial.key)
+            val lines = tutorial.sections.sumOf { it.lines.size }
+            assertEquals(lines, embed.fields.sumOf { (it.value ?: "").lines().size }, "${tutorial.key}: nichts abgeschnitten")
         }
+    }
+
+    @Test
+    fun listExplainsEverySpecialRole() {
+        val embed = buildTutorialEmbed(tutorial("special-rollen-liste")!!) { name -> "</$name:1>" }
+        val text = embed.fields.joinToString("\n") { it.value ?: "" }
+        for (role in SPECIAL_ROLES.values) assertTrue("**${role.name}** – ${role.description}" in text, role.name)
     }
 
     @Test

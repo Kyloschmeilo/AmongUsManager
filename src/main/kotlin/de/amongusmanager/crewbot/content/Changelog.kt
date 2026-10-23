@@ -5,36 +5,31 @@
  */
 package de.amongusmanager.crewbot.content
 
-import de.amongusmanager.crewbot.Channels
 import de.amongusmanager.crewbot.Rules
 
 data class ChangelogSection(val title: String, val lines: List<String>)
 
 object Changelog {
-    const val VERSION = "2.2.0"
+    const val VERSION = "2.3.0"
 
     val sections: List<ChangelogSection> = listOf(
         ChangelogSection(
-            "🎭 Rollen-Panel",
+            "🎭 Special-Rollen",
             listOf(
-                "Im <#${Channels.ROLES}> holst du dir deine Rollen per Knopf: Clans (nur einer), Spiele und Minecraft-Events",
-                "Jeder Knopf zeigt, wie viele die Rolle schon haben",
-                "Neue Mitglieder bekommen die Standard-Rollen automatisch",
+                "/special-rolle erklärt dir jede der 30 Rollen unserer neuen Rollen-Mod SpecialRoles",
+                "Wie du die Mod installierst und was jede Rolle kann, steht in den neuen Tutorials",
             ),
         ),
         ChangelogSection(
-            "🎟️ Rollenwünsche",
+            "📘 Tutorials",
             listOf(
-                "/rollenwunsch: Wünsch dir eine Rolle für deine nächste Among-Us-Runde" +
-                    " (${Rules.ROLE_WISH_COST} XP, ${Rules.ROLE_WISHES_PER_EVENING}× pro Spieleabend, vorher /verknuepfen)",
-                "Ist die Rolle schon vergeben, kommt eine Fehlermeldung – klappt der Wunsch nicht, gibt's die XP zurück",
-                "Admins legen mit /rolle-zuweisen Rollen fest",
-                "Im Spiel-Chat steht offen, wie viele Rollen per Discord kommen",
+                "Neue Anleitungen zu den wichtigsten Befehlen, zum Verknüpfen deines Accounts mit /verknuepfen" +
+                    " und zu den Special-Rollen",
             ),
         ),
         ChangelogSection(
-            "👋 Willkommen",
-            listOf("Neue Mitglieder werden jetzt begrüßt – und wer geht, wird verabschiedet"),
+            "🌙 Spieleabend-Recap",
+            listOf("Der Recap kommt jetzt erst ${Rules.RECAP_AFTER_HOURS} Stunden nach Event-Start statt mitten im Spieleabend"),
         ),
     )
 }

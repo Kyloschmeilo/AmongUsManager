@@ -121,7 +121,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   nur Neues seit dem letzten Changelog, kurz, für Spieler; `VERSION` = `version` in `build.gradle.kts`
   (prüft `ChangelogTest`, ebenso dass genannte `/befehle` existieren – sie werden automatisch anklickbar).
 - **`/tutorial`** (Admin, Modul Admin, Auswahl `thema`): postet ein Spieler-Tutorial als Embed in den aktuellen
-  Channel/Thread – wichtigste Befehle, Account verknüpfen, Special-Rollen (`content/Tutorials.kt`, `ui/TutorialUi.kt`).
+  Channel/Thread – wichtigste Befehle, Account verknüpfen, Special-Rollen (Installation/Bedienung) und alle Special-Rollen
+  erklärt (aus `SPECIAL_ROLES` erzeugt, lange Abschnitte per `addChunked` auf mehrere Felder) (`content/Tutorials.kt`, `ui/TutorialUi.kt`).
   Im Standard-Design (Akzent `Palette.ACCENT` #1FBF7A, Abschnitte in Großbuchstaben, keine Emoji-Aufzählungen).
   `/befehle` im Text werden anklickbar (`linkCommands` in `ui/Text.kt`), `TutorialTest` prüft, dass es sie gibt.
   Special-Rollen-Text bei Änderungen an Installation/Bedienung der Rollen-Mod mitziehen.
@@ -283,6 +284,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - **Noch nicht im echten Spiel bestätigt**: tatsächliches Muten/Taubschalten durch den Bot,
   „Kein Skip bei Notfall“ (`RpcClearVote`), Lobby-Ankündigung im Discord, Highlights/Erfolge/Recap
   mit echten Daten.
+- Released am 23.10.2026: Bot **v2.3.0** (`/tutorial`, `/special-rolle`, Recap erst nach 5 h).
 - Released am 12.10.2026: Bot **v2.2.0** (Rollenwünsche, `/changelog`, Willkommen/Abschied, dritte Auto-Rolle;
   JAR am GitHub-Release, Deploy aufs Panel macht der Nutzer) und Mod **v1.3.0** (Rollenwünsche, aktualisiert alle Spieler).
 - Kotlin-Bot: Logik/Embeds/Befehle/Import per Golden-Tests gegen den Python-Bot geprüft, JAR-Start
