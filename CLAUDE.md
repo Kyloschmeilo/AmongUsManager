@@ -287,13 +287,10 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - Released am 23.10.2026: Bot **v2.3.0** (`/tutorial`, `/special-rolle`, Recap erst nach 5 h).
 - Released am 12.10.2026: Bot **v2.2.0** (Rollenwünsche, `/changelog`, Willkommen/Abschied, dritte Auto-Rolle;
   JAR am GitHub-Release, Deploy aufs Panel macht der Nutzer) und Mod **v1.3.0** (Rollenwünsche, aktualisiert alle Spieler).
-- Kotlin-Bot: Logik/Embeds/Befehle/Import per Golden-Tests gegen den Python-Bot geprüft, JAR-Start
-  (Fake-Token) getestet. **Noch nicht live auf Discord gelaufen.**
-- **Offen beim Nutzer**: Pelican-Server auf einen Java-Egg (17+) umstellen lassen, Startbefehl
-  `java -jar AmongUsManager.jar`, `crewbot-update.zip` (JAR) hochladen, `.env` (mit `DB_…`-Werten für
-  die Panel-Datenbank) + `data/` behalten. Beim ersten Start übernimmt der Bot automatisch die JSON-Daten
-  aus `data/` in die Datenbank. MySQL bisher nur gegen MariaDB 11.4 (lokal) getestet, nicht gegen den
-  echten Panel-Server.
+- Kotlin-Bot: Logik/Embeds/Befehle/Import per Golden-Tests gegen den Python-Bot geprüft. **Läuft live auf dem
+  Pelican-Panel** (Java-Egg, `java -jar AmongUsManager.jar`) – spätestens seit 17.10.2026 (Rollenwünsche und
+  Mod-Runden liefen über ihn). Am 23.10.2026 hat der Nutzer das Update mit „Recap erst nach 5 h /
+  `/spieleabend-recap`“ hochgeladen. Ob dort MySQL oder SQLite läuft, steht in der `.env` auf dem Panel.
 
 ## Testen
 `gradlew test` (JUnit 5, `src/test/kotlin`). Golden-Tests (`*GoldenTest.kt`) vergleichen mit
