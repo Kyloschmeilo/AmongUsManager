@@ -126,7 +126,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Im Standard-Design (Akzent `Palette.ACCENT` #1FBF7A, Abschnitte in Großbuchstaben, keine Emoji-Aufzählungen).
   `/befehle` im Text werden anklickbar (`linkCommands` in `ui/Text.kt`), `TutorialTest` prüft, dass es sie gibt.
   Special-Rollen-Text bei Änderungen an Installation/Bedienung der Rollen-Mod mitziehen.
-- **Rollen-Mod SpecialRoles** (Repo Kyloschmeilo/SpecialRoles, alle 30 Rollen, seit 23.10.2026 als **1.0.0** veröffentlicht): eigene
+- **Rollen-Mod SpecialRoles** (Repo Kyloschmeilo/SpecialRoles, alle 30 Rollen, seit 23.10.2026 als **1.0.0** veröffentlicht, ab **1.0.1** mit Auto-Update): eigene
   Among-Us-Mod, **unabhängig von CrewStats** (keine Rollenwünsche dafür). Rollenliste: `content/SpecialRoles.kt`
   (17 Crew, 11 Impostor, 2 Neutral + Modifikator Flash; Erpresser höchstens 2× pro Spiel). Bot-Seite:
   `/special-rolle` (Modul Wissen) ergänzt `/rolle`. Texte beschreiben das Verhalten der Mod – mit `Core/Roles.cs`
