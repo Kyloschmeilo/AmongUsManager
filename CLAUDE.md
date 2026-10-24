@@ -290,7 +290,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Aktuelles Release: **v1.4.1** (24.10.2026, Kilians Wunsch: Fix gegen Kicks mit TOR – `TorPacketFix.cs` ersetzt TORs
   `CustomOption.ShareOptionSelections` durch kleine Pakete; TOR schickte bei jedem Beitritt die Guesser-Rollenfilter in einem
   1635-Byte-Paket, das auf Modded EU nicht ankam → „Reliable packet … was not ack'd after 7500ms“ im `Player.log`, alle
-  flogen ~7 s nach jedem Join raus, auch mit fremdem Host. Hilft nur, wenn der **Host** CrewStats ≥ 1.4.1 hat).
+  flogen ~7 s nach jedem Join raus, auch mit fremdem Host. Hilft nur, wenn der **Host** CrewStats ≥ 1.4.1 hat; am 24.10.2026 von Kilian im echten Spiel bestätigt: „es geht“).
   Davor v1.4.0 (24.10.2026 auf Kilians Wunsch per Workflow veröffentlicht: The Other Roles –
   Rollen/Gewinner/Tode, Meeting-Stumm; im echten Spiel noch ungetestet). Davor v1.3.4 (17.10.2026: Rollen selbst
   würfeln per HashRandom-Postfix, im echten Spiel bestätigt). v1.3.2 friert als Host beim Rundenstart ein, 1.3.3 nie veröffentlicht (stürzte ab). Läuft das
