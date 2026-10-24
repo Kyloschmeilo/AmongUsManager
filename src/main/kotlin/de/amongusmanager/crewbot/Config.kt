@@ -196,6 +196,8 @@ object Rules {
     const val EVENT_ATTENDANCE_XP = 10 // gibt es erst, wenn man beim Event wirklich im Voice war
     const val IMPOSTOR_WIN_XP = 25
     const val CREW_WIN_XP = 10
+    const val NEUTRAL_WIN_XP = 30 // The Other Roles: Sieg mit einer neutralen Rolle (Jester, Jackal …) – alleine schwer
+    const val ROLE_ACTION_XP = 5 // The Other Roles: Crew-Rolle schaltet Impostor/Neutrale aus (Sheriff, Guesser, Jailor) – auch ohne Sieg
     const val MVP_XP = 50
 
     const val MAX_BET = 50

@@ -3,11 +3,15 @@ package de.amongusmanager.crewbot.ui.views
 
 import de.amongusmanager.crewbot.content.Team
 import de.amongusmanager.crewbot.content.roleLabel
+import de.amongusmanager.crewbot.content.specialRoleFor
+import de.amongusmanager.crewbot.content.torRoleLabel
 import de.amongusmanager.crewbot.core.await
 import de.amongusmanager.crewbot.core.rethrowIfCancelled
 import de.amongusmanager.crewbot.services.Actor
 import de.amongusmanager.crewbot.services.AuditLog
+import de.amongusmanager.crewbot.services.ModDeath
 import de.amongusmanager.crewbot.services.ModPlayer
+import de.amongusmanager.crewbot.services.ModRound
 import de.amongusmanager.crewbot.services.ModRoundError
 import de.amongusmanager.crewbot.services.ModRoundResult
 import de.amongusmanager.crewbot.services.ModRoundService
@@ -40,7 +44,56 @@ val REASON_TEXTS = mapOf(
     "ImpostorDisconnect" to "Impostor hat das Spiel verlassen",
     "CrewmateDisconnect" to "Crewmates haben das Spiel verlassen",
 )
-private val DEATH_ICONS = mapOf("kill" to "💀", "ejected" to "🚪", "disconnect" to "🔌")
+
+/** Eigene Spielenden von The Other Roles (Sondersiege). */
+val TOR_REASON_TEXTS = mapOf(
+    "LoversWin" to "Das Liebespaar hat bis zum Schluss überlebt",
+    "TeamJackalWin" to "Team Jackal hat übernommen",
+    "MiniLose" to "Das Mini wurde rausgewählt, bevor es erwachsen war",
+    "JesterWin" to "Der Jester wurde rausgewählt",
+    "ArsonistWin" to "Alle wurden angezündet",
+    "VultureWin" to "Der Vulture hat genug Leichen gefressen",
+    "LawyerSoloWin" to "Der Klient des Lawyers wurde rausgewählt",
+)
+private val DEATH_ICONS = mapOf(
+    "kill" to "💀", "ejected" to "🚪", "disconnect" to "🔌",
+    // The Other Roles
+    "guess" to "🎯", "jailed" to "⛓️", "suicide" to "🩸",
+)
+private const val OTHER_DEATH_ICON = "☠️"
+
+/** Rolle eines Spielers: mit The Other Roles deren Rolle (+ Modifikatoren, Rollenwechsel), sonst die des Spiels. */
+fun playerRoleLabel(p: ModPlayer): String {
+    fun label(nameKey: String?): String? = nameKey?.let { torRoleLabel(it) }
+    val madmate = "madmate" in p.modifiers
+    var role = label(p.modRole)?.let { if (madmate) "$it (Madmate)" else it }
+        ?: if (madmate) label("madmate")!! else roleLabel(p.role)
+    label(p.modStartRole)?.let { role = "$it → $role" }
+    val modifiers = p.modifiers.filter { it != "madmate" }.mapNotNull { label(it) }
+    return if (modifiers.isEmpty()) role else "$role + ${modifiers.joinToString(", ")}"
+}
+
+/** Titel eines Sondersiegs (The Other Roles), z.B. „🤡 JESTER SIEG“. */
+fun specialWinTitle(endReason: String): String = when (endReason) {
+    "LoversWin" -> "💞 SIEG DES LIEBESPAARS"
+    "MiniLose" -> "🧒 ALLE VERLIEREN"
+    "TeamJackalWin" -> "🐺 TEAM JACKAL SIEG"
+    else -> {
+        // „JesterWin“ -> jester, „LawyerSoloWin“ -> lawyer, „PlagueDoctorWin“ -> plagueDoctor
+        val id = endReason.removeSuffix("Win").removeSuffix("Solo").replaceFirstChar { it.lowercase() }
+        specialRoleFor(id)?.let { "${it.emoji} ${it.name.uppercase()} SIEG" } ?: "🟣 SONDERSIEG"
+    }
+}
+
+/** Was eine Rollen-Aktion war, z.B. „hat *Rot* erschossen“. */
+private fun actionText(death: ModDeath, round: ModRound, mention: (ModPlayer) -> String): String {
+    val victim = round.player(death.victim)?.let(mention) ?: "jemanden"
+    return when (death.reason) {
+        "Guess" -> "🎯 hat $victim richtig erraten"
+        "Jailed" -> "⛓️ hat $victim hingerichtet"
+        else -> "🔫 hat $victim ausgeschaltet"
+    }
+}
 const val UNDONE_PREFIX = "↩️ ZURÜCKGESETZT • "
 private const val LINK_HINT = "\n→ Mit `/verknuepfen` den Among-Us-Friendcode hinterlegen!"
 
@@ -52,33 +105,44 @@ fun buildModRoundEmbed(result: ModRoundResult, now: Instant = Instant.now()): Me
     val (title, color) = when (round.winningTeam) {
         Team.IMPOSTOR -> "🔪 IMPOSTOR SIEG" to Palette.forTeam(Team.IMPOSTOR)
         Team.CREW -> "🚀 CREWMATE SIEG" to Palette.forTeam(Team.CREW)
-        null -> "❔ RUNDE OHNE KLAREN SIEGER" to Palette.INFO
+        null -> if (round.neutralWin) specialWinTitle(round.endReason) to Palette.PURPLE
+            else "❔ RUNDE OHNE KLAREN SIEGER" to Palette.INFO
     }
 
     val total = round.durationSeconds.toInt()
     val minutes = Math.floorDiv(total, 60)
     val seconds = Math.floorMod(total, 60)
-    val reason = REASON_TEXTS[round.endReason] ?: round.endReason
+    val reason = REASON_TEXTS[round.endReason] ?: TOR_REASON_TEXTS[round.endReason] ?: round.endReason
     val embed = EmbedBuilder()
         .setTitle(title)
         .setDescription("🗺️ **${round.map}** • ⏱️ $minutes:${seconds.toString().padStart(2, '0')} min • $reason")
         .setColor(color)
 
     val impostors = round.players.filter { it.team == Team.IMPOSTOR.value }
-    val crew = round.players.filter { it.team != Team.IMPOSTOR.value }
+    val neutrals = round.players.filter { it.isNeutral }
+    val crew = round.players.filter { it.team != Team.IMPOSTOR.value && !it.isNeutral }
 
-    fun death(p: ModPlayer): String = DEATH_ICONS[p.deathCause]?.let { " $it" } ?: ""
+    fun death(p: ModPlayer): String = (DEATH_ICONS[p.deathCause] ?: if (p.deathCause != null) OTHER_DEATH_ICON else null)
+        ?.let { " $it" } ?: ""
+    fun kills(p: ModPlayer): String = if (p.kills > 0) " • ${p.kills} Kill(s)" else ""
 
     embed.field(
         "🔪 Impostor",
-        fit(impostors.map { "${result.mention(it)} – ${roleLabel(it.role)} • ${it.kills} Kill(s)${death(it)}" }),
+        fit(impostors.map { "${result.mention(it)} – ${playerRoleLabel(it)} • ${it.kills} Kill(s)${death(it)}" }),
         inline = false,
     )
     embed.field(
         "🚀 Crew",
-        fit(crew.map { "${result.mention(it)} – ${roleLabel(it.role)} • 🧰 ${it.tasksCompleted}/${it.tasksTotal}${death(it)}" }),
+        fit(crew.map { "${result.mention(it)} – ${playerRoleLabel(it)} • 🧰 ${it.tasksCompleted}/${it.tasksTotal}${kills(it)}${death(it)}" }),
         inline = false,
     )
+    if (neutrals.isNotEmpty()) {
+        embed.field(
+            "🟣 Neutral",
+            fit(neutrals.map { "${result.mention(it)} – ${playerRoleLabel(it)}${kills(it)}${death(it)}" }),
+            inline = false,
+        )
+    }
 
     // Highlights
     val highlights = ArrayList<String>()
@@ -87,7 +151,11 @@ fun buildModRoundEmbed(result: ModRoundResult, now: Instant = Instant.now()): Me
     highlights.add("📢 Meetings: **${round.meetings.size}** (${reports}× Leiche gemeldet)")
     for (meeting in round.meetings) {
         val exiled = round.player(meeting.exiled) ?: continue
-        val verdict = if (exiled.team == Team.IMPOSTOR.value) "✅ war Impostor" else "❌ war unschuldig"
+        val verdict = when {
+            exiled.team == Team.IMPOSTOR.value -> "✅ war Impostor"
+            exiled.isNeutral -> "🟣 war neutral (${playerRoleLabel(exiled)})"
+            else -> "❌ war unschuldig"
+        }
         highlights.add("🚪 ${result.mention(exiled)} rausgewählt – $verdict")
     }
     highlights.addAll(roundHighlights(round, result::mention))
@@ -97,11 +165,18 @@ fun buildModRoundEmbed(result: ModRoundResult, now: Instant = Instant.now()): Me
     val outcome = result.outcome
     if (outcome != null) {
         val rewards = outcome.winners.map { (userId, xpResult) ->
-            var line = "<@$userId> +${outcome.xpPerWinner} XP"
+            var line = "<@$userId> +${outcome.xpOf(userId)} XP"
             if (xpResult.leveledUp) line += " 🎊 Level ${xpResult.stats.level}!"
             line
         }
-        embed.field("🏆 Belohnungen", fit(rewards, "Keine verknüpften Gewinner"), inline = false)
+        // Rollen-Aktionen: „Level X!“ nur, wenn der Spieler nicht schon oben als Gewinner steht
+        val shown = outcome.winners.map { it.first }.toMutableSet()
+        val bonusLines = outcome.bonuses.map { bonus ->
+            var line = "<@${bonus.userId}> +${bonus.xp} XP ${actionText(bonus.death, round, result::mention)}"
+            if (bonus.result.leveledUp && shown.add(bonus.userId)) line += " 🎊 Level ${bonus.result.stats.level}!"
+            line
+        }
+        embed.field("🏆 Belohnungen", fit(rewards + bonusLines, "Keine verknüpften Gewinner"), inline = false)
         if (outcome.bets.isNotEmpty()) {
             val betLines = outcome.bets.map { (bet, res) ->
                 if (res != null) "✅ <@${bet.userId}> gewinnt **${bet.payout} XP**" else "❌ <@${bet.userId}> verliert ${bet.amount} XP"
@@ -128,6 +203,7 @@ fun buildModRoundEmbed(result: ModRoundResult, now: Instant = Instant.now()): Me
     }
 
     var footer = "Automatisch ausgewertet per CrewStats-Mod"
+    round.mod?.let { footer += " • $it" }
     if (round.lobbyCode.isNotEmpty()) footer += " • Lobby ${round.lobbyCode}"
     embed.setFooter(footer)
     embed.setTimestamp(now)

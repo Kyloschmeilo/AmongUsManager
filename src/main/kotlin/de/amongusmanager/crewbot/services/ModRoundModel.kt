@@ -25,12 +25,15 @@ import kotlinx.serialization.json.JsonPrimitive
 /** Fehler mit einer Nachricht, die direkt angezeigt werden kann. */
 class ModRoundError(message: String) : Exception(message)
 
+/** Team neutraler Rollen (nur mit The Other Roles) – als Sieger-Team heißt es „Sondersieg“ (Jester, Jackal, Liebespaar …). */
+const val NEUTRAL_TEAM = "NEUTRAL"
+
 data class ModPlayer(
     val playerId: Int,
     val name: String,
     val friendCode: String,
     val role: String,
-    val team: String, // CREW | IMPOSTOR
+    val team: String, // CREW | IMPOSTOR, mit The Other Roles auch NEUTRAL
     val won: Boolean,
     val isDead: Boolean,
     val disconnected: Boolean,
@@ -40,8 +43,12 @@ data class ModPlayer(
     val tasksTotal: Int,
     val tasksCompleted: Int,
     val diedAt: Double? = null, // Sekunden seit Rundenstart
+    val modRole: String? = null, // The Other Roles: Rolle am Spielende (nameKey, z.B. "sheriff")
+    val modStartRole: String? = null, // The Other Roles: Rolle beim Start, falls sie sich geändert hat
+    val modifiers: List<String> = emptyList(), // The Other Roles: z.B. "lover", "mini", "madmate"
 ) {
     val isImpostor: Boolean get() = team == Team.IMPOSTOR.value
+    val isNeutral: Boolean get() = team == NEUTRAL_TEAM
 
     companion object {
         fun fromJson(data: JsonObject): ModPlayer = ModPlayer(
@@ -59,6 +66,9 @@ data class ModPlayer(
             tasksTotal = data["tasksTotal"]?.pyInt() ?: 0,
             tasksCompleted = data["tasksCompleted"]?.pyInt() ?: 0,
             diedAt = data["diedAtSeconds"].let { if (it == null || it is JsonNull) null else it.pyFloat() },
+            modRole = data.optionalString("modRole"),
+            modStartRole = data.optionalString("modStartRole"),
+            modifiers = data.strings("modifiers"),
         )
     }
 }
@@ -69,6 +79,18 @@ data class ModKill(val atSeconds: Double, val killer: Int, val victim: Int) {
             atSeconds = data["atSeconds"]?.pyFloat() ?: 0.0,
             killer = data.require("killer").pyInt(),
             victim = data.require("victim").pyInt(),
+        )
+    }
+}
+
+/** Ein Tod laut The Other Roles (reason: Kill, Exile, Guess, Jailed, Suicide …). */
+data class ModDeath(val atSeconds: Double, val victim: Int, val killer: Int?, val reason: String) {
+    companion object {
+        fun fromJson(data: JsonObject): ModDeath = ModDeath(
+            atSeconds = data["atSeconds"]?.pyFloat() ?: 0.0,
+            victim = data.require("victim").pyInt(),
+            killer = data["killer"].intOrNull(),
+            reason = data.getStr("reason", ""),
         )
     }
 }
@@ -108,8 +130,14 @@ data class ModRound(
     val players: List<ModPlayer>,
     val meetings: List<ModMeeting>,
     val kills: List<ModKill> = emptyList(), // nach Zeitpunkt sortiert
+    val mod: String? = null, // Rollen-Mod, z.B. "TheOtherRoles GMIA 1.4.1" – null ohne
+    val neutralWin: Boolean = false, // The Other Roles: Sondersieg (winningTeam NEUTRAL) – alle Wetten verloren
+    val modDeaths: List<ModDeath> = emptyList(), // The Other Roles: alle Tode mit Täter und Art
 ) {
     fun player(playerId: Int?): ModPlayer? = if (playerId == null) null else players.firstOrNull { it.playerId == playerId }
+
+    /** Steht ein Ergebnis fest (Crew, Impostor oder Sondersieg)? Sonst gibt es keine XP und die Wetten bleiben offen. */
+    val decided: Boolean get() = winningTeam != null || neutralWin
 
     companion object {
         fun parse(text: String): ModRound {
@@ -135,6 +163,9 @@ data class ModRound(
                     players = data.list("players").map { ModPlayer.fromJson(it.asObject()) },
                     meetings = data.list("meetings").map { ModMeeting.fromJson(it.asObject()) },
                     kills = data.list("kills").map { ModKill.fromJson(it.asObject()) }.sortedBy { it.atSeconds },
+                    mod = data.optionalString("mod"),
+                    neutralWin = team == NEUTRAL_TEAM,
+                    modDeaths = data.optionalList("modDeaths").map { ModDeath.fromJson(it.asObject()) }.sortedBy { it.atSeconds },
                 )
             } catch (e: JsonKeyError) {
                 throw ModRoundError("Ungültige Rundendaten: ${e.message}")
@@ -147,6 +178,17 @@ data class ModRound(
 
 private fun JsonElement.asObject(): JsonObject =
     this as? JsonObject ?: throw JsonValueError("Objekt erwartet, bekommen: $this")
+
+/** Neue Felder (The Other Roles): fehlt das Feld oder ist es null, gibt es eine leere Liste. */
+private fun JsonObject.optionalList(key: String): List<JsonElement> = (this[key] as? JsonArray) ?: emptyList()
+
+/** Text-Feld oder null (fehlt, null oder leer). */
+private fun JsonObject.optionalString(key: String): String? =
+    (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.content?.takeIf { it.isNotEmpty() }
+
+/** Liste von Texten (andere Einträge werden ignoriert). */
+private fun JsonObject.strings(key: String): List<String> =
+    optionalList(key).mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
 
 /** `data.get(key, [])` – fehlt das Feld oder ist es null, gibt es eine leere Liste. */
 private fun JsonObject.list(key: String): List<JsonElement> = when (val value = this[key]) {

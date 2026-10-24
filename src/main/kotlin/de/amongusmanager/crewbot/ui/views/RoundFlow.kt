@@ -29,13 +29,13 @@ import java.time.Duration
 // ==========================================
 
 fun roundResultEmbed(outcome: RoundOutcome): MessageEmbed {
-    val team = outcome.winningTeam
+    val team = outcome.winningTeam ?: Team.CREW // manuelle Runden haben immer ein Team (Sondersiege nur bei Mod-Runden)
     val embed = EmbedBuilder()
         .setTitle(if (team == Team.IMPOSTOR) "🔪 IMPOSTOR SIEG" else "🚀 CREWMATE SIEG")
         .setColor(Palette.forTeam(team))
 
     val winnerLines = outcome.winners.map { (userId, result) ->
-        var line = "• <@$userId> (+${outcome.xpPerWinner} XP)"
+        var line = "• <@$userId> (+${outcome.xpOf(userId)} XP)"
         if (result.leveledUp) line += " 🎊 **Level ${result.stats.level}!**"
         line
     }

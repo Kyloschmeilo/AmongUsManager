@@ -67,9 +67,13 @@ class ModRoundService(
         }
         val unlinked = round.players.filter { it.playerId !in discordIds }
 
-        val outcome = round.winningTeam?.let { team ->
-            val winnerIds = round.players.filter { it.won && it.playerId in discordIds }.map { discordIds.getValue(it.playerId) }
-            rounds.finishWithoutRoles(team, winnerIds)
+        val outcome = if (round.decided) {
+            // Sieg-XP nach dem eigenen Team (mit The Other Roles kann ein Jester oder Jackal gewinnen)
+            val winners = round.players.filter { it.won && it.playerId in discordIds }
+                .map { discordIds.getValue(it.playerId) to RoundService.winXp(it.team) }
+            rounds.finishWithXpWithoutRoles(round.winningTeam, winners, roleActions(round, discordIds))
+        } else {
+            null
         }
 
         val deltas = statDeltas(round, discordIds)
@@ -171,7 +175,7 @@ class ModRoundService(
             )
         }
         if (outcome != null) {
-            for ((userId, result) in outcome.winners) award(userId, outcome.xpPerWinner, true, result)
+            for ((userId, result) in outcome.winners) award(userId, outcome.xpOf(userId), true, result)
             for ((bet, result) in outcome.bets) {
                 db.update(
                     "INSERT INTO mod_round_bets (game_id, seq, user_id, team, amount) VALUES (?, ?, ?, ?, ?)",
@@ -179,6 +183,7 @@ class ModRoundService(
                 )
                 if (result != null) award(bet.userId, bet.payout, false, result)
             }
+            for (bonus in outcome.bonuses) award(bonus.userId, bonus.xp, false, bonus.result)
         }
         for ((userId, delta) in deltas) {
             for ((stat, value) in delta) {
@@ -201,6 +206,26 @@ class ModRoundService(
     }
 
     companion object {
+        /**
+         * Rollen-Aktionen (The Other Roles): ein Crew-Spieler schaltet einen Impostor oder Neutralen aus – Sheriff-Schuss,
+         * Guesser-Treffer, Jailor-Hinrichtung … Je Tod einmal [Rules.ROLE_ACTION_XP], auch wenn die Crew verliert.
+         * Rauswählen zählt nicht (das ist keine Rollen-Fähigkeit), Selbst-Kills auch nicht.
+         */
+        fun roleActions(round: ModRound, discordIds: Map<Int, Long>): List<RoleAction> =
+            round.modDeaths
+                .distinctBy { it.victim } // wer wiederbelebt und erneut getötet wird, zählt einmal
+                .mapNotNull { death ->
+                    val killer = round.player(death.killer) ?: return@mapNotNull null
+                    val victim = round.player(death.victim) ?: return@mapNotNull null
+                    val userId = discordIds[killer.playerId] ?: return@mapNotNull null
+                    val countable = death.reason !in setOf("Exile", "Disconnect") && killer.playerId != victim.playerId
+                    if (countable && killer.team == Team.CREW.value && (victim.isImpostor || victim.isNeutral)) {
+                        RoleAction(userId, death)
+                    } else {
+                        null
+                    }
+                }
+
         /** Statistik-Änderungen einer Runde pro verknüpftem Spieler (wie im alten Bot). */
         fun statDeltas(round: ModRound, discordIds: Map<Int, Long>): StatDeltas {
             val deltas = LinkedHashMap<Long, LinkedHashMap<String, Int>>()
@@ -213,8 +238,11 @@ class ModRoundService(
                 val userId = discordIds[player.playerId] ?: continue
                 val isImpostor = player.team == Team.IMPOSTOR.value
                 add(userId, "games", 1)
-                add(userId, if (isImpostor) "impostor_games" else "crew_games", 1)
-                if (player.won) add(userId, if (isImpostor) "impostor_wins" else "crew_wins", 1)
+                // Neutrale Rollen (The Other Roles) spielen für sich – weder Crew- noch Impostor-Runde
+                if (!player.isNeutral) {
+                    add(userId, if (isImpostor) "impostor_games" else "crew_games", 1)
+                    if (player.won) add(userId, if (isImpostor) "impostor_wins" else "crew_wins", 1)
+                }
                 add(userId, "kills", player.kills)
                 add(userId, "deaths", if (player.deathCause == "kill") 1 else 0)
                 add(userId, "ejected", if (player.deathCause == "ejected") 1 else 0)
@@ -231,6 +259,7 @@ class ModRoundService(
                     val target = round.player(vote.target)
                     val userId = discordIds[vote.voter]
                     if (userId == null || voter == null || target == null || voter.team != Team.CREW.value) continue
+                    if (target.isNeutral) continue // Jester rauswählen ist weder richtig noch falsch
                     add(userId, if (target.team == Team.IMPOSTOR.value) "votes_correct" else "votes_wrong", 1)
                 }
             }

@@ -375,8 +375,8 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "�
             val result = bot.automute.apply(guild, event)
             if (result != null) {
                 log.info(
-                    "Auto-Mute {} in {}: {} geändert, {} Fehler",
-                    event.phase, result.channel.name, result.report.succeeded, result.report.failed,
+                    "Auto-Mute {} in {}: {} geändert, {} Fehler, {} im Meeting stumm",
+                    event.phase, result.channel.name, result.report.succeeded, result.report.failed, event.silenced.size,
                 )
             }
         }

@@ -5,6 +5,8 @@
  *   tasks   -> Lebende stumm + taub, Tote reden miteinander
  *   meeting -> Lebende reden, Tote stumm (hören aber zu)
  *   end     -> alle frei (Spielende, Lobby, Mod-Schalter aus)
+ *   meeting + silenced -> mit The Other Roles bleiben Erpresste (Blackmailer) und Eingesperrte (Jailor) stumm,
+ *                         bis das Meeting vorbei ist (die Mod meldet neu, wenn sich das im Meeting ändert)
  * Tot ist, wer in der `dead`-Liste steht und verknüpft ist – alle anderen zählen als lebend.
  * Die Mod schickt die Toten nur beim Phasenwechsel, ein Kill mitten in der Runde ändert also
  * nichts am Voice (sonst würden die Discord-Symbole den Tod verraten).
@@ -35,6 +37,7 @@ data class AutoMuteEvent(
     val phase: String, // tasks | meeting | end
     val sender: String, // Friendcode des Spielers mit der Mod
     val dead: Set<String>, // Friendcodes der toten Spieler (Stand beim Phasenwechsel)
+    val silenced: Set<String> = emptySet(), // Friendcodes, die im Meeting nicht reden dürfen (The Other Roles)
 ) {
     companion object {
         /** Liest die Nachricht der Mod; null, wenn es keine Auto-Mute-Nachricht ist. */
@@ -54,6 +57,9 @@ data class AutoMuteEvent(
                 phase = phase!!,
                 sender = data["sender"].let { if (it.pyTruthy()) it.pyStr() else "" },
                 dead = codes.toSet(),
+                silenced = (data["silenced"] as? JsonArray)
+                    ?.mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
+                    ?.toSet() ?: emptySet(),
             )
         }
     }
@@ -61,10 +67,13 @@ data class AutoMuteEvent(
 
 data class AutoMuteResult(val channel: AudioChannel, val report: ActionReport)
 
-/** (stumm, taub) für ein Mitglied. Wer nicht verknüpft ist, zählt als lebend. */
-fun targetState(phase: String, dead: Boolean): Pair<Boolean, Boolean> = when (phase) {
+/**
+ * (stumm, taub) für ein Mitglied. Wer nicht verknüpft ist, zählt als lebend.
+ * `silenced` = im Meeting zum Schweigen gebracht (The Other Roles: Blackmailer, Jailor) – hört zu, redet nicht.
+ */
+fun targetState(phase: String, dead: Boolean, silenced: Boolean = false): Pair<Boolean, Boolean> = when (phase) {
     "tasks" -> if (dead) false to false else true to true // Tote reden, Lebende hören nichts
-    "meeting" -> if (dead) true to false else false to false // Tote hören nur zu
+    "meeting" -> if (dead || silenced) true to false else false to false // Tote hören nur zu
     else -> false to false
 }
 
@@ -88,10 +97,11 @@ class AutoMuteService(
             lastChannelId = channel.idLong
 
             val deadIds = event.dead.mapNotNull { links.userFor(it) }.toSet()
+            val silencedIds = event.silenced.mapNotNull { links.userFor(it) }.toSet()
             val changes = channel.members.mapNotNull { member ->
                 val voice = member.voiceState
                 if (member.user.isBot || voice == null) return@mapNotNull null
-                val (mute, deafen) = targetState(event.phase, dead = member.idLong in deadIds)
+                val (mute, deafen) = targetState(event.phase, dead = member.idLong in deadIds, silenced = member.idLong in silencedIds)
                 val change = VoiceChange(
                     member,
                     mute = if (voice.isGuildMuted != mute) mute else null,

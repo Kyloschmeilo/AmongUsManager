@@ -140,6 +140,21 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   `TOR_GAME_DIR`, `TOR_COPY_DIR`, `TOR_ZIP` (portables pwsh, `Read-Host` per Funktion überschreiben). CRLF, ohne BOM;
   kein „ “/„ in doppelt quotierten PowerShell-Strings (zählen dort als Anführungszeichen).
   CrewStats mit TOR (Rollenwünsche/Selbst-Würfeln) ist ungetestet.
+- **The Other Roles in XP & Auto-Mute** (24.10.2026, Kilian: „Integriere die other Roles in die XP-Vergabe und füge
+  Mute-Features von z.B. Blackmailer auch auf Discord“; Bot 2.5.0 + CrewStats 1.4.0): CrewStats liest TOR per Reflection
+  (`TorBridge.cs`, Namen gegen die echte GMIA-1.4.1-DLL geprüft – bei einer neuen TOR-Version mit dem
+  MetadataLoadContext-Dump gegenprüfen; jeder Lesefehler wird einmal geloggt, dann läuft die Mod ohne diese Info).
+  Rundendaten: `team` CREW|IMPOSTOR|**NEUTRAL** (Madmate = IMPOSTOR), `modRole`/`modStartRole` (TOR-nameKey), `modifiers`,
+  `mod`, `modDeaths` (TOR `GameHistory`: Kill/Exile/Guess/Jailed/Suicide …), `won` = TORs `EndGameResult.CachedWinners`
+  (Postfix nach TOR), `winningTeam` NEUTRAL = Sondersieg (TOR-Gründe ≥ 10, Name aus `CustomGameOverReason`, z.B.
+  JesterWin). XP: Sieg nach eigenem Team (Crew 10, Impostor 25, Neutral `NEUTRAL_WIN_XP` 30); Sondersieg → alle Wetten
+  verloren; `ROLE_ACTION_XP` (5) je Impostor/Neutralem, den ein Crew-Spieler ausschaltet (nicht Rauswählen/Selbst-Kill),
+  auch ohne Sieg. Neutrale zählen in `/stats` nur als Spiel, Stimmen gegen Neutrale weder richtig noch falsch.
+  Bot-Labels der nameKeys: `torRoleLabel`/`TOR_ROLE_NAMES` in `content/SpecialRoles.kt` (Godfather, Nice/Evil-Varianten …).
+  Auto-Mute: `silenced` (Blackmailer-Opfer, Jailor-Gefangene, nur Lebende) im Meeting stumm, nicht taub; TOR zeigt beides
+  im Meeting allen an, die Mod meldet neu, wenn es sich im Meeting ändert. TOR-Hide-&-Seek/Freeplay zählen nicht.
+  CrewStats-`SelectRoles`-Postfix läuft vor TOR (`Priority.First`), damit Rollenwünsche verteilt sind. **Alles im echten
+  Spiel noch ungetestet** (Mehrspieler nötig).
 - **Rollen-Mod SpecialRoles** (nicht mehr im Bot, seit 23.10.2026 durch The Other Roles ersetzt; Repo Kyloschmeilo/SpecialRoles, alle 30 Rollen, seit 23.10.2026 als **1.0.0** veröffentlicht, ab **1.0.1** mit Auto-Update): eigene
   Among-Us-Mod, **unabhängig von CrewStats** (keine Rollenwünsche dafür). Rollenliste: `content/SpecialRoles.kt`
   (17 Crew, 11 Impostor, 2 Neutral + Modifikator Flash; Erpresser höchstens 2× pro Spiel). Die alten Bot-Texte dazu
@@ -215,7 +230,9 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   ändern sich (z.B. `PlayerId`-Struct statt byte, `TryGet*` mit `out`): kleines
   MetadataLoadContext-Tool gegen die GameLibs-DLLs bauen statt raten.
 - Zeichnet nur als Host auf, ignoriert Freeplay/Hide & Seek. JSON-Format = `RoundRecord.cs`
-  (camelCase) ↔ `services/ModRoundModel.kt`. Beide Seiten gemeinsam ändern!
+  (camelCase) ↔ `services/ModRoundModel.kt`. Beide Seiten gemeinsam ändern! Mit The Other Roles kommen TOR-Felder
+  dazu (siehe „The Other Roles in XP & Auto-Mute“). Reine Regeln (Sieger-Team, Todesarten) in `RoundRules.cs`, getestet
+  in `Tests/` (`dotnet test Tests`, ohne Among Us). GitHub baut die Mod bei jedem Push (Workflow „Build“).
 - **Auto-Mute** (`AutoMute.cs`, Config `[AutoMute] Enabled`, Standard aus): meldet Phasenwechsel
   (tasks/meeting/end) als JSON im Nachrichtentext ↔ `services/AutoMute.kt`. Bot schaltet im Voice
   des Absenders (Friendcode-Verknüpfung), sonst `Channels.AMONG_US_VOICE`. Verhalten wie AutoMuteUs
@@ -271,7 +288,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Falls doch: Schalter in den Reiter „Graphics“ verschieben oder nur per Config.
 - **Verteilung & Updates**: Repo `mod/` (nur Mod + Installer, kein Bot-Code, keine Webhook-URLs!).
   Aktuelles Release: **v1.3.4** (17.10.2026: Rollen selbst würfeln per HashRandom-Postfix, im echten Spiel
-  bestätigt). v1.3.2 friert als Host beim Rundenstart ein, 1.3.3 nie veröffentlicht (stürzte ab). Läuft das
+  bestätigt). **1.4.0** (The Other Roles: Rollen/Gewinner/Tode, Meeting-Stumm) ist auf Branch
+  `claude/project-thread-lnt70e` gebaut + Notizen da, Release nur auf Kilians Wunsch. v1.3.2 friert als Host beim Rundenstart ein, 1.3.3 nie veröffentlicht (stürzte ab). Läuft das
   Spiel, bricht `release.ps1` beim Kopieren ab → von Hand: ohne Kopieren bauen, `gh release create` mit
   `--notes-file release-notes/vX.Y.Z.md`, DLL + Installer anhängen. 1.3.0 kickt Hosts
   mit „Nur Quick Chat“ (Fix in 1.3.1), v1.1.0 hat ein kaputtes Auto-Update. `IncludeSourceRevision-
@@ -297,6 +315,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - **Noch nicht im echten Spiel bestätigt**: tatsächliches Muten/Taubschalten durch den Bot,
   „Kein Skip bei Notfall“ (`RpcClearVote`), Lobby-Ankündigung im Discord, Highlights/Erfolge/Recap
   mit echten Daten.
+- Bot **v2.5.0** (24.10.2026, The Other Roles in XP-Vergabe + Discord-Mute bei Blackmailer/Jailor): fertig, Deploy macht Kilian.
 - Bot **v2.4.0** (23.10.2026, The Other Roles in `/special-rolle` + Tutorials): auf `main`, am 23.10.2026 von Kilian aufs Panel geladen (kein GitHub-Release).
 - Released am 23.10.2026: Bot **v2.3.0** (`/tutorial`, `/special-rolle`, Recap erst nach 5 h).
 - Released am 12.10.2026: Bot **v2.2.0** (Rollenwünsche, `/changelog`, Willkommen/Abschied, dritte Auto-Rolle;
@@ -315,7 +334,9 @@ Inhalte, Formatierer, Parser, alle Embeds, Slash-Command-Definitionen, 665 zufä
 `ServiceBehaviorTest.kt`: Transaktions-Rollback, Undo, Wettsperre, Events, Datenbankdatei.
 `RoleWishTest.kt`: Rollenwünsche (XP, Limit, Plätze, Admin, Verfall, Mod-Rückmeldung) und das
 Protokoll inkl. eines mit der Mod (.NET) verschlüsselten Testvektors.
-`MariaDbTests.kt`: Pipeline-, Import-, Verhaltens- und Rollenwunsch-Tests nochmal gegen einen echten MariaDB-Server
+`TheOtherRolesTest.kt`: Mod-Runden mit The Other Roles (Sondersieg, Sieg-XP nach Team, Rollen-Aktionen, Wetten, Undo,
+Statistik, Embed, Rollen-Labels aller GMIA-nameKeys, Auto-Mute `silenced`).
+`MariaDbTests.kt`: Pipeline-, Import-, Verhaltens-, Rollenwunsch- und TOR-Tests nochmal gegen einen echten MariaDB-Server
 (mariaDB4j startet ihn automatisch, `TestMariaDb`; die ERROR-Zeile „mysqld … failed unexpectedly“ am
 Ende kommt nur vom Beenden des Test-Servers) + Umzug SQLite → MySQL. `JarSmokeTest.kt` startet das
 fertige JAR gegen MariaDB: `gradlew shadowJar test -DjarSmoke=true` (vor jedem Deploy sinnvoll).

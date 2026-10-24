@@ -28,6 +28,10 @@ class MariaDbRoleWishTest : RoleWishTest() {
     override fun newDb(): Database = TestMariaDb.newDatabase()
 }
 
+class MariaDbTheOtherRolesTest : TheOtherRolesTest() {
+    override fun newDb(): Database = TestMariaDb.newDatabase()
+}
+
 /** Umzug einer bestehenden SQLite-Datenbank nach MySQL. */
 class SqliteToMysqlTest {
     private val pipeline = Golden.section("pipeline")

@@ -218,3 +218,45 @@ val SPECIAL_ROLES: Map<String, SpecialRole> = listOf(
     modifier("vip", "VIP", "⭐",
         "Stirbst du, bekommen alle einen Blitz auf den Bildschirm – je nach Einstellung in deiner Teamfarbe."),
 ).associateByTo(LinkedHashMap()) { it.id }
+
+// ==========================================
+// ROLLEN AUS DEN RUNDENDATEN (CrewStats mit The Other Roles)
+// ==========================================
+
+/**
+ * Interne Rollen-Namen von The Other Roles (nameKey, so schickt CrewStats sie), die hier keine eigene [SpecialRole] haben:
+ * nameKey -> (id in [SPECIAL_ROLES] für das Emoji, Anzeigename).
+ */
+private val TOR_ROLE_NAMES: Map<String, Pair<String, String>> = mapOf(
+    "godfather" to ("mafia" to "Godfather"),
+    "mafioso" to ("mafia" to "Mafioso"),
+    "janitor" to ("mafia" to "Janitor"),
+    "niceSwapper" to ("swapper" to "Nice Swapper"),
+    "evilSwapper" to ("swapper" to "Evil Swapper"),
+    "niceShifter" to ("shifter" to "Shifter"),
+    "corruptedShifter" to ("chainShifter" to "Chain-Shifter"),
+    "niceGuesser" to ("guesser" to "Nice Guesser"),
+    "evilGuesser" to ("guesser" to "Evil Guesser"),
+    "niceWatcher" to ("watcher" to "Nice Watcher"),
+    "evilWatcher" to ("watcher" to "Evil Watcher"),
+    "niceYasuna" to ("yasuna" to "Nice Yasuna"),
+    "evilYasuna" to ("yasuna" to "Evil Yasuna"),
+    "mimicK" to ("mimic" to "Mimic (Killer)"),
+    "mimicA" to ("mimic" to "Mimic (Assistant)"),
+    "lover" to ("lovers" to "Lover"),
+    "antiTeleportPostfix" to ("antiTeleport" to "Anti Teleport"),
+)
+
+/** Rollen ohne Besonderheit – dafür zeigt der Bot die Rolle des Spiels (Crewmate/Impostor). */
+private val TOR_PLAIN_ROLES = setOf("", "crewmate", "impostor")
+
+/** Die [SpecialRole] zu einem nameKey aus den Rundendaten (null, wenn unbekannt oder ohne Besonderheit). */
+fun specialRoleFor(nameKey: String): SpecialRole? = SPECIAL_ROLES[TOR_ROLE_NAMES[nameKey]?.first ?: nameKey]
+
+/** Anzeige einer TOR-Rolle aus den Rundendaten, z.B. "🤠 Sheriff" – null für Crewmate/Impostor ohne Rolle. */
+fun torRoleLabel(nameKey: String): String? {
+    if (nameKey in TOR_PLAIN_ROLES) return null
+    val role = specialRoleFor(nameKey)
+    val name = TOR_ROLE_NAMES[nameKey]?.second ?: role?.name ?: nameKey
+    return if (role != null) "${role.emoji} $name" else name
+}
