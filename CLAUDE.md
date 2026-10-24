@@ -287,9 +287,9 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Container; auch Weltkoordinaten-Ansatz klappte nicht) → zurückgenommen, Nutzer will es so lassen.
   Falls doch: Schalter in den Reiter „Graphics“ verschieben oder nur per Config.
 - **Verteilung & Updates**: Repo `mod/` (nur Mod + Installer, kein Bot-Code, keine Webhook-URLs!).
-  Aktuelles Release: **v1.3.4** (17.10.2026: Rollen selbst würfeln per HashRandom-Postfix, im echten Spiel
-  bestätigt). **1.4.0** (The Other Roles: Rollen/Gewinner/Tode, Meeting-Stumm) ist auf Branch
-  `claude/project-thread-lnt70e` gebaut + Notizen da, Release nur auf Kilians Wunsch. v1.3.2 friert als Host beim Rundenstart ein, 1.3.3 nie veröffentlicht (stürzte ab). Läuft das
+  Aktuelles Release: **v1.4.0** (24.10.2026 auf Kilians Wunsch per Workflow veröffentlicht: The Other Roles –
+  Rollen/Gewinner/Tode, Meeting-Stumm; im echten Spiel noch ungetestet). Davor v1.3.4 (17.10.2026: Rollen selbst
+  würfeln per HashRandom-Postfix, im echten Spiel bestätigt). v1.3.2 friert als Host beim Rundenstart ein, 1.3.3 nie veröffentlicht (stürzte ab). Läuft das
   Spiel, bricht `release.ps1` beim Kopieren ab → von Hand: ohne Kopieren bauen, `gh release create` mit
   `--notes-file release-notes/vX.Y.Z.md`, DLL + Installer anhängen. 1.3.0 kickt Hosts
   mit „Nur Quick Chat“ (Fix in 1.3.1), v1.1.0 hat ein kaputtes Auto-Update. `IncludeSourceRevision-
@@ -315,7 +315,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - **Noch nicht im echten Spiel bestätigt**: tatsächliches Muten/Taubschalten durch den Bot,
   „Kein Skip bei Notfall“ (`RpcClearVote`), Lobby-Ankündigung im Discord, Highlights/Erfolge/Recap
   mit echten Daten.
-- Bot **v2.5.0** (24.10.2026, The Other Roles in XP-Vergabe + Discord-Mute bei Blackmailer/Jailor): fertig, Deploy macht Kilian.
+- Bot **v2.5.0** (24.10.2026, The Other Roles in XP-Vergabe + Discord-Mute bei Blackmailer/Jailor): auf `main`, JAR in
+  `/mnt/project-files/bot-2.5.0/crewbot-update.zip`, Deploy macht Kilian. Passend dazu CrewStats **1.4.0** released.
 - Bot **v2.4.0** (23.10.2026, The Other Roles in `/special-rolle` + Tutorials): auf `main`, am 23.10.2026 von Kilian aufs Panel geladen (kein GitHub-Release).
 - Released am 23.10.2026: Bot **v2.3.0** (`/tutorial`, `/special-rolle`, Recap erst nach 5 h).
 - Released am 12.10.2026: Bot **v2.2.0** (Rollenwünsche, `/changelog`, Willkommen/Abschied, dritte Auto-Rolle;
