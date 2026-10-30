@@ -130,7 +130,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - **The Other Roles** (seit 23.10.2026, Kilian: „ganz anderer Ansatz“ – ersetzt die eigene Rollen-Mod SpecialRoles):
   Das Original (TheOtherRolesAU, letzte Version 4.8.0 für Among Us 2024.11.26, 32-Bit) läuft nicht mit 2026.9.29 →
   Kilian hat **TheOtherRoles GMIA** gewählt (github.com/GMIA-Nexus/TheOtherRolesGMIA, 1.4.1 vom 11.10.2026, GameLibs
-  2026.9.29, BepInEx be.735 x64, Reactor; spielt auf „Modded EU“, Mini.RegionInstall entfernt die normalen Server; Mod-Texte
+  2026.9.29, BepInEx be.735 x64, Reactor; spielt seit 30.10.2026 auf **„Modded NA“** – auf Modded EU flogen alle beim Beitreten/Rundenstart raus („Timeout while waiting for other player data“, im Spiel getestet: NA geht); der Installer schreibt `BepInEx/config/at.duikbo.regioninstall.cfg` (nur NA + Asia, Modded EU in `RemoveRegions`), Mini.RegionInstall entfernt die normalen Server; Mod-Texte
   nur Englisch/Japanisch/Chinesisch). `content/SpecialRoles.kt` = deren Rollen (Texte aus `stringData.json` in der DLL),
   `/special-rolle` (Modul Wissen) + Tutorials beschreiben sie. **Installer** `TheOtherRoles-Installer.bat` liegt **nicht
   auf GitHub** (Kilian: „gib mir nur die Datei“), sondern in `/mnt/project-files/theotherroles/`; Kilian postet ihn im
