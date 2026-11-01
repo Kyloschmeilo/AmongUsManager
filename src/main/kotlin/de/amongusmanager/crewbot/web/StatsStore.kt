@@ -8,7 +8,12 @@ package de.amongusmanager.crewbot.web
 import org.slf4j.LoggerFactory
 import java.time.Instant
 
-class StatsStore(private val source: StatsSource, private val clock: () -> Instant = Instant::now) {
+class StatsStore(
+    private val source: StatsSource,
+    /** Eigene Daten der Website (Anzeigenamen, Profilbilder, Profile), null = ohne. */
+    private val accounts: WebAccounts? = null,
+    private val clock: () -> Instant = Instant::now,
+) {
     private val log = LoggerFactory.getLogger(StatsStore::class.java)
 
     private val archived = HashMap<String, WebRound>()
@@ -19,6 +24,8 @@ class StatsStore(private val source: StatsSource, private val clock: () -> Insta
     private var historySignature: String? = null
     private var links: Map<String, Long>? = null
     private var levels: Map<Long, BotLevel>? = null
+    private var accountsVersion: Long = -1
+    private var decorations: Map<Long, PlayerDecoration> = emptyMap()
 
     @Volatile
     var snapshot: StatsSnapshot = StatsSnapshot.empty(clock())
@@ -27,6 +34,15 @@ class StatsStore(private val source: StatsSource, private val clock: () -> Insta
     @Volatile
     var lastError: String? = null
         private set
+
+    /** Wie [refresh], aber Fehler landen nur im Log (z.B. direkt nach dem Speichern eines Profils). */
+    fun refreshQuietly() {
+        try {
+            refresh()
+        } catch (e: Exception) {
+            log.warn("Aktualisieren fehlgeschlagen: {}", e.message)
+        }
+    }
 
     /** Lädt neue/geänderte Daten. `true`, wenn es einen neuen Snapshot gibt. */
     @Synchronized
@@ -83,9 +99,15 @@ class StatsStore(private val source: StatsSource, private val clock: () -> Insta
             changed = true
         }
 
+        if (accounts != null && accounts.version != accountsVersion) {
+            accountsVersion = accounts.version
+            decorations = accounts.decorations()
+            changed = true
+        }
+
         if (changed) {
             val rounds = archived.values + history.filter { it.gameId !in archiveIds }
-            snapshot = StatsSnapshot.build(rounds, links ?: emptyMap(), levels ?: emptyMap(), clock())
+            snapshot = StatsSnapshot.build(rounds, links ?: emptyMap(), levels ?: emptyMap(), clock(), decorations)
             log.info("Stats aktualisiert: {} Runden ({} mit Rohdaten), {} Spieler", rounds.size, archived.size, snapshotPlayers())
         }
         return changed

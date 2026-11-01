@@ -86,8 +86,17 @@ private class PlayerAcc(val key: String) {
     val deathCauses = HashMap<String, Int>()
     val rounds = ArrayList<Pair<RoundView, Int>>() // neueste zuerst, Index des Spielers
 
+    var decoration: PlayerDecoration? = null
+
+    /** Neuester Ingame-Name. */
     val name: String get() = names.keys.firstOrNull() ?: "?"
+
+    /** Name auf der Website: selbst gewählter Anzeigename, sonst der neueste Ingame-Name. */
+    val shownName: String get() = decoration?.displayName?.takeIf { it.isNotBlank() } ?: name
     val colorId: Int? get() = colors.maxByOrNull { it.value }?.key
+
+    /** Discord-Profilbild (über die Website ausgeliefert), null = farbiger Crewmate. */
+    val avatar: String? get() = decoration?.avatarVersion?.let { "/api/avatar/$key?v=$it" }
 }
 
 private class MapAcc(val mapId: Int, val name: String) {
@@ -130,6 +139,32 @@ class StatsSnapshot private constructor(
     fun view(gameId: String): RoundView? = byGameId[gameId]
 
     fun hasPlayer(key: String): Boolean = key in players
+
+    /** Discord-ID eines verknüpften Spielers (nur intern, geht nie an den Browser). */
+    fun discordIdOf(key: String): Long? = players[key]?.discordId
+
+    /** Version des gezeigten Profilbilds, null = keins. */
+    fun avatarVersionOf(key: String): String? = players[key]?.decoration?.avatarVersion
+
+    /** Adresse des gezeigten Profilbilds, null = keins. */
+    fun avatarUrlOf(key: String): String? = players[key]?.avatar
+
+    /** Alle verknüpften Spieler (für Namen und Profilbilder aus Discord). */
+    fun linkedDiscordIds(): Set<Long> = players.values.mapNotNullTo(LinkedHashSet()) { it.discordId }
+
+    /** Kurzfassung eines Spielers wie in der Bestenliste, null = unbekannt. */
+    fun summaryOf(key: String): JsonObject? = players[key]?.let { playerSummary(it) }
+
+    /** Was ein Spieler in seinem Profil auswählen darf. */
+    fun profileOptions(key: String, discord: DiscordUser?): ProfileOptions {
+        val player = players[key]
+        val names = (player?.names?.entries?.sortedByDescending { it.value }?.map { it.key } ?: emptyList()).take(10) + (discord?.names ?: emptyList())
+        return ProfileOptions(
+            names = names.map { it.trim() }.filter { it.isNotEmpty() }.distinct(),
+            roles = roles.keys.associateWith { roleName(it) }.entries.sortedBy { it.value.lowercase() }.associate { it.key to it.value },
+            maps = MAP_NAMES.toSortedMap(),
+        )
+    }
 
     /** Häufigste Farbe eines Spielers (für alte Runden ohne Farbe). */
     fun colorOf(key: String?): Int? = key?.let { players[it]?.colorId }
@@ -209,7 +244,7 @@ class StatsSnapshot private constructor(
 
     private fun ref(key: String): JsonObject? {
         val player = players[key] ?: return null
-        return obj("key" to key, "name" to player.name, "colorId" to player.colorId)
+        return obj("key" to key, "name" to player.shownName, "colorId" to player.colorId, "avatar" to player.avatar)
     }
 
     private fun roundRef(view: RoundView): JsonObject = obj(
@@ -242,10 +277,12 @@ class StatsSnapshot private constructor(
 
     private fun playerSummary(p: PlayerAcc): JsonObject {
         val level = p.discordId?.let { levels[it] }
+        val custom = p.decoration?.profile
         return obj(
             "key" to p.key,
-            "name" to p.name,
+            "name" to p.shownName,
             "colorId" to p.colorId,
+            "avatar" to p.avatar,
             "linked" to (p.discordId != null),
             "level" to level?.level,
             "games" to p.games,
@@ -280,15 +317,27 @@ class StatsSnapshot private constructor(
             "playSeconds" to p.playSeconds,
             "firstSeen" to p.firstSeen,
             "lastSeen" to p.lastSeen,
-            "favoriteRole" to p.roles.values.filter { !isPlainRole(it.id) }.maxByOrNull { it.games }?.let { roleName(it.id) },
+            "favoriteRole" to (custom?.favoriteRole?.let { roleName(it) }
+                ?: p.roles.values.filter { !isPlainRole(it.id) }.maxByOrNull { it.games }?.let { roleName(it.id) }),
         )
     }
 
     private fun profile(p: PlayerAcc): JsonObject {
         fun top(counts: Map<String, Int>) = counts.entries.sortedByDescending { it.value }.take(5)
             .mapNotNull { (key, count) -> ref(key)?.let { obj("player" to it, "count" to count) } }
+        val custom = p.decoration?.profile
         return obj(
             "player" to playerSummary(p),
+            "ingameName" to p.name,
+            "custom" to custom?.let { c ->
+                obj(
+                    "bio" to c.bio.takeIf { it.isNotBlank() },
+                    "colorId" to c.colorId,
+                    "favoriteRole" to c.favoriteRole?.let { obj("id" to it, "name" to roleName(it)) },
+                    "favoriteMap" to c.favoriteMap?.let { obj("mapId" to it, "map" to (MAP_NAMES[it] ?: maps[it]?.name ?: "?")) },
+                    "showcase" to c.showcase,
+                )
+            },
             "names" to p.names.keys.toList(),
             "roles" to p.roles.values.sortedByDescending { it.games }.map { roleRow(it) },
             "maps" to p.maps.entries.sortedByDescending { it.value[0] }
@@ -379,7 +428,13 @@ class StatsSnapshot private constructor(
         fun empty(now: Instant): StatsSnapshot = build(emptyList(), emptyMap(), emptyMap(), now)
 
         /** Wertet alle [rounds] aus. [links]: Friendcode -> Discord-ID, [levels]: Discord-ID -> Level im Bot. */
-        fun build(rounds: List<WebRound>, links: Map<String, Long>, levels: Map<Long, BotLevel>, now: Instant): StatsSnapshot {
+        fun build(
+            rounds: List<WebRound>,
+            links: Map<String, Long>,
+            levels: Map<Long, BotLevel>,
+            now: Instant,
+            decorations: Map<Long, PlayerDecoration> = emptyMap(),
+        ): StatsSnapshot {
             val sorted = rounds.sortedByDescending { it.endedAt }
             val players = LinkedHashMap<String, PlayerAcc>()
             val maps = HashMap<Int, MapAcc>()
@@ -408,6 +463,7 @@ class StatsSnapshot private constructor(
                 }
                 RoundView(round, keys)
             }
+            for (acc in players.values) acc.decoration = acc.discordId?.let { decorations[it] }
 
             for (view in views) {
                 val r = view.round

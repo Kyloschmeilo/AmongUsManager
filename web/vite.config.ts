@@ -12,6 +12,6 @@ export default defineConfig({
   },
   server: {
     // npm run dev: API vom lokal gestarteten StatsWebsite.jar (gradlew runWebsite)
-    proxy: { '/api': 'http://localhost:8080' }
+    proxy: { '/api': 'http://localhost:8080', '/auth': 'http://localhost:8080' }
   }
 });

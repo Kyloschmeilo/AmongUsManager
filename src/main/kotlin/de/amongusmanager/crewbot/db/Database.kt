@@ -29,6 +29,8 @@ class Database private constructor(
     val description: String,
     /** Nur lesen (Stats-Website): Schema wird weder angelegt noch geändert, die Verbindung ist schreibgeschützt. */
     val readOnly: Boolean,
+    /** Schema des Bots anlegen/aktualisieren – nicht beim Nur-Lesen und nicht bei eigenen Datenbanken (Stats-Website). */
+    botSchema: Boolean = !readOnly,
     private val connect: () -> Connection,
 ) : AutoCloseable {
     private val log = LoggerFactory.getLogger(Database::class.java)
@@ -42,7 +44,7 @@ class Database private constructor(
         private set
 
     init {
-        if (!readOnly) Schema.migrate(this)
+        if (botSchema) Schema.migrate(this)
     }
 
     companion object {
@@ -65,17 +67,24 @@ class Database private constructor(
             return Database(Dialect.SQLITE, "SQLite ${file.toAbsolutePath()} (nur lesen)", readOnly = true) { config.createConnection(url) }
         }
 
-        /** Für Tests: Datenbank nur im Speicher. */
-        fun inMemory(): Database = sqlite("jdbc:sqlite::memory:", wal = false, description = "Arbeitsspeicher")
+        /** Für Tests: Datenbank nur im Speicher ([botSchema] = false: leer, für eigene Tabellen). */
+        fun inMemory(botSchema: Boolean = true): Database =
+            sqlite("jdbc:sqlite::memory:", wal = false, description = "Arbeitsspeicher", botSchema = botSchema)
 
-        private fun sqlite(url: String, wal: Boolean, description: String): Database {
+        /** Eigene SQLite-Datei ohne die Tabellen des Bots (Logins und Profile der Stats-Website). */
+        fun openStandalone(file: Path): Database {
+            file.toAbsolutePath().parent?.let { Files.createDirectories(it) }
+            return sqlite("jdbc:sqlite:${file.toAbsolutePath()}", wal = true, description = file.toAbsolutePath().toString(), botSchema = false)
+        }
+
+        private fun sqlite(url: String, wal: Boolean, description: String, botSchema: Boolean = true): Database {
             val config = SQLiteConfig().apply {
                 enforceForeignKeys(true)
                 setBusyTimeout(5000)
                 setSynchronous(SQLiteConfig.SynchronousMode.FULL)
                 if (wal) setJournalMode(SQLiteConfig.JournalMode.WAL)
             }
-            return Database(Dialect.SQLITE, "SQLite $description", readOnly = false) { config.createConnection(url) }
+            return Database(Dialect.SQLITE, "SQLite $description", readOnly = false, botSchema = botSchema) { config.createConnection(url) }
         }
 
         /** MySQL/MariaDB, z.B. host = "45.81.233.92:3306". [readOnly]: nur lesen (Stats-Website), kein Schema anlegen. */
@@ -367,6 +376,7 @@ class Database private constructor(
                 is Instant -> statement.setLong(position, param.toEpochMilli())
                 is java.math.BigDecimal -> statement.setBigDecimal(position, param)
                 is java.math.BigInteger -> statement.setLong(position, param.toLong())
+                is ByteArray -> statement.setBytes(position, param)
                 else -> throw IllegalArgumentException("Nicht unterstützter Parameter: ${param::class}")
             }
         }
@@ -386,4 +396,5 @@ class Row(private val resultSet: ResultSet) {
     fun intOrNull(column: String): Int? = resultSet.getInt(column).takeUnless { resultSet.wasNull() }
     fun doubleOrNull(column: String): Double? = resultSet.getDouble(column).takeUnless { resultSet.wasNull() }
     fun stringOrNull(column: String): String? = resultSet.getString(column)
+    fun bytesOrNull(column: String): ByteArray? = resultSet.getBytes(column)
 }

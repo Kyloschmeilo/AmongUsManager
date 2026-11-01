@@ -24,6 +24,7 @@ object RoundDetail {
             val fields = LinkedHashMap<String, JsonElement>()
             for ((name, value) in p) if (name !in SECRET_FIELDS) fields[name] = value
             fields["key"] = key.toJson()
+            fields["avatar"] = key?.let { snapshot.avatarUrlOf(it) }.toJson()
             if (p.int("colorId") == null) fields["colorId"] = snapshot.colorOf(key).toJson()
             fields["roleName"] = player?.let { roleName(roleIdOf(it)) }.toJson()
             fields["modRoleName"] = player?.modRole?.let { torRoleName(it) }.toJson()
@@ -57,6 +58,7 @@ object RoundDetail {
                         "deathCause" to p.deathCause, "killedBy" to p.killedBy, "diedAtSeconds" to p.diedAt,
                         "kills" to p.kills, "tasksTotal" to p.tasksTotal, "tasksCompleted" to p.tasksCompleted,
                         "roleName" to roleName(roleIdOf(p)), "modRoleName" to p.modRole?.let { torRoleName(it) },
+                        "avatar" to snapshot.avatarUrlOf(view.keys[i]),
                     )
                 },
                 "kills" to r.kills.map { obj("atSeconds" to it.atSeconds, "killer" to it.killer, "victim" to it.victim) },

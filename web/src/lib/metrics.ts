@@ -78,6 +78,14 @@ export const METRICS: Metric[] = [
 
 export const metric = (id: string): Metric => METRICS.find((m) => m.id === id) ?? METRICS[0];
 
+/** Gruppen der Bestenliste in Anzeige-Reihenfolge. */
+export const GROUPS: { id: Metric['group']; label: string; caption: string }[] = [
+  { id: 'Allgemein', label: 'Allgemein', caption: 'Siege, Runden, Überleben' },
+  { id: 'Crew', label: 'Crew', caption: 'Aufgaben, Stimmen, Meldungen' },
+  { id: 'Impostor', label: 'Impostor', caption: 'Kills und Sabotagen' },
+  { id: 'Details', label: 'Unterwegs', caption: 'Strecke und Reparaturen' }
+];
+
 export function rank(players: PlayerSummary[], m: Metric): PlayerSummary[] {
   return players
     .filter(m.eligible)

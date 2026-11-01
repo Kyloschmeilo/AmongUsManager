@@ -101,3 +101,18 @@ export function useRefreshOnChange(value: unknown): void {
     return () => window.clearTimeout(id);
   }, [value]);
 }
+
+/** Lässt alle `[data-stagger]`-Elemente in [ref] nacheinander einblenden – bei jeder Änderung von [deps] neu. */
+export function useStagger(ref: RefObject<HTMLElement | null>, deps: unknown[] = []): void {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || reducedMotion()) return;
+    const targets = el.querySelectorAll('[data-stagger]');
+    if (!targets.length) return;
+    const ctx = gsap.context(() => {
+      gsap.from(targets, { y: 14, autoAlpha: 0, duration: 0.45, ease: 'power3.out', stagger: 0.06 });
+    }, el);
+    return () => ctx.revert();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+}

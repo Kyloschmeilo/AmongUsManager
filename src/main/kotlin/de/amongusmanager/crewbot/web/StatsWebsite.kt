@@ -8,6 +8,11 @@
  *   WEB_PORT             – Port (Standard: SERVER_PORT des Panels, sonst 8080)
  *   WEB_ROUNDS_DIR       – statt der Datenbank einen Ordner mit Rundendateien der Mod lesen (zum Ausprobieren)
  *   WEB_REFRESH_SECONDS  – wie oft nach neuen Runden geschaut wird (Standard 60)
+ *   DISCORD_TOKEN        – Token des Bots: Discord-Profilbilder und Server-Namen (nur REST, kein zweiter Bot-Login)
+ *   DISCORD_CLIENT_SECRET – „Mit Discord anmelden“ (Developer-Portal → OAuth2), Client-ID kommt aus dem Token
+ *                          (oder DISCORD_CLIENT_ID)
+ *   WEB_PUBLIC_URL       – Adresse der Website, z.B. http://45.81.233.92:25570 (für die Weiterleitung nach dem Login)
+ * Eigene Daten der Website (Anmeldungen, Profile, Profilbilder) liegen in data/website.db.
  */
 package de.amongusmanager.crewbot.web
 
@@ -33,7 +38,25 @@ fun main() {
     }
     log.info("🗄️ Daten: {}", source.description)
 
-    val store = StatsStore(source)
+    // Eigene Daten der Website (Anmeldungen, Profile, Discord-Profilbilder) – die Bot-Datenbank bleibt nur gelesen
+    val accountsDb = Database.openStandalone(BotPaths.dataDir.resolve("website.db"))
+    val accounts = WebAccounts(accountsDb)
+    val botToken = Env.discordToken.takeIf { it.isNotEmpty() }
+    val discord = HttpDiscordApi(botToken, Env.get("WEB_GUILD_ID").trim().toLongOrNull())
+    val sync = if (botToken != null) DiscordSync(discord, accounts) else null
+    val authConfig = AuthConfig(
+        clientId = Env.get("DISCORD_CLIENT_ID").trim().ifEmpty { null } ?: HttpDiscordApi.clientIdFromToken(botToken),
+        clientSecret = Env.get("DISCORD_CLIENT_SECRET").trim().ifEmpty { null },
+        publicUrl = Env.get("WEB_PUBLIC_URL").trim().ifEmpty { null },
+    )
+    if (sync == null) log.info("🖼️ Ohne DISCORD_TOKEN: keine Discord-Profilbilder (farbige Crewmates)")
+    if (authConfig.enabled) {
+        log.info("🔑 Discord-Anmeldung an (Weiterleitungs-Adresse im Developer-Portal: {}/auth/callback)", authConfig.publicUrl ?: "http://<Adresse>:<Port>")
+    } else {
+        log.info("🔑 Discord-Anmeldung aus (dafür DISCORD_CLIENT_SECRET in die .env)")
+    }
+
+    val store = StatsStore(source, accounts)
     try {
         store.refresh()
     } catch (e: Exception) {
@@ -42,7 +65,7 @@ fun main() {
 
     val port = webPort()
     val server = try {
-        StatsServer(store, port, Env.get("WEB_HOST").trim().ifEmpty { "0.0.0.0" })
+        StatsServer(store, port, Env.get("WEB_HOST").trim().ifEmpty { "0.0.0.0" }, WebAuth(accounts, store, discord, authConfig, sync), accounts)
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)
         exitProcess(1)
@@ -63,14 +86,32 @@ fun main() {
             if (message != lastFailure) log.warn("Aktualisieren fehlgeschlagen: {}", message)
             lastFailure = message
         }
+        syncDiscord(sync, store)
     }, refreshSeconds, refreshSeconds, TimeUnit.SECONDS)
+    scheduler.execute { syncDiscord(sync, store) } // Profilbilder gleich nach dem Start holen
 
     Runtime.getRuntime().addShutdownHook(Thread({
         log.info("Stats-Website wird beendet …")
         scheduler.shutdownNow()
         server.stop()
         db?.close()
+        accountsDb.close()
     }, "web-shutdown"))
+}
+
+private var lastSyncFailure: String? = null
+
+/** Namen und Profilbilder der verknüpften Spieler aus Discord holen (fällige, in kleinen Portionen). */
+private fun syncDiscord(sync: DiscordSync?, store: StatsStore) {
+    if (sync == null) return
+    try {
+        if (sync.sync(store.snapshot.linkedDiscordIds()) > 0) store.refreshQuietly()
+        lastSyncFailure = null
+    } catch (e: Exception) {
+        val message = e.message ?: e.javaClass.simpleName
+        if (message != lastSyncFailure) log.warn("Discord-Profile nicht geladen: {}", message)
+        lastSyncFailure = message
+    }
 }
 
 /** Port: WEB_PORT, sonst der Port des Panels (SERVER_PORT), sonst 8080. */

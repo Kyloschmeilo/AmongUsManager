@@ -10,6 +10,8 @@ import { RoundPage } from './pages/Round';
 import { MapsPage, MapPage } from './pages/Maps';
 import { RolesPage } from './pages/Roles';
 import { NotFound } from './pages/NotFound';
+import { AccountButton, LoginNotice } from './components/Account';
+import { MeProvider } from './lib/me';
 
 const NAV = [
   { to: '/', label: 'Übersicht', end: true },
@@ -51,7 +53,7 @@ function Footer() {
 export function App() {
   useSmoothScroll();
   return (
-    <>
+    <MeProvider>
       <a className="sr-only" href="#inhalt">Zum Inhalt</a>
       <header className="topbar">
         <div className="wrap topbar__inner">
@@ -63,9 +65,13 @@ export function App() {
               </NavLink>
             ))}
           </nav>
+          <div className="topbar__account">
+            <AccountButton />
+          </div>
         </div>
       </header>
       <main id="inhalt" className="wrap">
+        <LoginNotice />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/bestenliste" element={<Leaderboard />} />
@@ -79,6 +85,6 @@ export function App() {
         </Routes>
       </main>
       <Footer />
-    </>
+    </MeProvider>
   );
 }

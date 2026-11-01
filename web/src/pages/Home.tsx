@@ -212,7 +212,7 @@ function Records({ records }: { records: RecordEntry[] }) {
             <span className="record__who">
               {r.player ? (
                 <>
-                  <Avatar colorId={r.player.colorId} playerKey={r.player.key} size="sm" />
+                  <Avatar colorId={r.player.colorId} playerKey={r.player.key} src={r.player.avatar} size="sm" />
                   <span className="ink">{r.player.name}</span>
                   <span className="faint">· {mapShort(r.round.mapId, r.round.map)}, {date(r.round.endedAt)}</span>
                 </>

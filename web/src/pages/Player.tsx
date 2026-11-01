@@ -1,10 +1,39 @@
-import { Link, useParams } from 'react-router-dom';
-import { Clock, Crosshair, Footprints, HeartPulse, Skull, Swords, Trophy, Vote, Wind, Wrench } from 'lucide-react';
-import { useApi, type Profile, type PlayerRef } from '../lib/api';
+import type { ReactNode } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Clock, Crosshair, Footprints, HeartPulse, PenLine, ShieldCheck, Skull, Swords, Trophy, Vote, Wind, Wrench } from 'lucide-react';
+import { useApi, type PlayerSummary, type Profile, type PlayerRef } from '../lib/api';
 import { ago, date, distance, duration, num, pct } from '../lib/format';
 import { TEAM_COLOR, TEAM_LABEL, deathCause, teamPillClass } from '../lib/labels';
+import { PLAYER_COLORS } from '../lib/colors';
+import { metric, type Metric } from '../lib/metrics';
+import { useMe } from '../lib/me';
 import { Async, Avatar, BarList, Form, PlayerLink, RoundList, Section, StatCard } from '../components/ui';
 import { Title } from '../components/motion';
+import { ProfileEditor } from '../components/ProfileEditor';
+
+const SHOWCASE_ICON: Record<Metric['group'], ReactNode> = {
+  Allgemein: <Trophy className="icon" />,
+  Crew: <ShieldCheck className="icon" />,
+  Impostor: <Crosshair className="icon" />,
+  Details: <Footprints className="icon" />
+};
+
+/** Kennzahl-Karten oben im Profil: erst die selbst gewählten, dann die üblichen (zusammen höchstens vier). */
+function statCards(p: PlayerSummary, showcase: string[]): ReactNode[] {
+  const chosen = showcase.map((id) => metric(id)).filter((m, i, all) => all.findIndex((o) => o.id === m.id) === i);
+  const cards: { id: string; node: ReactNode }[] = chosen.map((m) => ({
+    id: m.id,
+    node: <StatCard key={m.id} icon={SHOWCASE_ICON[m.group]} label={m.label} value={0} raw={m.format(p)} chip="Favorit" caption={m.detail(p)} />
+  }));
+  const defaults: { id: string; node: ReactNode }[] = [
+    { id: 'wins', node: <StatCard key="wins" icon={<Trophy className="icon" />} label="Siege" value={p.wins} chip={`${num(p.games)} Runden`} caption={`Siegquote ${pct(p.wins, p.games)}`} /> },
+    { id: 'kills', node: <StatCard key="kills" icon={<Crosshair className="icon" />} label="Kills" value={p.kills} chip="gesamt" caption={`${num(p.firstKills)} × der erste Kill der Runde`} /> },
+    { id: 'survival', node: <StatCard key="survival" icon={<HeartPulse className="icon" />} label="Überlebt" value={0} raw={pct(p.survived, p.games)} chip="der Runden" caption={`${num(p.killed)} × getötet, ${num(p.ejected)} × rausgewählt`} /> },
+    { id: 'votes', node: <StatCard key="votes" icon={<Vote className="icon" />} label="Richtige Stimmen" value={0} raw={pct(p.correctVotes, p.crewVotes)} chip="als Crew" caption={`${num(p.correctVotes)} von ${num(p.crewVotes)} Stimmen trafen einen Impostor`} /> }
+  ];
+  for (const d of defaults) if (cards.length < 4 && !cards.some((c) => c.id === d.id)) cards.push(d);
+  return cards.map((c) => c.node);
+}
 
 export function PlayerPage() {
   const { key } = useParams();
@@ -18,23 +47,46 @@ export function PlayerPage() {
 
 function ProfileView({ profile }: { profile: Profile }) {
   const p = profile.player;
-  const otherNames = profile.names.filter((n) => n !== p.name);
+  const custom = profile.custom;
+  const otherNames = profile.names.filter((n) => n !== p.name && n !== profile.ingameName);
+  const { me } = useMe();
+  const [params, setParams] = useSearchParams();
+  const isMe = !!me?.player && me.player.key === p.key;
+  const editing = isMe && params.has('bearbeiten') && !!me?.options && !!me?.profile;
+  const setEditing = (on: boolean) => {
+    const next = new URLSearchParams(params);
+    if (on) next.set('bearbeiten', '1');
+    else next.delete('bearbeiten');
+    setParams(next, { replace: true, preventScrollReset: true });
+  };
+  const profileColor = custom?.colorId != null ? PLAYER_COLORS[custom.colorId] : null;
   return (
     <>
-      <section className="stack" style={{ gap: 20 }}>
+      <section className={`stack profile-hero${profileColor ? ' profile-hero--color' : ''}`} style={{ gap: 20, ['--profile' as string]: profileColor ?? undefined }}>
         <span className="eyebrow">Spieler</span>
-        <div className="row" style={{ gap: 20, alignItems: 'center' }}>
-          <Avatar colorId={p.colorId} playerKey={p.key} size="lg" />
-          <div className="stack" style={{ gap: 8, minWidth: 0 }}>
+        <div className="profile-hero__main">
+          <Avatar colorId={p.colorId} playerKey={p.key} src={p.avatar} size="xl" />
+          <div className="stack" style={{ gap: 8, minWidth: 0, flex: 1 }}>
             <Title text={p.name} className="page-title" />
+            {p.name !== profile.ingameName && <span className="caption">Im Spiel: {profile.ingameName}</span>}
+            {custom?.bio && <p className="profile-bio">{custom.bio}</p>}
             <div className="row" style={{ gap: 8 }}>
               {p.linked ? <span className="pill">Discord verknüpft</span> : <span className="pill pill--plain">Nicht verknüpft</span>}
               {p.level != null && <span className="pill pill--mono">Level {p.level}</span>}
               {p.favoriteRole && <span className="pill pill--plain">Lieblingsrolle {p.favoriteRole}</span>}
+              {custom?.favoriteMap && (
+                <Link className="pill pill--plain" to={`/maps/${custom.favoriteMap.mapId}`}>Lieblingsmap {custom.favoriteMap.map}</Link>
+              )}
               <span className="caption">Zuletzt {ago(p.lastSeen)} · dabei seit {date(p.firstSeen)}</span>
             </div>
             {otherNames.length > 0 && <span className="caption">Auch gespielt als {otherNames.slice(0, 6).join(', ')}</span>}
           </div>
+          {isMe && !editing && (
+            <button type="button" className="btn profile-hero__edit" onClick={() => setEditing(true)}>
+              <PenLine className="icon icon--sm" aria-hidden="true" />
+              Profil bearbeiten
+            </button>
+          )}
         </div>
         {profile.form.length > 0 && (
           <div className="row" style={{ gap: 12 }}>
@@ -45,12 +97,17 @@ function ProfileView({ profile }: { profile: Profile }) {
         )}
       </section>
 
-      <div className="grid grid--stats">
-        <StatCard icon={<Trophy className="icon" />} label="Siege" value={p.wins} chip={`${num(p.games)} Runden`} caption={`Siegquote ${pct(p.wins, p.games)}`} />
-        <StatCard icon={<Crosshair className="icon" />} label="Kills" value={p.kills} chip="gesamt" caption={`${num(p.firstKills)} × der erste Kill der Runde`} />
-        <StatCard icon={<HeartPulse className="icon" />} label="Überlebt" value={0} raw={pct(p.survived, p.games)} chip="der Runden" caption={`${num(p.killed)} × getötet, ${num(p.ejected)} × rausgewählt`} />
-        <StatCard icon={<Vote className="icon" />} label="Richtige Stimmen" value={0} raw={pct(p.correctVotes, p.crewVotes)} chip="als Crew" caption={`${num(p.correctVotes)} von ${num(p.crewVotes)} Stimmen trafen einen Impostor`} />
-      </div>
+      {editing && me?.options && me.profile && (
+        <ProfileEditor
+          settings={me.profile}
+          options={me.options}
+          ingameName={profile.ingameName}
+          hasDiscordAvatar={!!me.user?.hasDiscordAvatar}
+          onDone={() => setEditing(false)}
+        />
+      )}
+
+      <div className="grid grid--stats">{statCards(p, custom?.showcase ?? [])}</div>
 
       <Section eyebrow="Teams" title="Als Crew, Impostor und Neutral">
         <div className="grid grid--3">

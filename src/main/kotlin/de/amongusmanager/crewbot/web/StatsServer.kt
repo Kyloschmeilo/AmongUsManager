@@ -15,7 +15,15 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.zip.GZIPOutputStream
 
-class StatsServer(private val store: StatsStore, port: Int, host: String = "0.0.0.0") {
+class StatsServer(
+    private val store: StatsStore,
+    port: Int,
+    host: String = "0.0.0.0",
+    /** Anmeldung + eigenes Profil, null = ohne (dann sagt /api/me nur „nicht angemeldet“). */
+    private val auth: WebAuth? = null,
+    /** Website-eigene Daten (Profilbilder), null = ohne. */
+    private val accounts: WebAccounts? = null,
+) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
     private val executor: ExecutorService = Executors.newFixedThreadPool(8) { task -> Thread(task, "web").apply { isDaemon = true } }
@@ -38,11 +46,12 @@ class StatsServer(private val store: StatsStore, port: Int, host: String = "0.0.
     private fun handle(exchange: HttpExchange) {
         try {
             val method = exchange.requestMethod.uppercase()
+            val path = URLDecoder.decode(exchange.requestURI.rawPath ?: "/", Charsets.UTF_8)
+            if (path == "/api/me" || path == "/api/me/profile" || path.startsWith("/auth/")) return account(exchange, method, path)
             if (method != "GET" && method != "HEAD") {
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
             }
-            val path = URLDecoder.decode(exchange.requestURI.rawPath ?: "/", Charsets.UTF_8)
             if (path == "/api" || path.startsWith("/api/")) api(exchange, path.removePrefix("/api").trim('/')) else staticFile(exchange, path)
         } catch (e: Exception) {
             log.warn("Fehler bei {} {}: {}", exchange.requestMethod, exchange.requestURI, e.toString())
@@ -54,6 +63,58 @@ class StatsServer(private val store: StatsStore, port: Int, host: String = "0.0.
         } finally {
             exchange.close()
         }
+    }
+
+    // ---------- Anmeldung & eigenes Profil ----------
+
+    private fun account(exchange: HttpExchange, method: String, path: String) {
+        val handler = auth
+        if (handler == null || !handler.handles(path)) {
+            if (path == "/api/me" && (method == "GET" || method == "HEAD")) {
+                return respond(exchange, 200, TYPE_JSON, bytes(obj("loginEnabled" to false, "loggedIn" to false)), cache = "no-store")
+            }
+            return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
+        }
+        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
+        val response = handler.handle(WebRequest(method, path, parseQuery(exchange.requestURI.rawQuery), headers, body))
+        for ((name, value) in response.headers) {
+            if (name.equals("Cache-Control", ignoreCase = true)) continue
+            exchange.responseHeaders.add(name, value)
+        }
+        val cache = response.headers.firstOrNull { it.first.equals("Cache-Control", ignoreCase = true) }?.second ?: "no-store"
+        respond(exchange, response.status, response.type, response.body, cache = cache)
+    }
+
+    /** Höchstens 16 KB, sonst null. */
+    private fun readBody(exchange: HttpExchange): ByteArray? {
+        val limit = 16 * 1024
+        val out = ByteArrayOutputStream()
+        val buffer = ByteArray(4096)
+        exchange.requestBody.use { input ->
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                out.write(buffer, 0, read)
+                if (out.size() > limit) return null
+            }
+        }
+        return out.toByteArray()
+    }
+
+    /** Discord-Profilbild eines Spielers (heruntergeladen von der Website, der Browser fragt nie bei Discord an). */
+    private fun avatar(exchange: HttpExchange, key: String) {
+        val snapshot = store.snapshot
+        val version = snapshot.avatarVersionOf(key)
+        val discordId = snapshot.discordIdOf(key)
+        val image = if (version != null && discordId != null) accounts?.avatar(discordId) else null
+        if (image == null || shortHash(image.version) != version) {
+            return respond(exchange, 404, "text/plain; charset=utf-8", "Kein Profilbild".toByteArray(), cache = "no-cache")
+        }
+        val etag = "W/\"a$version\""
+        if (exchange.requestHeaders.getFirst("If-None-Match") == etag) return notModified(exchange, etag)
+        // Adresse enthält die Version (?v=…) – ändert sich das Bild, ändert sich die Adresse
+        respond(exchange, 200, image.contentType, image.bytes, cache = "public, max-age=604800", etag = etag)
     }
 
     // ---------- API ----------
@@ -68,6 +129,7 @@ class StatsServer(private val store: StatsStore, port: Int, host: String = "0.0.
             val body = bytes(obj("rounds" to snapshot.roundCount, "updatedAt" to snapshot.builtAt, "ok" to (store.lastError == null)))
             return respond(exchange, 200, TYPE_JSON, body, cache = "no-store")
         }
+        if (parts.size == 2 && parts[0] == "avatar") return avatar(exchange, parts[1])
         if (exchange.requestHeaders.getFirst("If-None-Match") == etag) return notModified(exchange, etag)
 
         val body: ByteArray? = when {
@@ -157,6 +219,10 @@ class StatsServer(private val store: StatsStore, port: Int, host: String = "0.0.
         if (payload !== body) headers.add("Content-Encoding", "gzip")
         if (exchange.requestMethod.equals("HEAD", ignoreCase = true)) {
             exchange.sendResponseHeaders(status, -1)
+            return
+        }
+        if (payload.isEmpty()) {
+            exchange.sendResponseHeaders(status, -1) // z.B. Weiterleitungen: ohne Inhalt
             return
         }
         exchange.sendResponseHeaders(status, payload.size.toLong())

@@ -1,5 +1,5 @@
 // Bausteine der Seite im Standard-Design: Avatar, Spieler-Link, Pills, Kennzahl-Karten, Balken, Bestenliste, Rundenliste.
-import { useRef, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, CircleAlert, Film, Inbox } from 'lucide-react';
 import type { PlayerRef, RoundItem, Team } from '../lib/api';
@@ -8,21 +8,26 @@ import { day, dayMonth, duration, num, time } from '../lib/format';
 import { TEAM_WIN_LABEL, mapShort, teamPillClass } from '../lib/labels';
 import { Count, Reveal, useGrow } from './motion';
 
-export function Avatar({ colorId, playerKey, size, dead, title }: { colorId: number | null | undefined; playerKey?: string | null; size?: 'sm' | 'lg'; dead?: boolean; title?: string }) {
+/** Discord-Profilbild, sonst eine eckige Kachel in der Spielfarbe (Crewmate). */
+export function Avatar({ colorId, playerKey, src, size, dead, title }: { colorId: number | null | undefined; playerKey?: string | null; src?: string | null; size?: 'sm' | 'lg' | 'xl'; dead?: boolean; title?: string }) {
+  const [failed, setFailed] = useState<string | null>(null);
+  const showImage = !!src && failed !== src;
   return (
     <span
-      className={`avatar${size ? ` avatar--${size}` : ''}${dead ? ' avatar--dead' : ''}`}
+      className={`avatar${size ? ` avatar--${size}` : ''}${dead ? ' avatar--dead' : ''}${showImage ? ' avatar--img' : ''}`}
       style={{ ['--av' as string]: playerColor(colorId, playerKey) }}
       title={title}
       aria-hidden={title ? undefined : true}
-    />
+    >
+      {showImage && <img src={src!} alt="" loading="lazy" decoding="async" onError={() => setFailed(src!)} />}
+    </span>
   );
 }
 
-export function PlayerLink({ player, dead, children }: { player: PlayerRef | { key: string | null; name: string; colorId: number | null }; dead?: boolean; children?: ReactNode }) {
+export function PlayerLink({ player, dead, children }: { player: PlayerRef | { key: string | null; name: string; colorId: number | null; avatar?: string | null }; dead?: boolean; children?: ReactNode }) {
   const content = (
     <>
-      <Avatar colorId={player.colorId} playerKey={player.key} dead={dead} />
+      <Avatar colorId={player.colorId} playerKey={player.key} src={player.avatar} dead={dead} />
       <span className="player__name">{player.name}</span>
       {children}
     </>
@@ -132,7 +137,7 @@ export function Leaderboard({ icon, title, rows, more }: { icon: ReactNode; titl
           {rows.map((row, index) => (
             <li key={row.player.key}>
               <span className={`rank rank--${index + 1}`}>{index + 1}</span>
-              <Avatar colorId={row.player.colorId} playerKey={row.player.key} />
+              <Avatar colorId={row.player.colorId} playerKey={row.player.key} src={row.player.avatar} />
               <Link className="name" to={`/spieler/${row.player.key}`}>
                 {row.player.name}
               </Link>

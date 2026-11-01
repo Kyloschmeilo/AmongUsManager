@@ -7,6 +7,8 @@ export interface PlayerRef {
   key: string;
   name: string;
   colorId: number | null;
+  /** Discord-Profilbild (von der Website ausgeliefert), sonst farbiger Crewmate. */
+  avatar?: string | null;
 }
 
 export interface RosterEntry extends PlayerRef {
@@ -34,6 +36,7 @@ export interface PlayerSummary {
   key: string;
   name: string;
   colorId: number | null;
+  avatar?: string | null;
   linked: boolean;
   level: number | null;
   games: number;
@@ -132,8 +135,18 @@ export interface RoleRow {
   description?: string | null;
 }
 
+export interface ProfileCustom {
+  bio: string | null;
+  colorId: number | null;
+  favoriteRole: { id: string; name: string } | null;
+  favoriteMap: { mapId: number; map: string } | null;
+  showcase: string[];
+}
+
 export interface Profile {
   player: PlayerSummary;
+  ingameName: string;
+  custom: ProfileCustom | null;
   names: string[];
   roles: RoleRow[];
   maps: { mapId: number; map: string; games: number; wins: number }[];
@@ -171,6 +184,7 @@ export interface RoundPlayer {
   key: string | null;
   name: string;
   colorId: number | null;
+  avatar?: string | null;
   color?: string | null;
   role: string;
   endRole?: string | null;
@@ -266,6 +280,61 @@ export interface RoundDetail {
   web: { legacy: boolean };
 }
 
+// ---------- Anmeldung & eigenes Profil (/api/me) ----------
+
+export interface ProfileSettings {
+  displayName: string | null;
+  bio: string;
+  colorId: number | null;
+  favoriteRole: string | null;
+  favoriteMap: number | null;
+  showcase: string[];
+  showAvatar: boolean;
+}
+
+export interface ProfileOptions {
+  names: string[];
+  roles: { id: string; name: string }[];
+  maps: { mapId: number; map: string }[];
+  colors: number;
+  metrics: string[];
+  bioMax: number;
+  showcaseMax: number;
+}
+
+export interface Me {
+  loginEnabled: boolean;
+  loggedIn: boolean;
+  user?: { name: string; avatar: string | null; hasDiscordAvatar: boolean };
+  player?: PlayerSummary | null;
+  profile?: ProfileSettings;
+  options?: ProfileOptions | null;
+}
+
+/** Anmelden = ganze Seite zu Discord und zurück (kein fetch). */
+export function loginUrl(back: string = window.location.pathname + window.location.search): string {
+  return `/auth/login?back=${encodeURIComponent(back.replace(/[?&]login=[^&]*/g, '') || '/')}`;
+}
+
+export async function fetchMe(): Promise<Me> {
+  const response = await fetch('/api/me', { headers: { Accept: 'application/json' }, cache: 'no-store', credentials: 'same-origin' });
+  if (!response.ok) throw new ApiError(response.status);
+  return (await response.json()) as Me;
+}
+
+/** POST mit JSON; Fehlermeldungen des Servers kommen als Error-Text zurück. */
+export async function postJson<T>(path: string, body?: unknown): Promise<T> {
+  const response = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify(body ?? {})
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error((data as { error?: string } | null)?.error ?? `Server antwortet mit ${response.status}`);
+  return data as T;
+}
+
 // ---------- Laden ----------
 
 const cache = new Map<string, Promise<unknown>>();
@@ -295,21 +364,51 @@ export class ApiError extends Error {
 /** Neue Runden: Zwischenspeicher alle 2 Minuten leeren, damit ein Neuladen der Seite frische Daten holt. */
 setInterval(() => cache.clear(), 120_000);
 
+/** Nach dem Speichern des eigenen Profils: alles neu laden (Namen/Bilder stehen überall). */
+export function clearApiCache(): void {
+  cache.clear();
+  cacheGeneration++;
+  listeners.forEach((listener) => listener());
+}
+
+let cacheGeneration = 0;
+const listeners = new Set<() => void>();
+
+function useCacheGeneration(): number {
+  const [generation, setGeneration] = useState(cacheGeneration);
+  useEffect(() => {
+    const listener = () => setGeneration(cacheGeneration);
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  }, []);
+  return generation;
+}
+
 export type Loadable<T> = { data: T; error: null; loading: false } | { data: null; error: Error | null; loading: boolean };
 
 export function useApi<T>(path: string | null): Loadable<T> {
   const [state, setState] = useState<Loadable<T>>({ data: null, error: null, loading: path !== null });
+  const generation = useCacheGeneration();
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
   useEffect(() => {
     if (path === null) return;
     let active = true;
-    setState({ data: null, error: null, loading: true });
+    // gleicher Pfad nach clearApiCache(): alte Daten stehen lassen, bis die neuen da sind (kein Flackern)
+    if (loadedFor !== path) setState({ data: null, error: null, loading: true });
     fetchJson<T>(path).then(
-      (data) => active && setState({ data, error: null, loading: false }),
+      (data) => {
+        if (!active) return;
+        setState({ data, error: null, loading: false });
+        setLoadedFor(path);
+      },
       (error: Error) => active && setState({ data: null, error, loading: false })
     );
     return () => {
       active = false;
     };
-  }, [path]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [path, generation]);
   return state;
 }

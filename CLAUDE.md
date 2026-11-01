@@ -227,8 +227,30 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   **Replay** (GSAP-Zeitleiste über die Laufwege, Kills/Meetings/Sabotagen), Maps (Laufwege-Heatmap, Kill-Orte), Rollen.
   **Bauen:** `cd web && npm install && npm run build` → schreibt nach `src/main/resources/web/` (wird **mit committet**,
   damit Gradle/Windows ohne Node bauen kann), danach `gradlew statsWebsiteJar`. Entwickeln: Website-JAR auf 8080
-  starten (`gradlew runWebsite` oder mit `WEB_ROUNDS_DIR`), dann `npm run dev` (Vite leitet `/api` an 8080 weiter).
+  starten (`gradlew runWebsite` oder mit `WEB_ROUNDS_DIR`), dann `npm run dev` (Vite leitet `/api` und `/auth` an 8080 weiter).
   Der Bot-JAR enthält die Seite nicht (`exclude("web/**")`).
+- **Discord-Login + eigenes Profil + Profilbilder** (01.11.2026, Kilian: „lass sie sich mit DC anmelden um dann ihr Profil
+  etwas customizen“, „nehme die DC profilbilder“). Eigene Daten der Website in **`data/website.db`** (SQLite,
+  `Database.openStandalone`, ohne Bot-Schema; auf dem Server nie löschen): `web_sessions` (nur SHA-256 des Cookies,
+  30 Tage), `web_profiles` (JSON je Discord-ID), `web_discord_users` (Name, Spitzname, Profilbild als BLOB).
+  `WebAccounts.kt` (Tabellen), `Discord.kt` (`DiscordApi`/`HttpDiscordApi`: nur REST mit dem Bot-Token – **kein**
+  Gateway-Login, also keine Doppel-Verarbeitung; Server-Mitglied (Spitzname, Server-Profilbild) vor `/users/<id>`;
+  Server über `WEB_GUILD_ID` oder `GET /channels/<Channels.CODES>`; `DiscordSync` holt je Durchlauf höchstens 10 fällige
+  Spieler, jeder alle 12 h, altes Bild bleibt bei Fehlern), `WebAuth.kt` (OAuth2-Code-Flow, Scope nur `identify`,
+  `/auth/login?back=` (nur eigene Pfade), `/auth/callback` (state im Speicher + Cookie `cs_state`), `POST /auth/logout`,
+  `GET /api/me`, `POST /api/me/profile` (nur JSON, gleiche Origin, ≤ 8 KB); Cookie `cs_session` HttpOnly, SameSite=Lax,
+  Secure nur bei https), `Profiles.kt` (`ProfileRules`: Anzeigename **nur einer der eigenen Ingame-/Discord-Namen**
+  (keine Fremd-Namen), Über mich ≤ 160 Zeichen/3 Zeilen ohne Steuerzeichen, Farbe 0–17, Lieblingsrolle aus gespielten
+  Rollen, Lieblingsmap, ≤ 3 Kennzahlen (`METRICS` = ids in `web/src/lib/metrics.ts`, Test prüft), Profilbild an/aus).
+  Profil bearbeiten nur, wer verknüpft ist und Runden hat (Schlüssel `d:<Discord-ID>`). Profilbilder liefert die Website
+  selbst (`/api/avatar/<key>?v=<Version>`), der Browser fragt nie bei Discord an; Anzeigename gilt in Listen/Profil,
+  in einzelnen Runden bleibt der Ingame-Name. `.env`: `DISCORD_TOKEN` (Profilbilder), `DISCORD_CLIENT_SECRET`
+  (Login an), `WEB_PUBLIC_URL` (Redirect `<url>/auth/callback`, muss im Developer-Portal unter OAuth2 → Redirects
+  stehen), optional `DISCORD_CLIENT_ID` (sonst aus dem Token), `WEB_GUILD_ID`. Ob Discord `http://IP:Port` als Redirect
+  annimmt, ist ungetestet (sonst Domain + https nötig).
+- Bestenliste (seit 01.11.2026, Kilian: „etwas übersichtlicher, alles in eine Liste geworfen“): Bereiche Allgemein/Crew/
+  Impostor/Unterwegs (`GROUPS` in `metrics.ts`) → Kärtchen je Kennzahl mit Top 3 (Handy: zum Wischen) → Podest →
+  Tabelle ab Platz 4 (Suche zeigt alle), „Du: Platz N“ für Angemeldete.
 
 ## Minecraft-Kopplung (CoreSMP-Plugin `CoreHold`, Projekt `C:\Users\petra\Desktop\CoreSMP`)
 - Plugin → Bot ebenfalls per **Webhook**, der im Log-Channel (`Channels.MINECRAFT_INBOX` =
@@ -357,8 +379,9 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   mit echten Daten.
 - Rundenarchiv `round_raw` (01.11.2026, noch Version 2.5.0): JAR in `/mnt/project-files/bot-2.5.0-rundenarchiv/crewbot-update.zip`,
   Deploy macht Kilian.
-- Stats-Website (01.11.2026): auf `main`, JAR in `/mnt/project-files/stats-website/StatsWebsite.zip`; nur mit erfundenen
-  Testrunden geprüft (Screenshots Desktop + Handy). Panel-Server richtet Kilian ein. Braucht für Replays/Laufwege den
+- Stats-Website (01.11.2026): auf `main`, JAR in `/mnt/project-files/stats-website/StatsWebsite.zip` (+ `Anleitung.md`
+  inkl. Developer-Portal-Schritten); nur mit erfundenen Testrunden geprüft (Screenshots Desktop + Handy), Discord-Login nur
+  mit Fake-Discord getestet. Panel-Server richtet Kilian ein. Braucht für Replays/Laufwege den
   Bot mit Rundenarchiv **und** CrewStats 1.5.0 beim Host; ältere Runden kommen ohne Replay aus `round_history`.
 - Bot **v2.5.0** (24.10.2026, The Other Roles in XP-Vergabe + Discord-Mute bei Blackmailer/Jailor): auf `main`, JAR in
   `/mnt/project-files/bot-2.5.0/crewbot-update.zip`, Deploy macht Kilian. Passend dazu CrewStats **1.4.0** released.
@@ -384,6 +407,8 @@ Protokoll inkl. eines mit der Mod (.NET) verschlüsselten Testvektors.
 Statistik, Embed, Rollen-Labels aller GMIA-nameKeys, Auto-Mute `silenced`).
 `StatsWebsiteTest.kt`: Stats-Website auf einer echten Bot-Datenbank (nur lesend): Archiv + Verlauf je einmal, Undo/Freeplay
 fehlen, Verknüpfungen, keine Friendcodes in der Ausgabe, HTTP-Routen, gebaute Seite vorhanden.
+`WebAccountsTest.kt`: Discord-Login (state, Abbrechen, Abmelden), Sitzungen, Profil-Regeln, Profil speichern (Origin, JSON,
+nur eigenes), Profilbilder (`DiscordSync`, Route, an/aus), keine Discord-IDs/CDN-Adressen in der Ausgabe – mit Fake-Discord.
 `MariaDbTests.kt`: Pipeline-, Import-, Verhaltens-, Rollenwunsch-, TOR- und Website-Tests nochmal gegen einen echten MariaDB-Server
 (mariaDB4j startet ihn automatisch, `TestMariaDb`; die ERROR-Zeile „mysqld … failed unexpectedly“ am
 Ende kommt nur vom Beenden des Test-Servers) + Umzug SQLite → MySQL. `JarSmokeTest.kt` startet das
