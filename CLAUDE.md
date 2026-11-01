@@ -246,8 +246,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   selbst (`/api/avatar/<key>?v=<Version>`), der Browser fragt nie bei Discord an; Anzeigename gilt in Listen/Profil,
   in einzelnen Runden bleibt der Ingame-Name. `.env`: `DISCORD_TOKEN` (Profilbilder), `DISCORD_CLIENT_SECRET`
   (Login an), `WEB_PUBLIC_URL` (Redirect `<url>/auth/callback`, muss im Developer-Portal unter OAuth2 → Redirects
-  stehen), optional `DISCORD_CLIENT_ID` (sonst aus dem Token), `WEB_GUILD_ID`. Ob Discord `http://IP:Port` als Redirect
-  annimmt, ist ungetestet (sonst Domain + https nötig).
+  stehen), optional `DISCORD_CLIENT_ID` (sonst aus dem Token), `WEB_GUILD_ID`. Discord nimmt `http://IP:Port` als Redirect
+  an (am 02.11.2026 von Kilian bestätigt). `invalid_client` beim Code-Tausch = falsches Client Secret (nicht Public Key).
 - Bestenliste (seit 01.11.2026, Kilian: „etwas übersichtlicher, alles in eine Liste geworfen“): Bereiche Allgemein/Crew/
   Impostor/Unterwegs (`GROUPS` in `metrics.ts`) → Kärtchen je Kennzahl mit Top 3 (Handy: zum Wischen) → Podest →
   Tabelle ab Platz 4 (Suche zeigt alle), „Du: Platz N“ für Angemeldete.
