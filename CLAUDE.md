@@ -88,6 +88,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Nachrichten haben feste custom_ids (siehe unten).
 - `modules/` – Slash-Commands nach Bereich (früher Cogs), Name + Emoji erscheinen automatisch in
   `/hilfe` (Reihenfolge = Liste in `CrewBot.modules`). `/emergency` wurde bewusst entfernt.
+- `web/` – Stats-Website (eigenes JAR, gehört nicht zum Bot), siehe Abschnitt „Stats-Website“.
 
 ## Wichtige Entscheidungen
 - **Die Mod muss fair bleiben**: keine versteckten Cheats/Vorteile (z.B. heimlich Impostor
@@ -202,6 +203,32 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   verlängerte jede Stimme), Event-Footer bekommt „Anmeldung geschlossen“ nur einmal, abgelaufene Menüs
   antworten mit einem Hinweis statt „Interaktion fehlgeschlagen“, Embeds werden nie über Discords
   6000-Zeichen-Grenze gebaut (`safeBuild`).
+
+## Stats-Website (01.11.2026, Kilian: „Mach jetzt die website“, mit GSAP, Lenis, React Bits)
+- **Eigenes JAR** `StatsWebsite.jar` (`gradlew statsWebsiteJar`, Main `web/StatsWebsite.kt`), läuft als **eigener
+  Pelican-Server** (Java-Egg, JARFILE `StatsWebsite.jar`, eigener Port, 256–512 MB RAM). Liest die Bot-Datenbank
+  **nur** (`Database.openReadOnly` bzw. `mysql(…, readOnly = true)`: kein `Schema.migrate`, nichts wird geschrieben).
+  `.env` wie beim Bot: `DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` (gleiche Panel-Datenbank); ohne → SQLite
+  `data/crewbot.db` (nur sinnvoll im selben Ordner wie der Bot). Port: `WEB_PORT` → `SERVER_PORT` (Panel) → 8080,
+  `WEB_HOST` (0.0.0.0), `WEB_REFRESH_SECONDS` (60). `WEB_ROUNDS_DIR` = Ordner mit Runden-JSONs statt Datenbank (Tests/Vorschau).
+- Datenquellen: `round_raw` (nicht `undone`, Rundenformat 2 mit Laufwegen) + `round_history` (ältere Runden ohne
+  Rohdaten, Ende = Empfangszeit), `friend_links`, `players` (Level). Freeplay zählt nicht. Spieler-Schlüssel = erste 12
+  Hex von SHA-256(`"crewstats-web:" + d:<Discord-ID> | f:<friendcode> | n:<name>`) – **Friendcodes, PUIDs und
+  Discord-IDs gehen nie an den Browser** (`RoundDetail` entfernt sie, `StatsWebsiteTest` prüft das).
+- Kotlin (`web/`): `WebModel.kt` (Runde → `WebRound`, tolerant für v1/v2), `StatsSnapshot.kt` (alle Auswertungen,
+  unveränderlich, neu bei Datenänderung), `StatsStore.kt` (lädt nur neue Runden nach, Detail-Cache), `StatsSource.kt`
+  (`DatabaseSource`, `DirectorySource`), `RoundDetail.kt`, `StatsServer.kt` (JDK-`HttpServer`, nur GET/HEAD, gzip,
+  ETag, CSP; `/api/status|overview|players[/key]|rounds[/id]|maps[/id]|roles`, sonst Dateien aus `web/` im Klassenpfad,
+  App-Adressen ohne Endung → `index.html`). Grundrisse der Maps entstehen aus den Laufwegen (Raster 0,5).
+- Frontend: Quelltext in `web/` im Repo-Wurzelordner (React 19 + Vite + TypeScript, React Router, GSAP + ScrollTrigger,
+  Lenis, React Bits `SplitText`/`CountUp`/`AnimatedContent` in `web/src/reactbits/` mit Lizenz, lucide-Icons,
+  Schriften selbst gehostet über @fontsource – keine Google-Anfragen). Standard-Design (Akzent #1FBF7A, CastCrafter-Stil),
+  `prefers-reduced-motion` wird beachtet. Seiten: Übersicht, Bestenliste, Spielerprofil, Runden, Runde mit
+  **Replay** (GSAP-Zeitleiste über die Laufwege, Kills/Meetings/Sabotagen), Maps (Laufwege-Heatmap, Kill-Orte), Rollen.
+  **Bauen:** `cd web && npm install && npm run build` → schreibt nach `src/main/resources/web/` (wird **mit committet**,
+  damit Gradle/Windows ohne Node bauen kann), danach `gradlew statsWebsiteJar`. Entwickeln: Website-JAR auf 8080
+  starten (`gradlew runWebsite` oder mit `WEB_ROUNDS_DIR`), dann `npm run dev` (Vite leitet `/api` an 8080 weiter).
+  Der Bot-JAR enthält die Seite nicht (`exclude("web/**")`).
 
 ## Minecraft-Kopplung (CoreSMP-Plugin `CoreHold`, Projekt `C:\Users\petra\Desktop\CoreSMP`)
 - Plugin → Bot ebenfalls per **Webhook**, der im Log-Channel (`Channels.MINECRAFT_INBOX` =
@@ -330,6 +357,9 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   mit echten Daten.
 - Rundenarchiv `round_raw` (01.11.2026, noch Version 2.5.0): JAR in `/mnt/project-files/bot-2.5.0-rundenarchiv/crewbot-update.zip`,
   Deploy macht Kilian.
+- Stats-Website (01.11.2026): auf `main`, JAR in `/mnt/project-files/stats-website/StatsWebsite.zip`; nur mit erfundenen
+  Testrunden geprüft (Screenshots Desktop + Handy). Panel-Server richtet Kilian ein. Braucht für Replays/Laufwege den
+  Bot mit Rundenarchiv **und** CrewStats 1.5.0 beim Host; ältere Runden kommen ohne Replay aus `round_history`.
 - Bot **v2.5.0** (24.10.2026, The Other Roles in XP-Vergabe + Discord-Mute bei Blackmailer/Jailor): auf `main`, JAR in
   `/mnt/project-files/bot-2.5.0/crewbot-update.zip`, Deploy macht Kilian. Passend dazu CrewStats **1.4.0** released.
 - Bot **v2.4.0** (23.10.2026, The Other Roles in `/special-rolle` + Tutorials): auf `main`, am 23.10.2026 von Kilian aufs Panel geladen (kein GitHub-Release).
@@ -352,9 +382,13 @@ Inhalte, Formatierer, Parser, alle Embeds, Slash-Command-Definitionen, 665 zufä
 Protokoll inkl. eines mit der Mod (.NET) verschlüsselten Testvektors.
 `TheOtherRolesTest.kt`: Mod-Runden mit The Other Roles (Sondersieg, Sieg-XP nach Team, Rollen-Aktionen, Wetten, Undo,
 Statistik, Embed, Rollen-Labels aller GMIA-nameKeys, Auto-Mute `silenced`).
-`MariaDbTests.kt`: Pipeline-, Import-, Verhaltens-, Rollenwunsch- und TOR-Tests nochmal gegen einen echten MariaDB-Server
+`StatsWebsiteTest.kt`: Stats-Website auf einer echten Bot-Datenbank (nur lesend): Archiv + Verlauf je einmal, Undo/Freeplay
+fehlen, Verknüpfungen, keine Friendcodes in der Ausgabe, HTTP-Routen, gebaute Seite vorhanden.
+`MariaDbTests.kt`: Pipeline-, Import-, Verhaltens-, Rollenwunsch-, TOR- und Website-Tests nochmal gegen einen echten MariaDB-Server
 (mariaDB4j startet ihn automatisch, `TestMariaDb`; die ERROR-Zeile „mysqld … failed unexpectedly“ am
 Ende kommt nur vom Beenden des Test-Servers) + Umzug SQLite → MySQL. `JarSmokeTest.kt` startet das
 fertige JAR gegen MariaDB: `gradlew shadowJar test -DjarSmoke=true` (vor jedem Deploy sinnvoll).
+In der Cloud-Sitzung scheitert er nur an der letzten Prüfung (Discord ist dort nicht erreichbar, statt „Token ungültig“
+kommt ein Verbindungsfehler) – Datenbank-Teil und Import laufen.
 Services ohne Discord testen: `TestServices` (In-Memory-Datenbank), `*WithoutRoles`-Funktionen.
 Embed-Grenzen: JDA prüft lokal (Feld ≤ 1024 UTF-16-Zeichen, Embed ≤ 6000) und wirft sonst.

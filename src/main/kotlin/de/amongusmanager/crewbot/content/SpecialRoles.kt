@@ -255,8 +255,13 @@ fun specialRoleFor(nameKey: String): SpecialRole? = SPECIAL_ROLES[TOR_ROLE_NAMES
 
 /** Anzeige einer TOR-Rolle aus den Rundendaten, z.B. "🤠 Sheriff" – null für Crewmate/Impostor ohne Rolle. */
 fun torRoleLabel(nameKey: String): String? {
-    if (nameKey in TOR_PLAIN_ROLES) return null
+    val name = torRoleName(nameKey) ?: return null
     val role = specialRoleFor(nameKey)
-    val name = TOR_ROLE_NAMES[nameKey]?.second ?: role?.name ?: nameKey
     return if (role != null) "${role.emoji} $name" else name
+}
+
+/** Name einer TOR-Rolle ohne Emoji (Stats-Website), z.B. "Sheriff" – null für Crewmate/Impostor ohne Rolle. */
+fun torRoleName(nameKey: String): String? {
+    if (nameKey in TOR_PLAIN_ROLES) return null
+    return TOR_ROLE_NAMES[nameKey]?.second ?: specialRoleFor(nameKey)?.name ?: nameKey
 }

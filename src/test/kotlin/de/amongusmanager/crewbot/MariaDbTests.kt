@@ -36,6 +36,11 @@ class MariaDbRoundFormatV2Test : RoundFormatV2Test() {
     override fun newDb(): Database = TestMariaDb.newDatabase()
 }
 
+class MariaDbStatsWebsiteTest : StatsWebsiteTest() {
+    override fun newDatabases(): Pair<Database, () -> Database> = TestMariaDb.newDatabaseWithReader()
+    override fun emptyReadOnly(): Database = TestMariaDb.emptyReadOnly()
+}
+
 /** Umzug einer bestehenden SQLite-Datenbank nach MySQL. */
 class SqliteToMysqlTest {
     private val pipeline = Golden.section("pipeline")

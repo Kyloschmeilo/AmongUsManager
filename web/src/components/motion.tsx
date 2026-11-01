@@ -1,0 +1,103 @@
+// Bewegung: React-Bits-Bausteine (SplitText, AnimatedContent, CountUp) mit den Einstellungen der Seite,
+// Lenis (weiches Scrollen) und ein Helfer, der Balken beim Hineinscrollen wachsen lässt.
+// Wer „Bewegung reduzieren“ eingestellt hat, sieht alles sofort und ohne Animation.
+import { useEffect, type ReactNode, type RefObject } from 'react';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import Lenis from 'lenis';
+import { useLocation } from 'react-router-dom';
+import SplitText from '../reactbits/SplitText';
+import AnimatedContent from '../reactbits/AnimatedContent';
+import CountUp from '../reactbits/CountUp';
+
+gsap.registerPlugin(ScrollTrigger);
+
+export const reducedMotion = (): boolean =>
+  typeof window !== 'undefined' && (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
+
+let lenis: Lenis | null = null;
+
+/** Weiches Scrollen mit Lenis, gekoppelt an den GSAP-Takt (damit ScrollTrigger synchron bleibt). */
+export function useSmoothScroll(): void {
+  const location = useLocation();
+  useEffect(() => {
+    if (reducedMotion()) return;
+    const instance = new Lenis({ duration: 1.05, smoothWheel: true });
+    lenis = instance;
+    instance.on('scroll', ScrollTrigger.update);
+    const tick = (time: number) => instance.raf(time * 1000);
+    gsap.ticker.add(tick);
+    gsap.ticker.lagSmoothing(0);
+    return () => {
+      gsap.ticker.remove(tick);
+      instance.destroy();
+      lenis = null;
+    };
+  }, []);
+  useEffect(() => {
+    if (lenis) lenis.scrollTo(0, { immediate: true });
+    else window.scrollTo(0, 0);
+    const id = window.setTimeout(() => ScrollTrigger.refresh(), 300);
+    return () => window.clearTimeout(id);
+  }, [location.pathname]);
+}
+
+/** Überschrift, die Buchstabe für Buchstabe hochkommt. */
+export function Title({ text, className, tag = 'h1' }: { text: string; className?: string; tag?: 'h1' | 'h2' }) {
+  return (
+    <SplitText
+      text={text}
+      tag={tag}
+      className={className}
+      textAlign="left"
+      splitType="chars"
+      effect="rise"
+      delay={22}
+      duration={0.7}
+      trigger="load"
+    />
+  );
+}
+
+/** Abschnitt, der beim Hineinscrollen leicht hochgleitet. */
+export function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
+  return (
+    <AnimatedContent distance={28} duration={0.6} ease="power3.out" delay={delay} threshold={0.12} className={className}>
+      {children}
+    </AnimatedContent>
+  );
+}
+
+/** Ganze Zahl, die hochzählt (deutsche Tausender-Punkte). */
+export function Count({ value, suffix }: { value: number; suffix?: string }) {
+  return <CountUp to={Math.round(value)} separator="." duration={1.4} suffix={suffix} trigger="view" />;
+}
+
+/** Lässt alle `[data-grow]`-Elemente in [ref] beim Hineinscrollen von 0 auf ihre Größe wachsen. */
+export function useGrow(ref: RefObject<HTMLElement | null>, axis: 'x' | 'y' = 'x', deps: unknown[] = []): void {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || reducedMotion()) return;
+    const targets = el.querySelectorAll('[data-grow]');
+    if (!targets.length) return;
+    const ctx = gsap.context(() => {
+      gsap.from(targets, {
+        [axis === 'x' ? 'scaleX' : 'scaleY']: 0,
+        duration: 0.8,
+        ease: 'power3.out',
+        stagger: 0.03,
+        scrollTrigger: { trigger: el, start: 'top 88%', once: true }
+      });
+    }, el);
+    return () => ctx.revert();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+}
+
+/** Nach dem Laden neuer Inhalte die Scroll-Positionen neu messen. */
+export function useRefreshOnChange(value: unknown): void {
+  useEffect(() => {
+    const id = window.setTimeout(() => ScrollTrigger.refresh(), 100);
+    return () => window.clearTimeout(id);
+  }, [value]);
+}

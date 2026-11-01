@@ -1,3 +1,4 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -60,7 +61,29 @@ tasks.test {
 
 tasks.shadowJar {
     archiveFileName.set("AmongUsManager.jar")
+    exclude("web/**") // die gebaute Stats-Website gehört nur ins StatsWebsite.jar
     // Service-Dateien (z.B. JDBC-Treiber von SQLite UND MariaDB) zusammenführen statt nur die erste zu behalten
     filesMatching("META-INF/services/**") { duplicatesStrategy = DuplicatesStrategy.INCLUDE }
     mergeServiceFiles()
+}
+
+// Stats-Website (Quelltext der Seite in web/, gebaut nach src/main/resources/web): eigenes JAR mit eigenem Startpunkt,
+// läuft als eigener Server im Panel (java -jar StatsWebsite.jar) und liest die Datenbank des Bots nur.
+val statsWebsiteJar by tasks.registering(ShadowJar::class) {
+    group = "build"
+    description = "Stats-Website als Fat-JAR: build/libs/StatsWebsite.jar"
+    archiveFileName.set("StatsWebsite.jar")
+    from(sourceSets.main.get().output)
+    configurations.set(listOf(project.configurations.runtimeClasspath.get()))
+    manifest { attributes["Main-Class"] = "de.amongusmanager.crewbot.web.StatsWebsiteKt" }
+    filesMatching("META-INF/services/**") { duplicatesStrategy = DuplicatesStrategy.INCLUDE }
+    mergeServiceFiles()
+}
+
+tasks.register<JavaExec>("runWebsite") {
+    group = "application"
+    description = "Startet die Stats-Website lokal (Port 8080, liest data/crewbot.db bzw. die .env)"
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("de.amongusmanager.crewbot.web.StatsWebsiteKt")
+    workingDir = projectDir
 }

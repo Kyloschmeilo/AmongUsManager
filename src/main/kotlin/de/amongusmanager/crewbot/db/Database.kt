@@ -27,6 +27,8 @@ class Database private constructor(
     val dialect: Dialect,
     /** Beschreibung für das Log (ohne Passwort). */
     val description: String,
+    /** Nur lesen (Stats-Website): Schema wird weder angelegt noch geändert, die Verbindung ist schreibgeschützt. */
+    val readOnly: Boolean,
     private val connect: () -> Connection,
 ) : AutoCloseable {
     private val log = LoggerFactory.getLogger(Database::class.java)
@@ -40,7 +42,7 @@ class Database private constructor(
         private set
 
     init {
-        Schema.migrate(this)
+        if (!readOnly) Schema.migrate(this)
     }
 
     companion object {
@@ -50,6 +52,17 @@ class Database private constructor(
         fun open(file: Path): Database {
             file.toAbsolutePath().parent?.let { Files.createDirectories(it) }
             return sqlite("jdbc:sqlite:${file.toAbsolutePath()}", wal = true, description = file.toAbsolutePath().toString())
+        }
+
+        /** Die Datei nur lesen (Stats-Website neben dem laufenden Bot) – sie muss schon existieren. */
+        fun openReadOnly(file: Path): Database {
+            require(Files.exists(file)) { "Datenbank nicht gefunden: ${file.toAbsolutePath()}" }
+            val config = SQLiteConfig().apply {
+                setReadOnly(true)
+                setBusyTimeout(5000)
+            }
+            val url = "jdbc:sqlite:${file.toAbsolutePath()}"
+            return Database(Dialect.SQLITE, "SQLite ${file.toAbsolutePath()} (nur lesen)", readOnly = true) { config.createConnection(url) }
         }
 
         /** Für Tests: Datenbank nur im Speicher. */
@@ -62,11 +75,11 @@ class Database private constructor(
                 setSynchronous(SQLiteConfig.SynchronousMode.FULL)
                 if (wal) setJournalMode(SQLiteConfig.JournalMode.WAL)
             }
-            return Database(Dialect.SQLITE, "SQLite $description") { config.createConnection(url) }
+            return Database(Dialect.SQLITE, "SQLite $description", readOnly = false) { config.createConnection(url) }
         }
 
-        /** MySQL/MariaDB, z.B. host = "45.81.233.92:3306". */
-        fun mysql(host: String, name: String, user: String, password: String): Database {
+        /** MySQL/MariaDB, z.B. host = "45.81.233.92:3306". [readOnly]: nur lesen (Stats-Website), kein Schema anlegen. */
+        fun mysql(host: String, name: String, user: String, password: String, readOnly: Boolean = false): Database {
             val url = "jdbc:mariadb://$host/$name"
             val properties = Properties().apply {
                 setProperty("user", user)
@@ -77,9 +90,11 @@ class Database private constructor(
             }
             // Treiber direkt benutzen statt über DriverManager – im Fat-JAR ist auf die Service-Registrierung kein Verlass
             val driver = org.mariadb.jdbc.Driver()
-            return Database(Dialect.MYSQL, "MySQL $name auf $host") {
+            val description = "MySQL $name auf $host" + if (readOnly) " (nur lesen)" else ""
+            return Database(Dialect.MYSQL, description, readOnly) {
                 (driver.connect(url, properties) ?: error("MariaDB-Treiber lehnt die URL ab: $url")).also { connection ->
                     connection.createStatement().use { it.execute("SET NAMES utf8mb4 COLLATE utf8mb4_bin") }
+                    if (readOnly) connection.isReadOnly = true
                 }
             }
         }
