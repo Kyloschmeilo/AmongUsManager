@@ -16,6 +16,7 @@ import de.amongusmanager.crewbot.modules.RoundsModule
 import de.amongusmanager.crewbot.modules.VoiceModule
 import de.amongusmanager.crewbot.services.AchievementService
 import de.amongusmanager.crewbot.services.AuditLog
+import de.amongusmanager.crewbot.services.RoundArchiveService
 import de.amongusmanager.crewbot.services.AutoRoleService
 import de.amongusmanager.crewbot.services.AutoMuteService
 import de.amongusmanager.crewbot.services.BetService
@@ -92,7 +93,8 @@ class CrewBot(val db: Database) {
     val gameSettings = GameSettingsService(db)
     val roundHistory = RoundHistoryService(db)
     val achievements = AchievementService(db, levels)
-    val modRounds = ModRoundService(db, levels, bets, rounds, links, gameStats, roundHistory, achievements)
+    val roundArchive = RoundArchiveService(db)
+    val modRounds = ModRoundService(db, levels, bets, rounds, links, gameStats, roundHistory, achievements, roundArchive)
     val roleWishes = RoleWishService(db, levels, links, { gameSettings.latest })
     val lobby = LobbyAnnouncer({ jda }, Channels.CODES, links, bets, { event, host -> buildLobbyEmbed(event, host) }, scope)
 

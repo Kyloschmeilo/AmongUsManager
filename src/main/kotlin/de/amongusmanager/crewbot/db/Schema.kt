@@ -233,6 +233,17 @@ object Schema {
         CREATE INDEX role_wishes_status ON role_wishes (status);
         CREATE INDEX role_wishes_user ON role_wishes (user_id, evening)
         """,
+        // Version 3: Rohdaten jeder Mod-Runde (JSON der CrewStats-Mod, für eine Stats-Website), ohne Obergrenze
+        """
+        CREATE TABLE round_raw (
+            game_id     TEXT PRIMARY KEY,
+            received_at INTEGER NOT NULL,
+            version     INTEGER NOT NULL,
+            undone      INTEGER NOT NULL DEFAULT 0,
+            json        TEXT NOT NULL
+        );
+        CREATE INDEX round_raw_received ON round_raw (received_at)
+        """,
     )
 
     /**
@@ -480,6 +491,17 @@ object Schema {
             reserved_at BIGINT NULL,
             KEY role_wishes_status (status),
             KEY role_wishes_user (user_id, evening)
+        ) $MYSQL_TABLE
+        """,
+        // Version 3
+        """
+        CREATE TABLE IF NOT EXISTS round_raw (
+            game_id     VARCHAR(64) NOT NULL PRIMARY KEY,
+            received_at BIGINT NOT NULL,
+            version     INT NOT NULL,
+            undone      INT NOT NULL DEFAULT 0,
+            json        LONGTEXT NOT NULL,
+            KEY round_raw_received (received_at)
         ) $MYSQL_TABLE
         """,
     )

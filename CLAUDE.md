@@ -230,7 +230,15 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   ändern sich (z.B. `PlayerId`-Struct statt byte, `TryGet*` mit `out`): kleines
   MetadataLoadContext-Tool gegen die GameLibs-DLLs bauen statt raten.
 - Zeichnet nur als Host auf, ignoriert Freeplay/Hide & Seek. JSON-Format = `RoundRecord.cs`
-  (camelCase) ↔ `services/ModRoundModel.kt`. Beide Seiten gemeinsam ändern! Mit The Other Roles kommen TOR-Felder
+  (camelCase) ↔ `services/ModRoundModel.kt`. Beide Seiten gemeinsam ändern!
+  **Rundenformat 2** (CrewStats 1.5.0, 01.11.2026, Kilian: „so viele Infos wie möglich … für eine detaillierte Stats-Website“):
+  hängt nur Felder an (Zeitleiste `events`, Laufwege `tracks` 1 Punkt/s, Kosmetik/Level/Plattform, Aufgaben mit Zeiten,
+  Lobby- + TOR-Einstellungen, Server, Kennzahlen `summary`), dokumentiert in `docs/rundenformat.md` des Mod-Repos
+  (+ `docs/beispiel-runde.json`, auch in `src/test/resources/crewstats/`). Zeitleiste/Polling in `GameTimeline.cs`
+  (alle 0,2 s aus HudManager.Update, jeder Teil schaltet sich nach einem Fehler einmal geloggt ab), Rechenteil in
+  `RoundStats.cs` (getestet). JSON ohne Einrückung; > 7 MB → ohne Laufwege. Der Bot archiviert jede Runde unverändert in
+  `round_raw` (Schema v3, `services/RoundArchive.kt`, ohne Obergrenze, Undo setzt nur `undone = 1`) – Datenquelle für die
+  Website. Im echten Spiel noch ungetestet. Mit The Other Roles kommen TOR-Felder
   dazu (siehe „The Other Roles in XP & Auto-Mute“). Reine Regeln (Sieger-Team, Todesarten) in `RoundRules.cs`, getestet
   in `Tests/` (`dotnet test Tests`, ohne Among Us). GitHub baut die Mod bei jedem Push (Workflow „Build“).
 - **Auto-Mute** (`AutoMute.cs`, Config `[AutoMute] Enabled`, Standard aus): meldet Phasenwechsel

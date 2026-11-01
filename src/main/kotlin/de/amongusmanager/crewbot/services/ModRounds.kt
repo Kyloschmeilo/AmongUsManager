@@ -44,21 +44,24 @@ class ModRoundService(
     private val stats: GameStatsService,
     private val history: RoundHistoryService,
     private val achievements: AchievementService,
+    private val archive: RoundArchiveService? = null,
     private val clock: () -> Instant = Instant::now,
 ) {
     fun isKnown(gameId: String): Boolean =
         db.queryOne("SELECT 1 AS found FROM mod_rounds WHERE game_id = ?", gameId) { true } != null
 
     /** Wertet eine Runde aus (alles in einer Transaktion) und vergibt danach die Level-Rollen. */
-    suspend fun apply(guild: Guild?, round: ModRound): ModRoundResult {
-        val result = applyWithoutRoles(round)
+    suspend fun apply(guild: Guild?, round: ModRound, raw: String? = null): ModRoundResult {
+        val result = applyWithoutRoles(round, raw)
         val awards = (result.outcome?.awards ?: emptyList()) + result.achievements.map { it.userId to it.result }
         rounds.grantRoles(guild, awards)
         return result
     }
 
-    fun applyWithoutRoles(round: ModRound): ModRoundResult = db.transaction {
+    /** [raw] = die JSON-Datei der Mod; wird unverändert archiviert (RoundArchiveService), null = nicht archivieren. */
+    fun applyWithoutRoles(round: ModRound, raw: String? = null): ModRoundResult = db.transaction {
         if (isKnown(round.gameId)) throw ModRoundError("Diese Runde wurde bereits ausgewertet.")
+        if (raw != null) archive?.store(round.gameId, round.formatVersion, raw)
 
         val discordIds = LinkedHashMap<Int, Long>()
         for (player in round.players) {
@@ -138,6 +141,7 @@ class ModRoundService(
             }
             stats.apply(deltas, sign = -1)
             history.remove(gameId)
+            archive?.markUndone(gameId) // Rohdaten bleiben, sind aber als zurückgesetzt markiert
 
             db.update("UPDATE mod_rounds SET undone = 1 WHERE game_id = ?", gameId)
         }

@@ -12,6 +12,7 @@ import de.amongusmanager.crewbot.services.LinkService
 import de.amongusmanager.crewbot.services.MinecraftService
 import de.amongusmanager.crewbot.services.ModRoundService
 import de.amongusmanager.crewbot.services.ModSettings
+import de.amongusmanager.crewbot.services.RoundArchiveService
 import de.amongusmanager.crewbot.services.RoundHistoryService
 import de.amongusmanager.crewbot.services.RoundService
 import kotlinx.serialization.json.JsonElement
@@ -26,7 +27,8 @@ class TestServices(val db: Database = Database.inMemory()) {
     val stats = GameStatsService(db)
     val history = RoundHistoryService(db)
     val achievements = AchievementService(db, levels)
-    val modRounds = ModRoundService(db, levels, bets, rounds, links, stats, history, achievements)
+    val archive = RoundArchiveService(db)
+    val modRounds = ModRoundService(db, levels, bets, rounds, links, stats, history, achievements, archive)
     val events = EventService(db)
     val modSettings = ModSettings(db)
     val gameSettings = GameSettingsService(db)

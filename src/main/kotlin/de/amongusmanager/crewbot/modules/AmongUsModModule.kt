@@ -322,12 +322,13 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "ð
 
         roundLock.withLock {
             val result = try {
-                val round = ModRound.parse(download(attachment))
+                val raw = download(attachment)
+                val round = ModRound.parse(raw)
                 if (bot.modRounds.isKnown(round.gameId)) {
                     delete(message) // doppelt gesendet
                     return
                 }
-                bot.modRounds.apply(guild, round)
+                bot.modRounds.apply(guild, round, raw)
             } catch (e: Exception) {
                 e.rethrowIfCancelled()
                 val reason = if (e is ModRoundError) e.message else e.describe()

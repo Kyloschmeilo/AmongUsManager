@@ -133,6 +133,7 @@ data class ModRound(
     val mod: String? = null, // Rollen-Mod, z.B. "TheOtherRoles GMIA 1.4.1" – null ohne
     val neutralWin: Boolean = false, // The Other Roles: Sondersieg (winningTeam NEUTRAL) – alle Wetten verloren
     val modDeaths: List<ModDeath> = emptyList(), // The Other Roles: alle Tode mit Täter und Art
+    val formatVersion: Int = 1, // Rundenformat der Mod (ab CrewStats 1.5.0: 2 mit Zeitleiste, Laufwegen …)
 ) {
     fun player(playerId: Int?): ModPlayer? = if (playerId == null) null else players.firstOrNull { it.playerId == playerId }
 
@@ -166,6 +167,7 @@ data class ModRound(
                     mod = data.optionalString("mod"),
                     neutralWin = team == NEUTRAL_TEAM,
                     modDeaths = data.optionalList("modDeaths").map { ModDeath.fromJson(it.asObject()) }.sortedBy { it.atSeconds },
+                    formatVersion = data["version"].intOrNull() ?: 1,
                 )
             } catch (e: JsonKeyError) {
                 throw ModRoundError("Ungültige Rundendaten: ${e.message}")
