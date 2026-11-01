@@ -295,7 +295,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Container; auch Weltkoordinaten-Ansatz klappte nicht) → zurückgenommen, Nutzer will es so lassen.
   Falls doch: Schalter in den Reiter „Graphics“ verschieben oder nur per Config.
 - **Verteilung & Updates**: Repo `mod/` (nur Mod + Installer, kein Bot-Code, keine Webhook-URLs!).
-  Aktuelles Release: **v1.4.1** (24.10.2026, Kilians Wunsch: Fix gegen Kicks mit TOR – `TorPacketFix.cs` ersetzt TORs
+  Aktuelles Release: **v1.5.0** (01.11.2026, Kilians Wunsch: Rundenformat 2 für eine Stats-Website, s.o.; im echten Spiel
+  ungetestet). Davor v1.4.1 (24.10.2026, Kilians Wunsch: Fix gegen Kicks mit TOR – `TorPacketFix.cs` ersetzt TORs
   `CustomOption.ShareOptionSelections` durch kleine Pakete; TOR schickte bei jedem Beitritt die Guesser-Rollenfilter in einem
   1635-Byte-Paket, das auf Modded EU nicht ankam → „Reliable packet … was not ack'd after 7500ms“ im `Player.log`, alle
   flogen ~7 s nach jedem Join raus, auch mit fremdem Host. Hilft nur, wenn der **Host** CrewStats ≥ 1.4.1 hat; am 24.10.2026 von Kilian im echten Spiel bestätigt: „es geht“).
@@ -327,6 +328,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - **Noch nicht im echten Spiel bestätigt**: tatsächliches Muten/Taubschalten durch den Bot,
   „Kein Skip bei Notfall“ (`RpcClearVote`), Lobby-Ankündigung im Discord, Highlights/Erfolge/Recap
   mit echten Daten.
+- Rundenarchiv `round_raw` (01.11.2026, noch Version 2.5.0): JAR in `/mnt/project-files/bot-2.5.0-rundenarchiv/crewbot-update.zip`,
+  Deploy macht Kilian.
 - Bot **v2.5.0** (24.10.2026, The Other Roles in XP-Vergabe + Discord-Mute bei Blackmailer/Jailor): auf `main`, JAR in
   `/mnt/project-files/bot-2.5.0/crewbot-update.zip`, Deploy macht Kilian. Passend dazu CrewStats **1.4.0** released.
 - Bot **v2.4.0** (23.10.2026, The Other Roles in `/special-rolle` + Tutorials): auf `main`, am 23.10.2026 von Kilian aufs Panel geladen (kein GitHub-Release).
