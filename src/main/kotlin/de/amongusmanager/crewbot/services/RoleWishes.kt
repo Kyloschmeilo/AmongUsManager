@@ -11,6 +11,8 @@
  *   1. Mod schickt   {"crewstats":"wishes","v":1,"data":…}         data = {"players":["friendcode", …]}
  *   2. Bot bearbeitet genau diese Webhook-Nachricht zu
  *                    {"crewstats":"wishes-reply","v":1,"data":…}   data = {"wishes":[{"id","fc","role","admin"}]}
+ *      Rollen von The Other Roles: role = "tor:<id>" plus "tor" (TOR-RoleId-Namen) und "team" (CREW|IMPOSTOR|ANY);
+ *      ältere Mods kennen "tor:…" nicht und melden unknownRole (XP zurück).
  *   3. Mod liest die Nachricht über den Webhook, löscht sie und wendet die Wünsche an.
  *   4. Mod schickt   {"crewstats":"wishes-result","v":1,"data":…}  data = {"results":[{"id","status","reason"}]}
  *      status = applied | failed (reason: noSlot, disabled, unknownRole, notAllowed) | absent (nicht in der Runde)
@@ -271,13 +273,20 @@ class RoleWishService(
     private fun checkSlot(role: WishRole, userId: Long, forAdmin: Boolean) {
         val others = pending().filter { it.userId != userId }
         val settings = settings()
-        val impostorSlots = settings?.numImpostors?.takeIf { it > 0 } ?: 1
-        val crewSlots = maxOf(1, (settings?.maxPlayers?.takeIf { it > 0 } ?: 15) - impostorSlots)
-        // Admins sehen, wer die Plätze hat (und können Einträge mit „entfernen“ freimachen)
         fun holders(entries: List<RoleWish>) =
             if (forAdmin && entries.isNotEmpty()) " (vergeben an ${entries.joinToString(", ") { "<@${it.userId}>" }})" else ""
 
-        if (!role.isTeamRole) {
+        if (role.isTor) {
+            // Wie oft TOR eine Rolle vergibt, kennt der Bot nicht – deshalb höchstens ein Wunsch pro TOR-Rolle
+            val same = others.filter { other -> other.role?.torRoles?.any { it in role.torRoles } == true }
+            if (same.isNotEmpty()) {
+                throw RoleWishError("❌ **${role.label}** ist für die nächste Runde schon vergeben${holders(same)}.")
+            }
+        }
+        val impostorSlots = settings?.numImpostors?.takeIf { it > 0 } ?: 1
+        val crewSlots = maxOf(1, (settings?.maxPlayers?.takeIf { it > 0 } ?: 15) - impostorSlots)
+        // Admins sehen, wer die Plätze hat (und können Einträge mit „entfernen“ freimachen)
+        if (!role.isTeamRole && !role.isTor) {
             if (settings == null) {
                 throw RoleWishError(
                     "❌ Die Rollen-Einstellungen der Lobby sind noch unbekannt – sie kommen beim nächsten Rundenstart" +
@@ -296,6 +305,7 @@ class RoleWishService(
                 )
             }
         }
+        if (role.team == null) return // TOR-Rolle mit Crew- und Impostor-Version: das Team würfelt TOR
         val team = others.filter { it.role?.team == role.team }
         val slots = if (role.team == Team.IMPOSTOR) impostorSlots else crewSlots
         if (team.size >= slots) {
@@ -439,6 +449,11 @@ object WishProtocol {
                             put("fc", wish.friendCode)
                             put("role", wish.roleName)
                             put("admin", wish.admin)
+                            val role = wishRole(wish.roleName)
+                            if (role != null && role.isTor) {
+                                putJsonArray("tor") { role.torRoles.forEach { add(JsonPrimitive(it)) } }
+                                put("team", role.team?.value ?: "ANY")
+                            }
                         }
                     }
                 }

@@ -1,5 +1,6 @@
 package de.amongusmanager.crewbot
 
+import de.amongusmanager.crewbot.content.TOR_WISH_ROLES
 import de.amongusmanager.crewbot.content.WISH_ROLES
 import de.amongusmanager.crewbot.content.wishRole
 import de.amongusmanager.crewbot.db.Database
@@ -288,6 +289,92 @@ open class RoleWishTest {
             WISH_ROLES.map { it.gameName },
         )
         assertTrue(WISH_ROLES.size + 1 <= 25, "Discord erlaubt höchstens 25 Auswahlmöglichkeiten")
+    }
+
+    // ---------- Special-Rollen (The Other Roles) ----------
+
+    @Test
+    fun torWishesWorkWithoutVanillaSettings() {
+        val s = Setup()
+        s.settings = null // Lobby-Einstellungen unbekannt – für TOR-Rollen egal
+        val (a, b, c) = listOf(1L, 2L, 3L).map { s.player(it) }
+        val sheriff = role("tor:sheriff")
+        assertEquals("🤠 Sheriff", sheriff.label)
+        assertEquals(listOf("Sheriff"), sheriff.torRoles)
+
+        s.wishes.wish(a, sheriff)
+        assertEquals(80, s.xp(a))
+        // Jede TOR-Rolle höchstens einmal (die Anzahl kennt der Bot nicht)
+        val taken = assertFailsWith<RoleWishError> { s.wishes.wish(b, sheriff) }
+        assertTrue("schon vergeben" in taken.message!!, taken.message)
+        val admin = assertFailsWith<RoleWishError> { s.wishes.assign(99, b, sheriff) }
+        assertTrue("<@1>" in admin.message!!, "Admins sehen, wer sie hat")
+        // Shifter und Chain-Shifter sind in TOR dieselbe Rolle
+        s.wishes.wish(b, role("tor:shifter"))
+        assertFailsWith<RoleWishError> { s.wishes.wish(c, role("tor:chainShifter")) }
+        // Ändern auf eine andere TOR- oder normale Rolle ist kostenlos
+        s.wishes.wish(a, role("tor:jester"))
+        s.wishes.wish(c, sheriff)
+        assertEquals(80, s.xp(a))
+    }
+
+    @Test
+    fun torImpostorRolesCountAsImpostorSlots() {
+        val s = Setup() // 2 Impostor
+        val (a, b, c, d) = listOf(1L, 2L, 3L, 4L).map { s.player(it) }
+        s.wishes.wish(a, role("tor:vampire"))
+        s.wishes.wish(b, role("Impostor"))
+        val full = assertFailsWith<RoleWishError> { s.wishes.wish(c, role("tor:morphling")) }
+        assertTrue("2 Impostor" in full.message!!, full.message)
+        // Rollen mit Crew- und Impostor-Version zählen für kein Team
+        s.wishes.wish(c, role("tor:guesser"))
+        s.wishes.wish(d, role("tor:jester")) // Neutral zählt als Crewmate-Platz
+    }
+
+    @Test
+    fun torWishesGoToTheModWithRoleIdsAndTeam() {
+        val token = "geheimer-token"
+        val wishes = listOf(
+            ReservedWish(1, "a#1234", "tor:guesser", false),
+            ReservedWish(2, "b#5678", "tor:jester", true),
+            ReservedWish(3, "c#9999", "tor:vampire", false),
+        )
+        val (content, _) = WishProtocol.reply(wishes, token)
+        val reply = Json.parseToJsonElement(content).jsonObject
+        val plain = WishProtocol.open(
+            de.amongusmanager.crewbot.services.WishMessage(WishProtocol.REPLY, reply["data"]!!.jsonPrimitive.content), token,
+        )
+        assertEquals(
+            """{"wishes":[""" +
+                """{"id":1,"fc":"a#1234","role":"tor:guesser","admin":false,"tor":["NiceGuesser","EvilGuesser"],"team":"ANY"},""" +
+                """{"id":2,"fc":"b#5678","role":"tor:jester","admin":true,"tor":["Jester"],"team":"CREW"},""" +
+                """{"id":3,"fc":"c#9999","role":"tor:vampire","admin":false,"tor":["Vampire"],"team":"IMPOSTOR"}]}""",
+            plain,
+        )
+    }
+
+    @Test
+    fun torWishRolesMatchTheOtherRolesGmia() {
+        // RoleId-Namen aus TheOtherRoles GMIA 1.4.1 (RPC.cs), die bei der Rollenvergabe verteilt werden
+        val assignable = setOf(
+            "Jester", "Mayor", "Portalmaker", "Engineer", "Sheriff", "Deputy", "Lighter", "Godfather", "Mafioso", "Janitor",
+            "Detective", "TimeMaster", "Medic", "Swapper", "Seer", "Sprinter", "Morphling", "Camouflager", "Hacker", "Tracker",
+            "Vampire", "Snitch", "Jackal", "Eraser", "FortuneTeller", "Bait", "Veteran", "Sherlock", "Spy", "Trickster",
+            "Cleaner", "Warlock", "SecurityGuard", "Arsonist", "EvilGuesser", "NiceGuesser", "NiceWatcher", "EvilWatcher",
+            "BountyHunter", "Vulture", "Medium", "Shifter", "Yasuna", "TaskMaster", "Teleporter", "Jailor", "EvilYasuna",
+            "Pelican", "Lawyer", "Moriarty", "PlagueDoctor", "Akujo", "Cupid", "JekyllAndHyde", "Fox", "Witch", "Assassin",
+            "Ninja", "NekoKabocha", "Thief", "SerialKiller", "EvilTracker", "MimicK", "MimicA", "BomberA", "BomberB",
+            "EvilHacker", "Undertaker", "Trapper", "Zephyr", "Blackmailer", "Opportunist", "Yoyo", "Doomsayer", "Kataomoi",
+            "Collator", "Yandere", "Busker", "Noisemaker", "Archaeologist", "SchrodingersCat",
+        )
+        for (role in TOR_WISH_ROLES) {
+            assertTrue(role.isTor && role.torRoles.isNotEmpty(), role.gameName)
+            for (id in role.torRoles) assertTrue(id in assignable, "${role.gameName}: unbekannte TOR-Rolle $id")
+        }
+        val names = TOR_WISH_ROLES.map { it.gameName }
+        assertTrue("tor:madmate" !in names && "tor:sidekick" !in names && "tor:lovers" !in names, "nicht wünschbar")
+        assertEquals(names.size, names.toSet().size)
+        assertNull(TOR_WISH_ROLES.firstOrNull { wishRole(it.gameName) != it })
     }
 
     // ---------- Protokoll ----------

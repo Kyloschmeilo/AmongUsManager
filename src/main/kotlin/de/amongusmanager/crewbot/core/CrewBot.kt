@@ -56,6 +56,7 @@ import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleRemoveEvent
 import net.dv8tion.jda.api.events.guild.member.update.GuildMemberUpdatePendingEvent
 import net.dv8tion.jda.api.events.guild.voice.GenericGuildVoiceEvent
+import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
@@ -221,6 +222,16 @@ class CrewBot(val db: Database) {
         }
     }
 
+    private suspend fun dispatchAutocomplete(event: CommandAutoCompleteInteractionEvent) {
+        val handler = commandsByName[event.name]?.autocomplete ?: return
+        try {
+            handler(event)
+        } catch (e: Exception) {
+            e.rethrowIfCancelled()
+            log.warn("Vorschläge für /{} fehlgeschlagen: {}", event.name, e.describe())
+        }
+    }
+
     private suspend fun dispatchComponent(event: GenericComponentInteractionCreateEvent) {
         try {
             if (ViewRegistry.dispatch(event)) return
@@ -279,6 +290,11 @@ class CrewBot(val db: Database) {
         override fun onSlashCommandInteraction(event: SlashCommandInteractionEvent) {
             attach(event.jda)
             scope.launch { dispatchCommand(event) }
+        }
+
+        override fun onCommandAutoCompleteInteraction(event: CommandAutoCompleteInteractionEvent) {
+            attach(event.jda)
+            scope.launch { dispatchAutocomplete(event) }
         }
 
         override fun onGenericComponentInteractionCreate(event: GenericComponentInteractionCreateEvent) {

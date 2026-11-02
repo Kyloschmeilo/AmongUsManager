@@ -25,7 +25,8 @@ fun buildWishStatusEmbed(current: RoleWish?, reserved: Boolean, usedTonight: Int
     if (current != null && reserved) lines += "⏳ Wird gerade für eine startende Runde verwendet."
     if (!linked) lines += "⚠️ Dein Among-Us-Account ist noch nicht verknüpft – erst `/verknuepfen`, sonst erkennt die Mod dich nicht."
     lines += ""
-    lines += "**Wünschen:** `/rollenwunsch rolle:…` – ändern ist kostenlos, zurückziehen gibt die XP zurück."
+    lines += "**Wünschen:** `/rollenwunsch rolle:…` (Special-Rollen: `/special-rollenwunsch`) – ändern ist kostenlos," +
+        " zurückziehen gibt die XP zurück."
     lines += ROLE_WISH_RULES
     return EmbedBuilder()
         .setTitle("🎭 Dein Rollenwunsch")
@@ -54,8 +55,11 @@ fun buildWishOverviewEmbed(entries: List<RoleWish>, isReserved: (RoleWish) -> Bo
 }
 
 /** Warum ein Wunsch in der Runde nicht geklappt hat (Begründung der Mod). */
-fun wishFailureText(reason: String?): String = when (reason) {
-    "noSlot" -> "in der Runde war dafür kein Platz frei (z.B. zu wenige Spieler)"
-    "disabled" -> "die Rolle ist in den Lobby-Einstellungen aus"
+fun wishFailureText(reason: String?, tor: Boolean = false): String = when {
+    tor && reason == "noSlot" -> "die Rolle kam in der Runde nicht vor (TOR-Einstellungen) oder du warst im falschen Team"
+    tor && reason == "disabled" -> "beim Host lief The Other Roles nicht (oder eine andere Version)"
+    tor && reason == "unknownRole" -> "die CrewStats-Mod des Hosts ist zu alt für Special-Rollen"
+    reason == "noSlot" -> "in der Runde war dafür kein Platz frei (z.B. zu wenige Spieler)"
+    reason == "disabled" -> "die Rolle ist in den Lobby-Einstellungen aus"
     else -> "die Mod konnte ihn nicht anwenden"
 }

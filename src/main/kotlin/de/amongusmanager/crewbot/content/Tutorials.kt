@@ -50,7 +50,8 @@ val TUTORIALS: List<Tutorial> = listOf(
                     "/bet – setz bis zu ${Rules.MAX_BET} XP auf Crew oder Impostor. Gewinnt dein Team, bekommst du" +
                         " das ${Rules.BET_PAYOUT_FACTOR}-Fache. Sobald die Runde läuft, ist das Wettbüro zu",
                     "/rollenwunsch – wünsch dir eine Rolle für deine nächste Runde" +
-                        " (${Rules.ROLE_WISH_COST} XP, ${Rules.ROLE_WISHES_PER_EVENING}× pro Spieleabend)",
+                        " (${Rules.ROLE_WISH_COST} XP, ${Rules.ROLE_WISHES_PER_EVENING}× pro Spieleabend)," +
+                        " Special-Rollen mit /special-rollenwunsch",
                 ),
             ),
             TutorialSection(

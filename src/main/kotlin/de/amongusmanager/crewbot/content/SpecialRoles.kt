@@ -265,3 +265,47 @@ fun torRoleName(nameKey: String): String? {
     if (nameKey in TOR_PLAIN_ROLES) return null
     return TOR_ROLE_NAMES[nameKey]?.second ?: specialRoleFor(nameKey)?.name ?: nameKey
 }
+
+// ==========================================
+// ROLLENWÜNSCHE (/special-rollenwunsch, /special-rolle-zuweisen)
+// ==========================================
+
+const val TOR_WISH_PREFIX = "tor:"
+
+/**
+ * Rollen, die TOR bei der Rollenvergabe verteilt – nur die kann die Mod einem Wunsch zuteilen. Nicht dabei: Modifikatoren
+ * (kommen zusätzlich), Madmate (bei GMIA ein Modifikator) und Rollen, die erst im Spiel entstehen (Sidekick, Pursuer,
+ * Immoralist).
+ */
+private val TOR_NOT_WISHABLE = setOf("madmate", "sidekick", "pursuer", "immoralist")
+
+/** TOR-RoleId-Namen, wenn sie nicht einfach die id mit großem Anfangsbuchstaben sind (GMIA 1.4.1, `RoleId` in RPC.cs). */
+private val TOR_WISH_IDS: Map<String, List<String>> = mapOf(
+    "guesser" to listOf("NiceGuesser", "EvilGuesser"),
+    "watcher" to listOf("NiceWatcher", "EvilWatcher"),
+    "yasuna" to listOf("Yasuna", "EvilYasuna"),
+    "mafia" to listOf("Godfather", "Mafioso", "Janitor"),
+    "bomber" to listOf("BomberA", "BomberB"),
+    "mimic" to listOf("MimicK", "MimicA"),
+    "chainShifter" to listOf("Shifter"), // TOR würfelt, ob der Shifter Crew oder neutral ist
+)
+
+/** Alle wünschbaren TOR-Rollen, sortiert nach Team und Name. `gameName` = "tor:<id>" (so steht es in der Datenbank). */
+val TOR_WISH_ROLES: List<WishRole> = SPECIAL_ROLES.values
+    .filter { it.team != SpecialTeam.MODIFIER && it.id !in TOR_NOT_WISHABLE }
+    .sortedWith(compareBy<SpecialRole> { it.team.ordinal }.thenBy { it.name.lowercase() })
+    .map { role ->
+        val team = when (role.team) {
+            SpecialTeam.CREW, SpecialTeam.NEUTRAL -> Team.CREW // TOR verteilt Neutrale an Crewmates
+            SpecialTeam.IMPOSTOR -> Team.IMPOSTOR
+            else -> null
+        }
+        WishRole(
+            TOR_WISH_PREFIX + role.id, team, role.emoji, role.name,
+            TOR_WISH_IDS[role.id] ?: listOf(role.id.replaceFirstChar { it.uppercaseChar() }),
+        )
+    }
+
+/** Team-Angabe einer TOR-Wunschrolle für die Auswahl, z.B. "Crew" oder "Neutral". */
+fun torWishTeam(role: WishRole): String =
+    SPECIAL_ROLES[role.gameName.removePrefix(TOR_WISH_PREFIX)]?.team?.label?.substringAfter(' ') ?: ""

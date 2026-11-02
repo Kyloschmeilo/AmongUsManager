@@ -109,6 +109,15 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   kostenlos, haben Vorrang, ersetzen (und erstatten) den Wunsch des Spielers; Admins sehen bei vollen
   Rollen, wer sie hat. XP zurück (+ DM), wenn die Mod den Wunsch nicht erfüllen kann; offene Wünsche
   verfallen um 6 Uhr mit Erstattung (Schleife jede Minute, ohne DM). Tabelle `role_wishes` (Schema v2).
+- **Special-Rollen-Wünsche** (02.11.2026, Kilian: „adde bei rollen wunsch und zuweisung die Special rollen als extra Command“):
+  `/special-rollenwunsch` (alle) und `/special-rolle-zuweisen` (Admin) für Rollen von The Other Roles, Auswahl per
+  Autocomplete (`SlashCommand.autocomplete`, >25 Rollen). Gespeichert als `role_name = "tor:<id>"` (`TOR_WISH_ROLES` in
+  `content/SpecialRoles.kt`, ohne Modifikatoren/Madmate/Sidekick/Pursuer/Immoralist), gleiche XP-/Abend-Regeln, Anzeigen und
+  Zurückziehen weiter über `/rollenwunsch`/`/rolle-zuweisen`. Je TOR-Rolle höchstens ein offener Wunsch (Anzahl kennt der Bot
+  nicht), Crew/Neutral zählen als Crew-, Impostor-Rollen als Impostor-Platz, Nice/Evil-Rollen für kein Team. Protokoll: Antwort
+  enthält zusätzlich `tor` (RoleId-Namen) + `team` (CREW|IMPOSTOR|ANY). CrewStats (`TorRoleWishes.cs`, `TorWishPicker.cs`, auf
+  main, noch kein Release) setzt erst das Team und lässt dann TORs `setRoleToRandomPlayer` den Wünschenden ziehen; kommt die
+  Rolle nicht vor → noSlot (XP zurück). Im echten Spiel ungetestet.
 - **Rollenwunsch-Protokoll** (kein offener Port): Host drückt Start → Mod schickt
   `{"crewstats":"wishes","v":1,"data":…}` (Friendcodes der Lobby) mit `?wait=true`; der Bot bearbeitet
   **genau diese Webhook-Nachricht** (Webhook-Token per `retrieveWebhookById`, nur im Speicher) zu

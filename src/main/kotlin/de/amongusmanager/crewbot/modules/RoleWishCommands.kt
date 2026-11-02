@@ -1,12 +1,19 @@
 /*
  * Rollenwünsche (/rollenwunsch), Admin-Zuweisungen (/rolle-zuweisen) und der Austausch mit der Mod.
+ * Rollen von The Other Roles gehen über eigene Befehle (/special-rollenwunsch, /special-rolle-zuweisen, mit
+ * Vorschlägen beim Tippen statt fester Auswahl – es sind mehr als Discords 25); Anzeigen/Zurückziehen bleibt bei
+ * /rollenwunsch bzw. /rolle-zuweisen, weil jeder Spieler nur einen offenen Wunsch hat.
  * Gehört zum Mod-Modul (erscheint dort in /hilfe); die Logik steckt in services/RoleWishes.kt.
  */
 package de.amongusmanager.crewbot.modules
 
 import de.amongusmanager.crewbot.Rules
+import de.amongusmanager.crewbot.content.TOR_WISH_ROLES
 import de.amongusmanager.crewbot.content.WISH_ROLES
+import de.amongusmanager.crewbot.content.WishRole
+import de.amongusmanager.crewbot.content.torWishTeam
 import de.amongusmanager.crewbot.content.wishRole
+import de.amongusmanager.crewbot.core.CommandError
 import de.amongusmanager.crewbot.core.CrewBot
 import de.amongusmanager.crewbot.core.SlashCommand
 import de.amongusmanager.crewbot.core.author
@@ -35,6 +42,7 @@ import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.WebhookClient
+import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.commands.Command
 import net.dv8tion.jda.api.interactions.commands.OptionType
@@ -43,7 +51,13 @@ import org.slf4j.LoggerFactory
 
 private const val WITHDRAW = "zurueckziehen"
 private const val REMOVE = "entfernen"
+private const val MAX_SUGGESTIONS = 25 // Discord-Grenze für Vorschläge
 private const val REQUEST_CLEANUP_MS = 30_000L // die Mod löscht ihre Anfrage selbst – sonst räumt der Bot danach auf
+
+/** Hinweis bei Special-Rollen: welche Rollen es gibt, entscheidet The Other Roles. */
+private const val TOR_WISH_NOTE =
+    "🎲 Special-Rollen klappen nur, wenn die Rolle in der Runde vorkommt (Einstellungen von The Other Roles beim Host)" +
+        " – sonst gibt es die XP zurück."
 
 class RoleWishCommands(private val bot: CrewBot) {
     private val log = LoggerFactory.getLogger(RoleWishCommands::class.java)
@@ -71,17 +85,57 @@ class RoleWishCommands(private val bot: CrewBot) {
                     .addChoices(roleChoices + Command.Choice("❌ Wunsch/Zuweisung entfernen", REMOVE)),
             ),
         ) { event -> onAssign(event) },
+        SlashCommand(
+            "special-rollenwunsch",
+            "Wünsch dir eine Special-Rolle (The Other Roles) für deine nächste Runde" +
+                " (${Rules.ROLE_WISH_COST} XP, ${Rules.ROLE_WISHES_PER_EVENING}× pro Spieleabend)",
+            options = listOf(
+                OptionData(OptionType.STRING, "rolle", "Welche Special-Rolle? (tippen zum Suchen)", true).setAutoComplete(true),
+            ),
+            autocomplete = ::suggestTorRoles,
+        ) { event -> onWish(event, torChoice(event)) },
+        SlashCommand(
+            "special-rolle-zuweisen", "Legt fest, welche Special-Rolle (The Other Roles) ein Spieler in der nächsten Runde bekommt",
+            Permission.ADMINISTRATOR,
+            options = listOf(
+                OptionData(OptionType.USER, "spieler", "Wer?", true),
+                OptionData(OptionType.STRING, "rolle", "Welche Special-Rolle? (tippen zum Suchen)", true).setAutoComplete(true),
+            ),
+            autocomplete = ::suggestTorRoles,
+        ) { event -> onAssign(event, torChoice(event)) },
     )
 
     // ==========================================
     // BEFEHLE
     // ==========================================
 
-    private suspend fun onWish(event: SlashCommandInteractionEvent) {
+    /** Vorschläge für /special-…: Name enthält den getippten Text (Groß-/Kleinschreibung egal). */
+    private suspend fun suggestTorRoles(event: CommandAutoCompleteInteractionEvent) {
+        if (event.focusedOption.name != "rolle") return
+        val query = event.focusedOption.value.trim().lowercase()
+        val matches = TOR_WISH_ROLES
+            .filter { query.isEmpty() || query in it.name.lowercase() }
+            .sortedBy { if (it.name.lowercase().startsWith(query)) 0 else 1 }
+            .take(MAX_SUGGESTIONS)
+        event.replyChoices(matches.map { Command.Choice("${it.label} · ${torWishTeam(it)}", it.gameName) }).await()
+    }
+
+    /** Die gewählte TOR-Rolle – auch wenn jemand den Namen nur eintippt, ohne einen Vorschlag anzuklicken. */
+    private fun torChoice(event: SlashCommandInteractionEvent): String {
+        val text = event.stringOption("rolle")?.trim().orEmpty()
+        val role: WishRole? = TOR_WISH_ROLES.firstOrNull { it.gameName == text }
+            ?: TOR_WISH_ROLES.firstOrNull { it.name.equals(text, ignoreCase = true) || it.label.equals(text, ignoreCase = true) }
+        return role?.gameName ?: throw CommandError(
+            "❌ Unbekannte Special-Rolle **${text.take(50)}** – wähl eine aus den Vorschlägen beim Tippen." +
+                " Modifikatoren (z.B. Lovers, Mini) kann man sich nicht wünschen."
+        )
+    }
+
+    private suspend fun onWish(event: SlashCommandInteractionEvent, special: String? = null) {
         val userId = event.author.idLong
         val wishes = bot.roleWishes
         try {
-            when (val choice = event.stringOption("rolle")) {
+            when (val choice = special ?: event.stringOption("rolle")) {
                 null -> {
                     wishes.expireOld()
                     val current = wishes.pendingOf(userId)
@@ -113,7 +167,8 @@ class RoleWishCommands(private val bot: CrewBot) {
                             "−${Rules.ROLE_WISH_COST} XP (Guthaben: ${change.balance} XP) •" +
                             " Wünsche heute: ${change.usedTonight}/${Rules.ROLE_WISHES_PER_EVENING}"
                     }
-                    event.notify("$text\n\n$ROLE_WISH_RULES", Tone.SUCCESS)
+                    val torNote = if (role.isTor) "\n\n$TOR_WISH_NOTE" else ""
+                    event.notify("$text$torNote\n\n$ROLE_WISH_RULES", Tone.SUCCESS)
                 }
             }
         } catch (e: RoleWishError) {
@@ -121,11 +176,11 @@ class RoleWishCommands(private val bot: CrewBot) {
         }
     }
 
-    private suspend fun onAssign(event: SlashCommandInteractionEvent) {
+    private suspend fun onAssign(event: SlashCommandInteractionEvent, special: String? = null) {
         val admin = event.author
         val wishes = bot.roleWishes
         val target = event.memberOption("spieler")
-        val choice = event.stringOption("rolle")
+        val choice = special ?: event.stringOption("rolle")
         try {
             wishes.expireOld()
             if (target == null) {
@@ -174,7 +229,7 @@ class RoleWishCommands(private val bot: CrewBot) {
                     event.notify(
                         "✅ ${target.asMention} bekommt in der nächsten Runde **${role.label}**.$note\n\n" +
                             "Gilt für die nächste Runde der Person, wenn der Host die CrewStats-Mod hat." +
-                            " Im Spiel-Chat steht dann offen, wie viele Rollen per Discord festgelegt wurden.",
+                            (if (role.isTor) "\n$TOR_WISH_NOTE" else ""),
                         Tone.SUCCESS,
                     )
                     bot.audit.log(Actor.of(admin), "🎭 Rolle zugewiesen", "${target.asMention} → **${role.label}** (nächste Runde)$note")
@@ -244,7 +299,7 @@ class RoleWishCommands(private val bot: CrewBot) {
             if (wish.cost <= 0) continue
             dm(
                 message.jda, wish.userId,
-                "↩️ Dein Rollenwunsch **${wish.label}** hat in der Runde nicht geklappt – ${wishFailureText(wish.reason)}." +
+                "↩️ Dein Rollenwunsch **${wish.label}** hat in der Runde nicht geklappt – ${wishFailureText(wish.reason, wish.role?.isTor == true)}." +
                     " Du bekommst deine **${wish.cost} XP** zurück.",
             )
         }
@@ -255,7 +310,7 @@ class RoleWishCommands(private val bot: CrewBot) {
         val failedWishes = results.refunded.count { !it.isAdmin }
         if (failedWishes > 0) lines += "↩️ Nicht möglich: $failedWishes Wünsche (XP erstattet)"
         for (entry in results.refunded.filter { it.isAdmin }) {
-            lines += "⚠️ Zuweisung nicht möglich: <@${entry.userId}> → ${entry.label} (${wishFailureText(entry.reason)})"
+            lines += "⚠️ Zuweisung nicht möglich: <@${entry.userId}> → ${entry.label} (${wishFailureText(entry.reason, entry.role?.isTor == true)})"
         }
         bot.audit.log(Actor.of(message.jda.selfUser), "🎭 Rollenwünsche angewendet", lines.joinToString("\n"))
     }

@@ -91,9 +91,18 @@ fun roleLabel(gameRole: String): String {
  * Geister-Rollen (Guardian Angel, Influencer) bekommt man erst nach dem Tod – die gehen nicht.
  * Crewmate/Impostor heißt „irgendeine Rolle dieses Teams“ (Impostor kann also auch Shapeshifter werden).
  */
-data class WishRole(val gameName: String, val team: Team, val emoji: String) {
-    val label: String get() = "$emoji $gameName"
+data class WishRole(
+    val gameName: String,
+    /** Team, in dem der Spieler dafür sein muss – null bei TOR-Rollen, die es als Crew- und Impostor-Version gibt. */
+    val team: Team?,
+    val emoji: String,
+    val name: String = gameName,
+    /** Nur bei Rollen von The Other Roles (`gameName` = "tor:<id>"): passende TOR-RoleId-Namen für die Mod. */
+    val torRoles: List<String> = emptyList(),
+) {
+    val label: String get() = "$emoji $name"
     val isTeamRole: Boolean get() = gameName == "Crewmate" || gameName == "Impostor"
+    val isTor: Boolean get() = gameName.startsWith(TOR_WISH_PREFIX)
 }
 
 val WISH_ROLES: List<WishRole> = listOf(
@@ -110,7 +119,9 @@ val WISH_ROLES: List<WishRole> = listOf(
     WishRole("Viper", Team.IMPOSTOR, "🐍"),
 )
 
-fun wishRole(gameName: String): WishRole? = WISH_ROLES.firstOrNull { it.gameName == gameName }
+/** Rolle für /rollenwunsch bzw. /special-rollenwunsch (TOR-Rollen siehe [TOR_WISH_ROLES]). */
+fun wishRole(gameName: String): WishRole? =
+    WISH_ROLES.firstOrNull { it.gameName == gameName } ?: TOR_WISH_ROLES.firstOrNull { it.gameName == gameName }
 
 // ==========================================
 // MAPS

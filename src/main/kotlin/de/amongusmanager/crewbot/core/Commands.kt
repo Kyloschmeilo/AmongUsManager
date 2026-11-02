@@ -5,6 +5,7 @@ import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel
 import net.dv8tion.jda.api.events.guild.voice.GenericGuildVoiceEvent
+import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.interactions.InteractionContextType
@@ -22,6 +23,8 @@ class SlashCommand(
     /** Nur wer dieses Recht hat, sieht/benutzt den Befehl (🔒 in /hilfe). */
     val permission: Permission? = null,
     val options: List<OptionData> = emptyList(),
+    /** Vorschläge beim Tippen für Optionen mit `setAutoComplete(true)` (mehr als Discords 25 feste Auswahlen). */
+    val autocomplete: (suspend (CommandAutoCompleteInteractionEvent) -> Unit)? = null,
     val handler: suspend (SlashCommandInteractionEvent) -> Unit,
 ) {
     fun data(): SlashCommandData {
