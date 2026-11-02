@@ -1,12 +1,12 @@
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Crosshair, Map as MapIcon, Skull, Trophy, Users, Vote } from 'lucide-react';
+import { Clock, Crosshair, Skull, Trophy, Users, Vote } from 'lucide-react';
 import { useApi, type MapDetail, type Overview, type PlayerSummary, type RecordEntry } from '../lib/api';
 import { date, distance as dist, duration, nightLabel, num, pct } from '../lib/format';
-import { RECORD_LABEL, TEAM_COLOR, TEAM_LABEL, endReason, mapShort } from '../lib/labels';
+import { RECORD_LABEL, TEAM_COLOR, endReason, mapShort } from '../lib/labels';
 import { metric, rank } from '../lib/metrics';
 import { Async, Avatar, BarList, Empty, Leaderboard, RoundList, Section, StatCard } from '../components/ui';
-import { Reveal, Title, useGrow } from '../components/motion';
+import { Count, useGrow } from '../components/motion';
 import { MapView } from '../components/MapView';
 
 export function Home() {
@@ -17,35 +17,36 @@ export function Home() {
       <Async state={overview}>
         {(o) => (
           <>
-            <Hero overview={o} />
+            <Masthead overview={o} />
             {o.rounds === 0 ? (
               <Empty
                 text="Noch keine Runden aufgezeichnet."
-                hint="Sobald ein Host mit CrewStats eine Runde zu Ende spielt, erscheint sie hier."
+                hint="Sobald ein Host mit CrewStats eine Runde zu Ende spielt, steht sie hier."
               />
             ) : (
               <>
                 <div className="grid grid--stats">
-                  <StatCard icon={<Trophy className="icon" />} label="Runden" value={o.rounds} chip={o.firstRoundAt ? `seit ${date(o.firstRoundAt)}` : undefined} caption={`${num(o.replays)} davon mit Replay`} />
-                  <StatCard icon={<Users className="icon" />} label="Spieler" value={o.players} chip="alle" caption={`im Schnitt ${duration(o.totals.avgDuration)} pro Runde`} />
-                  <StatCard icon={<Skull className="icon" />} label="Kills" value={o.totals.kills} chip="gesamt" caption={`${num(o.totals.ejections)} Mal rausgewählt`} />
-                  <StatCard icon={<Clock className="icon" />} label="Spielzeit" value={0} raw={duration(o.totals.playSeconds)} chip="gesamt" caption={`${num(o.totals.tasks)} Aufgaben erledigt`} />
+                  <StatCard icon={<Trophy className="icon" />} label="Runden" value={o.rounds} caption={`${num(o.replays)} mit Replay`} />
+                  <StatCard icon={<Users className="icon" />} label="Spieler" value={o.players} caption={`Runde dauert im Schnitt ${duration(o.totals.avgDuration)}`} />
+                  <StatCard icon={<Skull className="icon" />} label="Kills" value={o.totals.kills} caption={`dazu ${num(o.totals.ejections)}× rausgewählt`} />
+                  <StatCard icon={<Clock className="icon" />} label="Gespielt" value={0} raw={duration(o.totals.playSeconds)} caption={`${num(o.totals.tasks)} Aufgaben erledigt`} />
                 </div>
-                <Winners overview={o} />
                 {players.data && <Boards players={players.data.players} />}
+                <EndReasons overview={o} />
                 {o.records.length > 0 && <Records records={o.records} />}
                 {o.activity.length > 1 && <Activity overview={o} />}
-                <Section eyebrow="Zuletzt gespielt" title="Letzte Runden" action={<Link className="btn" to="/runden">Alle Runden</Link>}>
+                <Section title="Letzte Runden" action={<Link className="btn" to="/runden">Alle Runden</Link>}>
                   <RoundList rounds={o.recent} />
                 </Section>
-                <Section eyebrow="Wo gespielt wird" title="Maps" action={<Link className="btn" to="/maps">Zu den Maps</Link>}>
+                <Section title="Maps" action={<Link className="btn" to="/maps">Zu den Maps</Link>}>
                   <div className="grid grid--3">
                     {o.maps.map((m) => (
                       <Link key={m.mapId} to={`/maps/${m.mapId}`} className="panel mapcard">
-                        <span className="eyebrow">{num(m.rounds)} Runden</span>
                         <h3>{m.map}</h3>
                         <TeamSplit crew={m.crewWins} impostor={m.impostorWins} neutral={m.neutralWins} />
-                        <span className="caption">Crew gewinnt {pct(m.crewWins, m.rounds)} · im Schnitt {duration(m.avgDuration)}</span>
+                        <span className="caption">
+                          {num(m.rounds)} Runden · Crew gewinnt {pct(m.crewWins, m.rounds)} · im Schnitt {duration(m.avgDuration)}
+                        </span>
                       </Link>
                     ))}
                   </div>
@@ -59,28 +60,45 @@ export function Home() {
   );
 }
 
-function Hero({ overview }: { overview: Overview }) {
+/** Kopf der Startseite: Titel, ein Satz, worum es geht, und der Spielstand Crew gegen Impostor. */
+function Masthead({ overview }: { overview: Overview }) {
   const top = overview.maps.find((m) => m.layout) ?? null;
+  const t = overview.teams;
   return (
-    <section className="hero">
-      <div className="hero__text">
-        <span className="eyebrow">Among Us · Spieleabend</span>
-        <Title text="Crew Stats" className="hero__title" />
+    <section className="masthead">
+      <div className="masthead__text">
+        <h1 className="masthead__title">
+          Wer war<span>sus?</span>
+        </h1>
         <p className="lead">
-          Jede Runde vom Spieleabend, automatisch aufgezeichnet von CrewStats: wer gewinnt, wer tötet, wer richtig abstimmt
-          und wer am meisten läuft.
+          Unsere Among-Us-Runden vom Spieleabend
+          {overview.firstRoundAt ? <>, mitgeschrieben seit dem {date(overview.firstRoundAt)}</> : null}. Wer gewinnt, wer
+          tötet, wer beim Abstimmen richtig liegt.
         </p>
-        <div className="row">
-          <span className="pill pill--mono">{num(overview.rounds)} Runden</span>
-          <span className="pill pill--mono">{num(overview.players)} Spieler</span>
-          {overview.lastRoundAt && <span className="pill pill--plain">Zuletzt am {date(overview.lastRoundAt)}</span>}
-        </div>
-        <div className="row">
-          <Link className="btn btn--primary" to="/bestenliste">Zur Bestenliste</Link>
-          <Link className="btn" to="/runden">Runden ansehen</Link>
-        </div>
+        {overview.rounds > 0 && (
+          <div className="score">
+            <div className="score__line" aria-label={`Crew ${t.CREW} Siege, Impostor ${t.IMPOSTOR} Siege`}>
+              <div className="score__side score__side--crew">
+                <span className="score__team">Crew</span>
+                <span className="score__num"><Count value={t.CREW} /></span>
+              </div>
+              <span className="score__colon" aria-hidden="true">:</span>
+              <div className="score__side score__side--imp">
+                <span className="score__team">Impostor</span>
+                <span className="score__num"><Count value={t.IMPOSTOR} /></span>
+              </div>
+            </div>
+            <TeamSplit crew={t.CREW} impostor={t.IMPOSTOR} neutral={t.NEUTRAL} />
+            <span className="score__note">
+              Siege insgesamt
+              {t.NEUTRAL > 0 ? `, dazu ${num(t.NEUTRAL)}× ein neutraler Sieg (z. B. Jester)` : ''}
+              {t.UNKNOWN > 0 ? `, ${num(t.UNKNOWN)} abgebrochen` : ''}
+              {overview.lastRoundAt ? `. Zuletzt gespielt am ${date(overview.lastRoundAt)}.` : '.'}
+            </span>
+          </div>
+        )}
       </div>
-      <Reveal delay={0.15}>{top ? <HeroMap mapId={top.mapId} /> : <HeroBlocks />}</Reveal>
+      {top ? <HeroMap mapId={top.mapId} /> : <HeroBlocks />}
     </section>
   );
 }
@@ -91,31 +109,28 @@ function HeroMap({ mapId }: { mapId: number }) {
   if (!map.data || map.data.cells.length < 30) return <HeroBlocks />;
   const m = map.data;
   return (
-    <div className="stack">
+    <figure className="masthead__map">
       <MapView layout={m} heat showRooms={false} showVents={false} label={`Laufwege auf ${m.map.map}`}>
         {m.kills.slice(-400).map((k, i) => (
-          <rect key={i} x={k.x - 0.22} y={-k.y - 0.22} width={0.44} height={0.44} rx={0.06} fill="var(--ember)" />
+          <path key={i} d={`M${k.x - 0.24} ${-k.y - 0.24}l.48 .48m0 -.48l-.48 .48`} stroke="var(--ember)" strokeWidth={0.16} strokeLinecap="round" />
         ))}
       </MapView>
-      <span className="caption">
-        {m.map.map}: wo alle hinlaufen (grün) und wo gestorben wird (orange), aus {num(m.map.rounds)} Runden.
-      </span>
-    </div>
+      <figcaption>
+        {m.map.map} aus {num(m.map.rounds)} Runden: je heller, desto öfter lief jemand dort lang. Jedes rote Kreuz ist ein Kill.
+      </figcaption>
+    </figure>
   );
 }
 
-/** Ohne Laufwege: gestufte Blöcke wie im Standard-Design. */
+/** Ohne Laufwege: ein Crewmate-Umriss als Platzhalter. */
 function HeroBlocks() {
-  const columns = [2, 2, 3, 3, 4, 3, 4, 5, 5, 6];
   return (
-    <svg viewBox="0 0 480 288" className="hero__art" role="img" aria-label="Blöcke">
-      {columns.map((height, c) =>
-        Array.from({ length: height }, (_, r) => {
-          const top = r === height - 1;
-          const fill = r < 2 ? 'var(--moss)' : top && c === 7 ? 'var(--gold)' : top && c === 5 ? 'var(--ember)' : 'var(--accent)';
-          return <rect key={`${c}-${r}`} x={2 + c * 48} y={242 - r * 48} width={44} height={44} rx={4} fill={fill} />;
-        })
-      )}
+    <svg viewBox="0 0 480 300" className="hero__art" role="img" aria-label="Crewmate">
+      <g transform="translate(170 30)">
+        <rect x="0" y="80" width="40" height="110" rx="14" fill="var(--surface-2)" />
+        <path d="M30 90a75 75 0 0 1 150 0v150a16 16 0 0 1-16 16h-34v-46H80v46H46a16 16 0 0 1-16-16z" fill="var(--surface-1)" stroke="var(--rule)" strokeWidth="3" />
+        <rect x="80" y="55" width="115" height="62" rx="31" fill="var(--accent-soft)" stroke="var(--accent)" strokeWidth="3" />
+      </g>
     </svg>
   );
 }
@@ -131,38 +146,17 @@ function TeamSplit({ crew, impostor, neutral }: { crew: number; impostor: number
   );
 }
 
-function Winners({ overview }: { overview: Overview }) {
-  const t = overview.teams;
-  const decided = t.CREW + t.IMPOSTOR + t.NEUTRAL;
+function EndReasons({ overview }: { overview: Overview }) {
   return (
-    <Section eyebrow="Ergebnisse" title={<>Wer <em>gewinnt</em>?</>}>
-      <div className="grid grid--2">
-        <div className="panel panel--pad stack" style={{ gap: 20 }}>
-          <h3 className="panel__title" style={{ margin: 0 }}><Trophy className="icon" />Siege nach Team</h3>
-          <div className="row" style={{ gap: 32, alignItems: 'flex-end' }}>
-            {(['CREW', 'IMPOSTOR', 'NEUTRAL'] as const).filter((team) => team !== 'NEUTRAL' || t.NEUTRAL > 0).map((team) => (
-              <div key={team} className="stack" style={{ gap: 4 }}>
-                <span className="eyebrow">{TEAM_LABEL[team]}</span>
-                <span className="mono" style={{ fontSize: 28, lineHeight: '32px', color: TEAM_COLOR[team] }}>{pct(t[team], decided)}</span>
-                <span className="caption">{num(t[team])} Runden</span>
-              </div>
-            ))}
-          </div>
-          <TeamSplit crew={t.CREW} impostor={t.IMPOSTOR} neutral={t.NEUTRAL} />
-          {t.UNKNOWN > 0 && <span className="caption">{num(t.UNKNOWN)} Runden ohne Ergebnis (abgebrochen).</span>}
-        </div>
-        <div className="panel panel--pad">
-          <h3 className="panel__title"><Vote className="icon" />Wie Runden enden</h3>
-          <BarList
-            items={overview.endReasons.slice(0, 7).map((r) => ({
-              label: endReason(r.reason),
-              value: r.count,
-              text: `${num(r.count)} · ${pct(r.count, overview.rounds)}`,
-              tone: r.reason.startsWith('Impostor') ? 'ember' : r.reason.startsWith('Humans') ? 'accent' : 'gold'
-            }))}
-          />
-        </div>
-      </div>
+    <Section title="Wie Runden enden" eyebrow={`von ${num(overview.rounds)} Runden`}>
+      <BarList
+        items={overview.endReasons.slice(0, 7).map((r) => ({
+          label: endReason(r.reason),
+          value: r.count,
+          text: `${num(r.count)} · ${pct(r.count, overview.rounds)}`,
+          tone: r.reason.startsWith('Impostor') ? 'ember' : r.reason.startsWith('Humans') ? 'accent' : 'neutral'
+        }))}
+      />
     </Section>
   );
 }
@@ -174,7 +168,7 @@ function Boards({ players }: { players: PlayerSummary[] }) {
     { id: 'votes', icon: <Vote className="icon" /> }
   ];
   return (
-    <Section eyebrow="Bestenliste" title="Ganz vorne" action={<Link className="btn" to="/bestenliste">Ganze Bestenliste</Link>}>
+    <Section title="Bestenliste" eyebrow="Top 5" action={<Link className="btn" to="/bestenliste">Ganze Tabelle</Link>}>
       <div className="grid grid--3">
         {boards.map((b) => {
           const m = metric(b.id);
@@ -184,7 +178,7 @@ function Boards({ players }: { players: PlayerSummary[] }) {
               icon={b.icon}
               title={m.label}
               rows={rank(players, m).slice(0, 5).map((p) => ({ player: p, value: m.format(p) }))}
-              more={{ to: `/bestenliste?nach=${m.id}`, label: 'Mehr anzeigen' }}
+              more={{ to: `/bestenliste?nach=${m.id}`, label: `Alle nach ${m.label}` }}
             />
           );
         })}
@@ -203,12 +197,12 @@ function recordValue(r: RecordEntry): string {
 
 function Records({ records }: { records: RecordEntry[] }) {
   return (
-    <Section eyebrow="Rekorde" title="Für die Geschichtsbücher">
-      <div className="grid grid--3">
+    <Section title="Rekorde">
+      <div className="records">
         {records.filter((r) => RECORD_LABEL[r.id]).map((r) => (
-          <Link key={r.id} to={`/runden/${r.round.gameId}`} className="panel record mapcard" style={{ gap: 8 }}>
-            <span className="eyebrow">{RECORD_LABEL[r.id].title}</span>
+          <Link key={r.id} to={`/runden/${r.round.gameId}`} className="record">
             <span className="record__value">{recordValue(r)}</span>
+            <span className="record__title">{RECORD_LABEL[r.id].title}</span>
             <span className="record__who">
               {r.player ? (
                 <>
@@ -217,11 +211,7 @@ function Records({ records }: { records: RecordEntry[] }) {
                   <span className="faint">· {mapShort(r.round.mapId, r.round.map)}, {date(r.round.endedAt)}</span>
                 </>
               ) : (
-                <>
-                  <MapIcon className="icon icon--sm" style={{ color: 'var(--ink-faint)' }} />
-                  <span className="ink">{mapShort(r.round.mapId, r.round.map)}</span>
-                  <span className="faint">· {date(r.round.endedAt)}</span>
-                </>
+                <span className="faint">{mapShort(r.round.mapId, r.round.map)}, {date(r.round.endedAt)}</span>
               )}
             </span>
           </Link>
@@ -237,8 +227,8 @@ function Activity({ overview }: { overview: Overview }) {
   const max = Math.max(1, ...days.map((d) => d.rounds));
   useGrow(ref, 'y', [days.length]);
   return (
-    <Section eyebrow="Aktivität" title="Runden pro Spieleabend">
-      <div className="panel panel--pad">
+    <Section title="Runden pro Abend" eyebrow={`die letzten ${days.length} Spieleabende`}>
+      <div>
         <div className="columns" ref={ref}>
           {days.map((d) => (
             <div className="columns__col" key={d.date} tabIndex={0} aria-label={`${nightLabel(d.date)}: ${d.rounds} Runden`}>
@@ -249,7 +239,7 @@ function Activity({ overview }: { overview: Overview }) {
         </div>
         <div className="columns__axis caption mono">
           <span>{nightLabel(days[0].date)}</span>
-          <span>höchstens {max} Runden an einem Abend</span>
+          <span>Rekord: {max} Runden an einem Abend</span>
           <span>{nightLabel(days[days.length - 1].date)}</span>
         </div>
       </div>

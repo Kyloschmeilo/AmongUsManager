@@ -261,8 +261,14 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   App-Adressen ohne Endung → `index.html`). Grundrisse der Maps entstehen aus den Laufwegen (Raster 0,5).
 - Frontend: Quelltext in `web/` im Repo-Wurzelordner (React 19 + Vite + TypeScript, React Router, GSAP + ScrollTrigger,
   Lenis, React Bits `SplitText`/`CountUp`/`AnimatedContent` in `web/src/reactbits/` mit Lizenz, lucide-Icons,
-  Schriften selbst gehostet über @fontsource – keine Google-Anfragen). Standard-Design (Akzent #1FBF7A, CastCrafter-Stil),
-  `prefers-reduced-motion` wird beachtet. Seiten: Übersicht, Bestenliste, Spielerprofil, Runden, Runde mit
+  Schriften selbst gehostet über @fontsource – keine Google-Anfragen). `prefers-reduced-motion` wird beachtet.
+  **Eigenes Design statt Standard-Design** (02.11.2026, Kilian: „ignoriere mal das Design system ein bisschen und mach, dass
+  die Website nicht komplett vibe-coded aussieht“): Almanach/Anzeigetafel statt Dashboard – Barlow + Barlow Condensed,
+  Hintergrund #0F1117, Text #EEEBE3, Farben nur mit Bedeutung (Visier-Blau #7CC6E4 = Crew/Links, Rot #F2584C = Impostor,
+  Violett #C493EC = Neutral, Gold = Platz 1), Abschnitte mit Linien statt Karten (`.panel` = Linie oben, `.panel--box` für
+  echte Kästen), Avatare als Crewmate-Umriss, Startseite mit Spielstand Crew : Impostor. Keine Buchstaben-/Einblend-
+  Animationen mehr (`Title`/`Reveal` in `motion.tsx` sind schlicht); CountUp, wachsende Balken, Lenis und Replay bleiben.
+  Schlichte Überschriften statt Fragen/Floskeln. Bot-Embeds/Artifacts nutzen weiter das Standard-Design. Seiten: Übersicht, Bestenliste, Spielerprofil, Runden, Runde mit
   **Replay** (GSAP-Zeitleiste über die Laufwege, Kills/Meetings/Sabotagen), Maps (Laufwege-Heatmap, Kill-Orte), Rollen.
   **Bauen:** `cd web && npm install && npm run build` → schreibt nach `src/main/resources/web/` (wird **mit committet**,
   damit Gradle/Windows ohne Node bauen kann), danach `gradlew statsWebsiteJar`. Entwickeln: Website-JAR auf 8080

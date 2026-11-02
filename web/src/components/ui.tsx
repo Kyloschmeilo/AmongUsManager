@@ -1,4 +1,4 @@
-// Bausteine der Seite im Standard-Design: Avatar, Spieler-Link, Pills, Kennzahl-Karten, Balken, Bestenliste, Rundenliste.
+// Bausteine der Seite: Avatar, Spieler-Link, Pills, Kennzahl-Karten, Balken, Bestenliste, Rundenliste.
 import { useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, CircleAlert, Film, Inbox } from 'lucide-react';
@@ -6,7 +6,7 @@ import type { PlayerRef, RoundItem, Team } from '../lib/api';
 import { playerColor } from '../lib/colors';
 import { day, dayMonth, duration, num, time } from '../lib/format';
 import { TEAM_WIN_LABEL, mapShort, teamPillClass } from '../lib/labels';
-import { Count, Reveal, useGrow } from './motion';
+import { Count, useGrow } from './motion';
 
 /** Discord-Profilbild, sonst eine eckige Kachel in der Spielfarbe (Crewmate). */
 export function Avatar({ colorId, playerKey, src, size, dead, title }: { colorId: number | null | undefined; playerKey?: string | null; src?: string | null; size?: 'sm' | 'lg' | 'xl'; dead?: boolean; title?: string }) {
@@ -71,16 +71,14 @@ export function StatCard({ icon, label, value, unit, chip, caption, raw }: { ico
 export function Section({ title, eyebrow, action, children, id }: { title: ReactNode; eyebrow?: string; action?: ReactNode; children: ReactNode; id?: string }) {
   return (
     <section className="section" id={id}>
-      <Reveal>
-        <div className="section__head">
-          <div className="stack" style={{ gap: 6 }}>
-            {eyebrow && <span className="eyebrow">{eyebrow}</span>}
-            <h2 className="section__title">{title}</h2>
-          </div>
-          {action}
+      <div className="section__head">
+        <div className="section__heading">
+          <h2 className="section__title">{title}</h2>
+          {eyebrow && <span className="section__kicker">{eyebrow}</span>}
         </div>
-      </Reveal>
-      <Reveal delay={0.05}>{children}</Reveal>
+        {action}
+      </div>
+      {children}
     </section>
   );
 }
@@ -89,7 +87,7 @@ export interface BarItem {
   label: ReactNode;
   value: number;
   text: string;
-  tone?: 'accent' | 'moss' | 'ember' | 'gold';
+  tone?: 'accent' | 'moss' | 'ember' | 'gold' | 'neutral';
   title?: string;
 }
 
@@ -147,7 +145,7 @@ export function Leaderboard({ icon, title, rows, more }: { icon: ReactNode; titl
         </ol>
       )}
       {more && (
-        <Link className="btn btn--ghost" to={more.to} style={{ marginTop: 12, marginLeft: -16 }}>
+        <Link className="board__more" to={more.to}>
           {more.label}
         </Link>
       )}
@@ -190,7 +188,7 @@ export function RoundRow({ round, extra }: { round: RoundItem; extra?: ReactNode
       <span className="round-row__meta">
         {duration(round.duration)}
         <br />
-        {num(round.kills)} Kills
+        {num(round.kills)} {round.kills === 1 ? 'Kill' : 'Kills'}
       </span>
       {round.replay ? <Film className="icon icon--sm" aria-label="Replay" /> : <ChevronRight className="icon icon--sm" aria-hidden="true" />}
     </Link>

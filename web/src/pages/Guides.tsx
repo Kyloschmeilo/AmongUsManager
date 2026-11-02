@@ -27,8 +27,7 @@ function HelpHeader({ active }: { active: HelpTab }) {
   ];
   return (
     <div className="stack" style={{ gap: 24 }}>
-      <div className="stack" style={{ gap: 16 }}>
-        <span className="eyebrow">Hilfe & Mods</span>
+      <div className="page-head">
         <Title text={active === 'downloads' ? 'Downloads' : 'Tutorials'} className="page-title" />
         <p className="lead">
           {active === 'downloads'

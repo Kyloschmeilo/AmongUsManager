@@ -100,8 +100,7 @@ export function RolesPage() {
   const count = (t: TeamFilter) => entries?.filter((e) => (t === 'all' || e.team === t) && (source === 'all' || e.source === source)).length ?? 0;
   return (
     <div className="page page--tight">
-      <div className="stack" style={{ gap: 16 }}>
-        <span className="eyebrow">Rollen</span>
+      <div className="page-head">
         <Title text="Alle Rollen" className="page-title" />
         <p className="lead">
           Jede Rolle aus Among Us und der Mod The Other Roles – was sie kann und, sobald sie gespielt wurde, wie oft sie gewinnt.

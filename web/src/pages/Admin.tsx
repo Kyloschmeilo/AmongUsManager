@@ -75,8 +75,7 @@ export function AdminPage() {
   };
 
   const head = (
-    <div className="stack" style={{ gap: 16 }}>
-      <span className="eyebrow">Admin-Panel</span>
+    <div className="page-head">
       <Title text="Bot steuern" className="page-title" />
       <p className="lead">Alles aus den Discord-Panels an einem Ort. Jede Aktion führt der Bot aus und schreibt sie in den Log-Channel.</p>
     </div>

@@ -63,7 +63,6 @@ function ProfileView({ profile }: { profile: Profile }) {
   return (
     <>
       <section className={`stack profile-hero${profileColor ? ' profile-hero--color' : ''}`} style={{ gap: 20, ['--profile' as string]: profileColor ?? undefined }}>
-        <span className="eyebrow">Spieler</span>
         <div className="profile-hero__main">
           <Avatar colorId={p.colorId} playerKey={p.key} src={p.avatar} size="xl" />
           <div className="stack" style={{ gap: 8, minWidth: 0, flex: 1 }}>
@@ -109,7 +108,7 @@ function ProfileView({ profile }: { profile: Profile }) {
 
       <div className="grid grid--stats">{statCards(p, custom?.showcase ?? [])}</div>
 
-      <Section eyebrow="Teams" title="Als Crew, Impostor und Neutral">
+      <Section title="Nach Team">
         <div className="grid grid--3">
           {([
             ['CREW', p.crewGames, p.crewWins],
@@ -126,7 +125,7 @@ function ProfileView({ profile }: { profile: Profile }) {
         </div>
       </Section>
 
-      <Section eyebrow="Rollen" title="Gespielte Rollen">
+      <Section title="Rollen">
         <div className="panel table-wrap">
           <table className="table">
             <thead>
@@ -151,7 +150,7 @@ function ProfileView({ profile }: { profile: Profile }) {
         </div>
       </Section>
 
-      <Section eyebrow="Rivalen" title="Wer wen erwischt">
+      <Section title="Rivalen" eyebrow="wer wen am häufigsten erwischt">
         <div className="grid grid--3">
           <RivalList icon={<Swords className="icon" />} title="Tötet am liebsten" empty="Noch kein Kill." rows={profile.victims.map((v) => ({ player: v.player, text: `${num(v.count)} ×` }))} />
           <RivalList icon={<Skull className="icon" />} title="Wird getötet von" empty="Noch nie getötet worden." rows={profile.killers.map((v) => ({ player: v.player, text: `${num(v.count)} ×` }))} />
@@ -160,12 +159,12 @@ function ProfileView({ profile }: { profile: Profile }) {
       </Section>
 
       <div className="grid grid--2">
-        <Section eyebrow="Maps" title="Wo gespielt">
+        <Section title="Maps">
           <div className="panel panel--pad">
             <BarList items={profile.maps.map((m) => ({ label: <Link to={`/maps/${m.mapId}`}>{m.map}</Link>, value: m.games, text: `${num(m.games)} · ${pct(m.wins, m.games)} Siege` }))} />
           </div>
         </Section>
-        <Section eyebrow="Tode" title="Wie es endet">
+        <Section title="Tode">
           <div className="panel panel--pad">
             <BarList items={profile.deathCauses.map((d) => ({ label: deathCause(d.cause), value: d.count, text: num(d.count), tone: 'ember' as const }))} />
           </div>
@@ -173,7 +172,7 @@ function ProfileView({ profile }: { profile: Profile }) {
       </div>
 
       {p.detailGames > 0 && (
-        <Section eyebrow="Seit CrewStats 1.5.0" title="Unterwegs">
+        <Section title="Unterwegs" eyebrow="aufgezeichnet ab CrewStats 1.5.0">
           <div className="grid grid--stats">
             <StatCard icon={<Footprints className="icon" />} label="Strecke" value={0} raw={distance(p.distance)} chip={`${num(p.detailGames)} Runden`} caption={`im Schnitt ${distance(p.distance / p.detailGames)} pro Runde`} />
             <StatCard icon={<Wrench className="icon" />} label="Reparaturen" value={p.sabotagesFixed} chip="Sabotagen" caption={`${num(p.sabotages)} selbst sabotiert`} />
@@ -183,7 +182,7 @@ function ProfileView({ profile }: { profile: Profile }) {
         </Section>
       )}
 
-      <Section eyebrow="Verlauf" title="Letzte Runden" action={<Link className="btn" to={`/runden?spieler=${p.key}`}>Alle Runden</Link>}>
+      <Section title="Letzte Runden" action={<Link className="btn" to={`/runden?spieler=${p.key}`}>Alle Runden</Link>}>
         <RoundList
           rounds={profile.rounds.map((r) => r.round)}
           extra={(round) => {

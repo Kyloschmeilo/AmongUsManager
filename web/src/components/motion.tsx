@@ -6,8 +6,6 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 import { useLocation } from 'react-router-dom';
-import SplitText from '../reactbits/SplitText';
-import AnimatedContent from '../reactbits/AnimatedContent';
 import CountUp from '../reactbits/CountUp';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -42,30 +40,18 @@ export function useSmoothScroll(): void {
   }, [location.pathname]);
 }
 
-/** Überschrift, die Buchstabe für Buchstabe hochkommt. */
+/** Seitenüberschrift. Bewusst ohne Buchstaben-Animation (wirkte nach Baukasten, Kilian 02.11.2026). */
 export function Title({ text, className, tag = 'h1' }: { text: string; className?: string; tag?: 'h1' | 'h2' }) {
-  return (
-    <SplitText
-      text={text}
-      tag={tag}
-      className={className}
-      textAlign="left"
-      splitType="chars"
-      effect="rise"
-      delay={22}
-      duration={0.7}
-      trigger="load"
-    />
-  );
+  const Tag = tag;
+  return <Tag className={className}>{text}</Tag>;
 }
 
-/** Abschnitt, der beim Hineinscrollen leicht hochgleitet. */
-export function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
-  return (
-    <AnimatedContent distance={28} duration={0.6} ease="power3.out" delay={delay} threshold={0.12} className={className}>
-      {children}
-    </AnimatedContent>
-  );
+/**
+ * Früher glitt jeder Abschnitt beim Scrollen hoch. Jetzt steht der Inhalt sofort da; bewegt wird nur, was etwas
+ * bedeutet (Zahlen zählen hoch, Balken wachsen, das Replay läuft).
+ */
+export function Reveal({ children, className }: { children: ReactNode; delay?: number; className?: string }) {
+  return className ? <div className={className}>{children}</div> : <>{children}</>;
 }
 
 /** Ganze Zahl, die hochzählt (deutsche Tausender-Punkte). */

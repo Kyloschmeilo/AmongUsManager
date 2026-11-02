@@ -231,7 +231,7 @@ export function Replay({ round, layout }: { round: RoundDetail; layout: Layout |
                   <circle
                     r={0.42 * unit}
                     fill={playerColor(p.colorId, p.key)}
-                    stroke={showRoles && p.team === 'IMPOSTOR' ? 'var(--ember)' : showRoles && p.team === 'NEUTRAL' ? 'var(--gold)' : 'var(--surface-0)'}
+                    stroke={showRoles && p.team === 'IMPOSTOR' ? 'var(--ember)' : showRoles && p.team === 'NEUTRAL' ? 'var(--neutral)' : 'var(--surface-0)'}
                     strokeWidth={0.14 * unit}
                   />
                   <text className="dot-name" y={-0.75 * unit} textAnchor="middle" fontSize={0.62 * unit} strokeWidth={0.18 * unit}>

@@ -46,12 +46,13 @@ function Nav() {
 function Brand() {
   return (
     <Link to="/" className="brand" aria-label="Crew Stats – Übersicht">
-      <span className="brand__mark" aria-hidden="true">
-        <i className="n" /><i className="n" /><i className="g" />
-        <i className="n" /><i className="a" /><i className="a" />
-        <i /><i className="a" /><i className="a" />
-      </span>
-      <span className="brand__name">Crew Stats</span>
+      <svg className="brand__mark" viewBox="0 0 20 24" aria-hidden="true">
+        <rect x="0" y="8" width="4" height="10" rx="1.5" fill="#9b1212" />
+        <path d="M3 9a7 7 0 0 1 14 0v13a2 2 0 0 1-2 2h-3v-4H8v4H5a2 2 0 0 1-2-2z" fill="#d8231c" />
+        <rect x="8" y="5" width="11" height="6" rx="3" fill="#a9d9ec" />
+        <rect x="14" y="6.5" width="3" height="1.6" rx=".8" fill="#ffffff" opacity=".8" />
+      </svg>
+      <span className="brand__name">Crew<b>Stats</b></span>
     </Link>
   );
 }
@@ -62,7 +63,7 @@ function Footer() {
     <footer className="footer">
       <div className="wrap footer__inner">
         <span className="caption">
-          Daten von der Among-Us-Mod CrewStats, aufgezeichnet beim Host und erst nach Rundenende verschickt.
+          Aufgezeichnet von der Mod CrewStats beim jeweiligen Host, verschickt erst nach Rundenende. Kein offizielles Among-Us-Angebot.
         </span>
         <span className="caption mono">
           {overview.data ? `Aktualisiert ${ago(overview.data.updatedAt)}` : ' '}

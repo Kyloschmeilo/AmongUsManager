@@ -19,12 +19,12 @@ export const TEAM_WIN_LABEL: Record<Team, string> = {
 export const TEAM_COLOR: Record<Team, string> = {
   CREW: 'var(--accent)',
   IMPOSTOR: 'var(--ember)',
-  NEUTRAL: 'var(--gold)',
+  NEUTRAL: 'var(--neutral)',
   UNKNOWN: 'var(--ink-faint)'
 };
 
 export const teamPillClass = (team: Team): string =>
-  team === 'CREW' ? 'pill' : team === 'IMPOSTOR' ? 'pill pill--ember' : team === 'NEUTRAL' ? 'pill pill--gold' : 'pill pill--plain';
+  team === 'CREW' ? 'pill' : team === 'IMPOSTOR' ? 'pill pill--ember' : team === 'NEUTRAL' ? 'pill pill--neutral' : 'pill pill--plain';
 
 const END_REASONS: Record<string, string> = {
   HumansByTask: 'Alle Aufgaben erledigt',

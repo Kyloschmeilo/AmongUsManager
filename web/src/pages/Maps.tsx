@@ -13,9 +13,8 @@ export function MapsPage() {
   const maps = useApi<{ maps: MapSummary[] }>('maps');
   return (
     <div className="page page--tight">
-      <div className="stack" style={{ gap: 16 }}>
-        <span className="eyebrow">Maps</span>
-        <Title text="Wo gespielt wird" className="page-title" />
+      <div className="page-head">
+        <Title text="Maps" className="page-title" />
         <p className="lead">Siege, Kills und Laufwege je Map. Der Grundriss entsteht aus den Laufwegen aller Runden, er wird mit jeder Runde genauer.</p>
       </div>
       <Async state={maps}>
@@ -58,8 +57,7 @@ export function MapPage() {
       <Async state={map}>
         {(m) => (
           <>
-            <div className="stack" style={{ gap: 16 }}>
-              <span className="eyebrow">Map</span>
+            <div className="page-head">
               <Title text={m.map.map} className="page-title" />
             </div>
             <div className="grid grid--stats">
@@ -70,7 +68,6 @@ export function MapPage() {
             </div>
 
             <Section
-              eyebrow="Grundriss"
               title="Laufwege und Kills"
               action={
                 <Segmented<Layer>
@@ -111,12 +108,12 @@ export function MapPage() {
             </Section>
 
             <div className="grid grid--2">
-              <Section eyebrow="Gefährlich" title="Wo gestorben wird">
+              <Section title="Kill-Orte">
                 <div className="panel panel--pad">
                   <BarList items={m.roomKills.slice(0, 10).map((r) => ({ label: room(r.room), value: r.count, text: num(r.count), tone: 'ember' as const }))} />
                 </div>
               </Section>
-              <Section eyebrow="Sabotagen" title="Was sabotiert wird">
+              <Section title="Sabotagen">
                 <div className="panel panel--pad">
                   <BarList
                     items={m.sabotages.map((s) => ({
@@ -131,7 +128,7 @@ export function MapPage() {
             </div>
 
             {rounds.data && rounds.data.items.length > 0 && (
-              <Section eyebrow="Zuletzt" title="Runden auf dieser Map" action={<Link className="btn" to={`/runden?map=${m.map.mapId}`}>Alle {num(rounds.data.total)}</Link>}>
+              <Section title="Letzte Runden" action={<Link className="btn" to={`/runden?map=${m.map.mapId}`}>Alle {num(rounds.data.total)}</Link>}>
                 <RoundList rounds={rounds.data.items} />
               </Section>
             )}

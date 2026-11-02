@@ -27,9 +27,9 @@ function RoundView({ round }: { round: RoundDetail }) {
   const ended = round.endedAt;
   return (
     <>
-      <section className="stack" style={{ gap: 16 }}>
-        <span className="eyebrow">Runde{ended ? ` · ${date(ended)}, ${time(ended)} Uhr` : ''}</span>
+      <section className="page-head" style={{ gap: 12 }}>
         <Title text={round.map} className="page-title" />
+        {ended && <span className="section__kicker">Runde vom {date(ended)}, {time(ended)} Uhr</span>}
         <div className="row" style={{ gap: 8 }}>
           <TeamPill team={round.winningTeam} />
           <span className="pill pill--plain">{endReason(round.endReason)}</span>
@@ -55,12 +55,12 @@ function RoundView({ round }: { round: RoundDetail }) {
         </div>
       )}
 
-      <Section eyebrow="Spieler" title="Wer was war">
+      <Section title="Spieler">
         <PlayersTable round={round} name={name} />
       </Section>
 
       {round.meetings.length > 0 && (
-        <Section eyebrow="Meetings" title={`${round.meetings.length} ${round.meetings.length === 1 ? 'Meeting' : 'Meetings'}`}>
+        <Section title={`${round.meetings.length} ${round.meetings.length === 1 ? 'Meeting' : 'Meetings'}`}>
           <div className="stack" style={{ gap: 12 }}>
             {round.meetings.map((m, i) => (
               <div key={i} className="panel meeting">
@@ -98,7 +98,7 @@ function RoundView({ round }: { round: RoundDetail }) {
       )}
 
       {!hasTracks && (
-        <Section eyebrow="Zeitleiste" title="Was passiert ist">
+        <Section title="Zeitleiste">
           <ol className="panel feed__list" style={{ maxHeight: 'none' }}>
             {timelineOf(round).filter((e) => e.type !== 'vote').map((e, i) => (
               <li key={i} className="feed__item" style={{ cursor: 'default' }}>
@@ -201,7 +201,7 @@ function Settings({ round }: { round: RoundDetail }) {
   const rows = SETTINGS.filter(([key]) => all[key] !== undefined);
   if (!rows.length && s.numImpostors == null) return null;
   return (
-    <Section eyebrow="Einstellungen" title="Lobby-Einstellungen">
+    <Section title="Lobby-Einstellungen">
       <div className="panel panel--pad">
         <dl className="kv">
           {s.numImpostors != null && (<><dt>Impostor</dt><dd>{s.numImpostors}</dd></>)}

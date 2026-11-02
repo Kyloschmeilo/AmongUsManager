@@ -16,9 +16,8 @@ export function EventsPage() {
 
   return (
     <div className="page page--tight">
-      <div className="stack" style={{ gap: 16 }}>
-        <span className="eyebrow">Events</span>
-        <Title text="Wann wird gezockt?" className="page-title" />
+      <div className="page-head">
+        <Title text="Events" className="page-title" />
         <p className="lead">
           Alle geplanten Spieleabende aus dem Discord. Trag dich direkt hier ein – das zählt genauso wie der Knopf im Discord.
         </p>

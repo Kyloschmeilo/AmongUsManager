@@ -71,8 +71,7 @@ export function RoundsPage() {
 
   return (
     <div className="page page--tight">
-      <div className="stack" style={{ gap: 16 }}>
-        <span className="eyebrow">Runden</span>
+      <div className="page-head">
         <Title text="Alle Runden" className="page-title" />
         <p className="lead">Jede aufgezeichnete Runde mit Rollen, Kills und Abstimmungen. Runden mit Replay haben das Film-Symbol.</p>
       </div>

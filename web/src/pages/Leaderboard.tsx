@@ -25,9 +25,8 @@ export function Leaderboard() {
 
   return (
     <div className="page page--tight">
-      <div className="stack" style={{ gap: 16 }}>
-        <span className="eyebrow">Bestenliste</span>
-        <Title text="Wer ist vorne?" className="page-title" />
+      <div className="page-head">
+        <Title text="Bestenliste" className="page-title" />
         <p className="lead">Erst einen Bereich wählen, dann eine Kennzahl. Quoten zählen erst ab ein paar Runden, damit eine Glücksrunde nicht reicht.</p>
       </div>
       <Async state={players}>

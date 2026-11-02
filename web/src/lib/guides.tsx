@@ -72,7 +72,7 @@ export const lexiconPillClass = (team: LexiconTeam): string =>
     : team === 'IMPOSTOR'
       ? 'pill pill--ember'
       : team === 'NEUTRAL'
-        ? 'pill pill--gold'
+        ? 'pill pill--neutral'
         : team === 'BOTH'
           ? 'pill pill--sky'
           : 'pill pill--plain';
