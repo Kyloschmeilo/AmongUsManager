@@ -74,7 +74,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   (`/rundensettings`, nur neuester Stand), `minecraft`, `roundHistory` (jede Mod-Runde im Detail,
   normalisiert in `round_history*`-Tabellen, max. 1000), `Insights.kt` (reine Rechenfunktionen:
   Highlights, Rivalen, Recap/MVP-Kandidaten), `achievements` (Erfolge mit XP), `lobby`
-  (Lobby-Ankündigung + Wettsperre), `roleWishes` (`RoleWishes.kt`: Rollenwünsche, Admin-Zuweisungen,
+  (Lobby-Ankündigung + Wettsperre, `current()` für Auto-Join), `autoJoin` (Webhook-id für `/autojoin`), `roleWishes` (`RoleWishes.kt`: Rollenwünsche, Admin-Zuweisungen,
   Protokoll + Verschlüsselung mit der Mod), `welcome` (Willkommens-/Abschiedsnachricht). Mehrteilige Änderungen laufen in einer DB-Transaktion; Discord-
   Aufrufe (Level-Rollen) erst danach.
 - `content/` – Texte & Daten: `AmongUs.kt` (Rollen für `/rolle` inkl. Influencer, Maps), `SpecialRoles.kt`
@@ -194,9 +194,21 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   `/mod-setup` – erneuert die URL, die alte wird ungültig → URL in der Mod-Config neu eintragen).
   Webhook-URLs baut der Bot selbst als `https://discord.com/api/webhooks/<id>/<token>` (JDA liefert
   `/api/v10/…`, die Mod akzeptiert nur `/api/webhooks/`!).
-  Unterscheidung im Modul: Auto-Mute-JSON / Lobby-JSON im Text, `crewstats-settings.json` bzw.
+  Unterscheidung im Modul: Auto-Join-Webhook (eigene id) zuerst, dann Auto-Mute-JSON / Lobby-JSON im Text, `crewstats-settings.json` bzw.
   `crewstats-round.json` als Anhang. Meldungen > 60 s alt werden ignoriert, alles wird gelöscht.
   Runden werden nacheinander ausgewertet (Mutex) – doppelt gesendete zählen nur einmal.
+- **Auto-Join** (02.11.2026, Kilian: „Auto-join funktion die dem neuesten code vom Bot joint“; Bot `/autojoin` in
+  `modules/AutoJoinCommands.kt` + `services/AutoJoin.kt`, CrewStats 1.6.0 `AutoJoin.cs`/`AutoJoinRules.cs`): **eigener
+  Webhook** „CrewStats Auto-Join“ (`settings` `autojoin.webhook_id`, im Mod-Channel, angelegt beim ersten `/autojoin`),
+  dessen URL jeder Spieler per `/autojoin` (für alle, ephemeral) bekommt – die Mod-Webhook-URL bleibt geheim (Runden!).
+  Über ihn beantwortet der Bot nur `{"crewstats":"join"}` → bearbeitet genau diese Nachricht zu `join-reply`
+  (state open|started|none, code, map, players, max, host, age; kein Friendcode), unverschlüsselt (Codes stehen eh im
+  Codes-Channel); alles andere wird gelöscht. Quelle = `LobbyAnnouncer.current()` (letzte Mod-Meldung, nur im Speicher,
+  verfällt nach 1 h ohne Meldung) – manuell gepostete Codes zählen nicht. `/autojoin neu:True` (Admin) erneuert die URL.
+  Mod: im Hauptmenü (`MainMenuManager.LateUpdate`, nur `GameStates.NotJoined`) alle ~15 s fragen, automatisch jede Lobby
+  nur einmal, F5 = sofort (auch erneut), F6 = an/aus (`[AutoJoin] Url/Automatisch/TasteJetzt/TasteAnAus`), Status unter der
+  Versionsnummer; Beitreten per `AmongUsClient.CoJoinOnlineGameFromCode(GameCode.GameNameToInt(code))` (aktuelle Region,
+  muss Modded NA sein). Installer fragt die Auto-Join-URL optional ab. **Im echten Spiel noch ungetestet.**
 - Mod-Runden und manuelle Auswertung (`/crew-win`, Runden-Assistent) nicht doppelt nutzen.
 - Mod-Runde auswerten = Stats → Verlauf → Erfolge → Protokoll (alles in einer Transaktion), danach
   Level-Rollen. „Zurücksetzen“ nimmt alles zurück (XP, Siege, Wetten, Stats, Verlauf, Erfolge).

@@ -16,6 +16,7 @@ import de.amongusmanager.crewbot.modules.RoundsModule
 import de.amongusmanager.crewbot.modules.VoiceModule
 import de.amongusmanager.crewbot.services.AchievementService
 import de.amongusmanager.crewbot.services.AuditLog
+import de.amongusmanager.crewbot.services.AutoJoinSettings
 import de.amongusmanager.crewbot.services.RoundArchiveService
 import de.amongusmanager.crewbot.services.AutoRoleService
 import de.amongusmanager.crewbot.services.AutoMuteService
@@ -91,6 +92,7 @@ class CrewBot(val db: Database) {
     val links = LinkService(db)
     val gameStats = GameStatsService(db)
     val modSettings = ModSettings(db)
+    val autoJoin = AutoJoinSettings(db)
     val gameSettings = GameSettingsService(db)
     val roundHistory = RoundHistoryService(db)
     val achievements = AchievementService(db, levels)

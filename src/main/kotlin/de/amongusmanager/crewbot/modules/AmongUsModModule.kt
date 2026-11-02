@@ -65,6 +65,7 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "ð
     private val log = LoggerFactory.getLogger(AmongUsModModule::class.java)
     private val roundLock = Mutex() // Runden nacheinander auswerten (doppelt gesendete Runden zÃ¤hlen nur einmal)
     private val wishes = RoleWishCommands(bot) // /rollenwunsch, /rolle-zuweisen
+    private val autoJoin = AutoJoinCommands(bot) // /autojoin + Lobby-Anfragen der Mod
 
     override val commands = listOf(
         // ==========================================
@@ -282,7 +283,7 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "ð
                 null
             }
         },
-    ) + wishes.commands
+    ) + wishes.commands + autoJoin.commands
 
     override suspend fun onReady() {
         wishes.startExpiry()
@@ -297,6 +298,12 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "ð
 
     override suspend fun onMessage(event: MessageReceivedEvent) {
         val message = event.message
+        if (!message.isWebhookMessage) return
+        val autoJoinId = bot.autoJoin.webhookId
+        if (autoJoinId != null && message.author.idLong == autoJoinId) {
+            autoJoin.onMessage(message, autoJoinId, isFresh(message))
+            return
+        }
         val webhookId = bot.modSettings.webhookId ?: return
         if (!message.isWebhookMessage || message.author.idLong != webhookId) return
         val guild = event.guild

@@ -33,6 +33,9 @@ import org.slf4j.LoggerFactory
 
 val LOBBY_STATES = listOf("open", "started", "closed")
 
+/** Ohne neue Meldung gilt eine Lobby danach als verschwunden (der Host meldet jede Änderung der Spielerzahl). */
+val LOBBY_STALE_AFTER: java.time.Duration = java.time.Duration.ofHours(1)
+
 data class LobbyEvent(
     val state: String, // open | started | closed
     val code: String,
@@ -90,6 +93,20 @@ class LobbyAnnouncer(
     private var pending: LobbyEvent? = null
     private var job: Job? = null
     private var lastEdit: Long? = null
+    private var latest: LobbyEvent? = null
+    private var latestAt: java.time.Instant? = null
+
+    /**
+     * Neueste Lobby, die eine Mod gemeldet hat (für Auto-Join), oder null, wenn gerade keine offen ist.
+     * Nur im Speicher: nach einem Bot-Neustart erst wieder, sobald der Host etwas meldet.
+     */
+    fun current(now: java.time.Instant = java.time.Instant.now()): Pair<LobbyEvent, java.time.Instant>? {
+        val event = latest ?: return null
+        val at = latestAt ?: return null
+        if (event.state == "closed" || event.code.isEmpty()) return null
+        if (java.time.Duration.between(at, now) > LOBBY_STALE_AFTER) return null // Host abgestürzt o.ä.
+        return event to at
+    }
 
     /** Neuer Zustand von der Mod. Das Wettbüro reagiert sofort, die Nachricht gedrosselt. */
     fun apply(event: LobbyEvent) {
@@ -99,6 +116,8 @@ class LobbyAnnouncer(
             bets.unlock(afterSeconds = Rules.BET_UNLOCK_GRACE_SECONDS)
         }
         state = event.state
+        latest = event
+        latestAt = java.time.Instant.now()
 
         pending = event
         if (job?.isActive != true) job = scope.launch { run() }
