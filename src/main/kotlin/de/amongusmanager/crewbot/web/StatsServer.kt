@@ -191,7 +191,7 @@ class StatsServer(
 
     /** Eigene Datei aus dem Download-Ordner, immer als Download (nicht im Browser anzeigen), gestreamt. */
     private fun download(exchange: HttpExchange) {
-        // Pfad ohne „+ = Leerzeichen“ (Dateinamen wie knifemod-1.1.0+26.3.jar)
+        // Pfad ohne „+ = Leerzeichen“ (Dateinamen wie mod-1.0+26.3.jar)
         val name = (exchange.requestURI.path ?: "").removePrefix("/downloads/")
         val file = guides?.downloads?.localFile(name)
             ?: return respond(exchange, 404, "text/plain; charset=utf-8", "Nicht gefunden".toByteArray(), cache = "no-cache")

@@ -3,7 +3,8 @@
  *
  * Zwei Quellen:
  *  - eigene Dateien im Ordner `downloads/` neben dem JAR (WEB_DOWNLOADS_DIR) – z.B. der TheOtherRoles-Installer, der
- *    bewusst nicht auf GitHub liegt, und die Messer-Mod (privates Repo). Die Website liefert sie selbst aus.
+ *    bewusst nicht auf GitHub liegt. Die Website liefert sie selbst aus. Die Messer-Mod (Minecraft) bietet sie bewusst
+ *    nicht an (Kilian, 02.11.2026) – liegen ihre JARs noch im Ordner, werden sie weder gezeigt noch ausgeliefert.
  *  - GitHub-Releases (CrewStats, The Other Roles GMIA): nur die Release-Infos (Version, Datum, Notizen) holt der Server
  *    alle 30 Minuten von der GitHub-API, die Dateien lädt der Browser direkt von github.com.
  * Ohne GitHub (Fehler, Rate-Limit) bleiben die Links trotzdem gültig: …/releases/latest/download/<Datei>.
@@ -109,7 +110,7 @@ class Downloads(
 
     /** Eine eigene Datei aus [dir] (nur direkt im Ordner, keine versteckten, keine Links nach draußen), sonst null. */
     fun localFile(name: String): Path? {
-        if (!SAFE_NAME.matches(name) || ".." in name) return null
+        if (!offered(name) || ".." in name) return null
         if (!Files.isDirectory(dir)) return null
         val root = dir.toRealPath()
         val file = root.resolve(name).normalize()
@@ -122,7 +123,7 @@ class Downloads(
         if (!Files.isDirectory(dir)) return emptyList()
         return Files.list(dir).use { stream ->
             stream.toList()
-                .filter { SAFE_NAME.matches(it.fileName.toString()) && Files.isRegularFile(it, LinkOption.NOFOLLOW_LINKS) }
+                .filter { offered(it.fileName.toString()) && Files.isRegularFile(it, LinkOption.NOFOLLOW_LINKS) }
                 .map { it.fileName.toString() to Files.size(it) }
                 .sortedBy { it.first.lowercase() }
         }
@@ -262,38 +263,6 @@ class Downloads(
             ),
         )
 
-        // ---------- Messer-Mod (Minecraft, nur wenn die JARs im Ordner liegen) ----------
-        val knives = files.filter { KNIFE_JAR.matches(it.first) }.sortedWith(compareBy { knifeSortKey(it.first) })
-        if (knives.isNotEmpty()) {
-            used += knives.map { it.first }
-            items += obj(
-                "id" to "messer-mod",
-                "title" to "Messer-Mod",
-                "game" to "Minecraft",
-                "audience" to "Fabric · nur Client",
-                "summary" to "Schwerter sehen aus wie ein Karambit oder Butterfly-Messer, mit Inspect-, Stich- und Spin-Animationen. " +
-                    "Nur Optik: an Schaden, Reichweite und Server ändert sich nichts.",
-                "version" to knives.firstNotNullOfOrNull { KNIFE_JAR.matchEntire(it.first)?.groupValues?.get(1) },
-                "versionNote" to null,
-                "publishedAt" to null,
-                "files" to knives.mapIndexed { index, file ->
-                    val mc = KNIFE_JAR.matchEntire(file.first)?.groupValues?.get(2)
-                    localFileJson(file, if (mc != null) "Minecraft $mc" else file.first, primary = index == 0)
-                },
-                "missing" to null,
-                "steps" to listOf(
-                    "Die JAR passend zu deiner Minecraft-Version herunterladen",
-                    "In den `mods`-Ordner legen (NoRisk Client: `custom_mods` im Profil). Braucht Fabric API",
-                ),
-                "points" to listOf(
-                    "**Rechtsklick** mit dem Schwert: Inspect · **Linksklick**: Stich · **Linksklick halten**: Spins",
-                    "**K** wechselt Karambit → Butterfly → aus",
-                ),
-                "notes" to null,
-                "links" to emptyList<Any>(),
-            )
-        }
-
         // ---------- alles andere im Ordner ----------
         val others = files.filter { it.first !in used }
         if (others.isNotEmpty()) {
@@ -339,15 +308,10 @@ class Downloads(
         /** Dateinamen, die ausgeliefert werden: keine versteckten, keine Pfade. */
         private val SAFE_NAME = Regex("""[A-Za-z0-9][A-Za-z0-9._+() -]{0,150}""")
 
-        /** knifemod-1.1.0+1.21.11.jar → Version 1.1.0, Minecraft 1.21.11 */
-        private val KNIFE_JAR = Regex("""(?i)knifemod-([0-9][0-9A-Za-z.\-]*)\+([0-9][0-9A-Za-z.\-]*)\.jar""")
+        /** Messer-Mod-JARs (knifemod-1.1.0+26.3.jar …): soll es auf der Website nicht geben, auch wenn sie noch im Ordner liegen. */
+        private val HIDDEN = Regex("""(?i)knifemod-.*\.jar""")
 
-        /** Neueste Minecraft-Version zuerst (26.3 vor 26.2 vor 1.21.11). */
-        private fun knifeSortKey(name: String): String {
-            val mc = KNIFE_JAR.matchEntire(name)?.groupValues?.get(2) ?: return "~$name"
-            val parts = mc.split('.').map { it.toIntOrNull() ?: 0 }
-            return parts.joinToString(".") { (9999 - it).toString().padStart(4, '0') }
-        }
+        private fun offered(name: String) = SAFE_NAME.matches(name) && !HIDDEN.matches(name)
 
         /** Content-Type für eigene Dateien (alles wird als Download angeboten). */
         fun contentType(name: String): String = when (name.substringAfterLast('.', "").lowercase()) {

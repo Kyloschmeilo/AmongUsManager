@@ -2,7 +2,7 @@
 // Das Rollen-Lexikon ist die Rollen-Seite (/rollen), hier nur verlinkt.
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { BookOpen, ChartColumn, Download, Drama, ExternalLink, FileDown, Info, Package, ScrollText, Sword, TriangleAlert } from 'lucide-react';
+import { BookOpen, ChartColumn, Download, Drama, ExternalLink, FileDown, Info, Package, ScrollText, TriangleAlert } from 'lucide-react';
 import { useApi } from '../lib/api';
 import { date } from '../lib/format';
 import { Notes, RichText, fileSize, stepOf, type DownloadItem, type LexiconRole, type TutorialData } from '../lib/guides';
@@ -241,7 +241,6 @@ export function DownloadsPage() {
 function DownloadIcon({ id }: { id: string }) {
   if (id === 'theotherroles') return <Drama className="icon" />;
   if (id === 'crewstats') return <ChartColumn className="icon" />;
-  if (id === 'messer-mod') return <Sword className="icon" />;
   if (id === 'weitere') return <FileDown className="icon" />;
   return <Package className="icon" />;
 }

@@ -301,10 +301,11 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   (`/api/lexicon`: `ROLES` + `SPECIAL_ROLES`, `torNameKeys` ordnet TOR-Varianten wie niceGuesser zu) mit Statistik aus `/api/roles`,
   ungespielte mit „Noch nicht gespielt“. **Downloads** (`/api/downloads`): eigene Dateien aus `downloads/` neben dem JAR
   (`WEB_DOWNLOADS_DIR`; ausgeliefert unter `/downloads/<datei>`, nur direkt im Ordner, keine versteckten) – dort liegen der
-  TheOtherRoles-Installer (bleibt so vom GitHub fern) und die Messer-Mod-JARs (`knifemod-<v>+<mc>.jar`, Karte nur wenn
-  vorhanden), alles andere erscheint als „Weitere Dateien“. CrewStats + TOR-Version: GitHub-API `releases/latest` alle 30 min
+  TheOtherRoles-Installer (bleibt so vom GitHub fern), alles andere erscheint als „Weitere Dateien“. Die **Messer-Mod** soll es
+  dort nicht geben (Kilian, 02.11.2026: „aus den Downloads entfernen“) – `knifemod-*.jar` wird auch dann weder gezeigt noch
+  ausgeliefert, wenn die Dateien noch im Ordner liegen. CrewStats + TOR-Version: GitHub-API `releases/latest` alle 30 min
   im Hintergrund (ohne Token; Fehler → alte Infos, Links `…/releases/latest/download/<Datei>` gehen immer). CrewStats-Dateien
-  lädt der Browser direkt von GitHub. `StatsWebsite.zip` enthält deshalb `downloads/` mit Installer + Messer-Mod.
+  lädt der Browser direkt von GitHub. `StatsWebsite.zip` enthält deshalb `downloads/` mit dem Installer.
 
 ## Minecraft-Kopplung (CoreSMP-Plugin `CoreHold`, Projekt `C:\Users\petra\Desktop\CoreSMP`)
 - Plugin → Bot ebenfalls per **Webhook**, der im Log-Channel (`Channels.MINECRAFT_INBOX` =

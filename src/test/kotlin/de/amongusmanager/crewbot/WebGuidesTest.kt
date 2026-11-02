@@ -61,7 +61,7 @@ class WebGuidesTest {
     )
     private val torRelease = ReleaseInfo("1.4.1", null, "2026-10-11T10:00:00Z", null, "https://github.com/GMIA-Nexus/TheOtherRolesGMIA/releases/tag/1.4.1", emptyList())
 
-    /** Download-Ordner wie auf dem Server: Installer, Messer-Mod, eine weitere Datei – und was nicht ausgeliefert werden darf. */
+    /** Download-Ordner wie auf dem Server: Installer, weitere Dateien – und was nicht ausgeliefert werden darf (auch die Messer-Mod). */
     private fun downloadsDir(withInstaller: Boolean = true): Path {
         val dir = Files.createTempDirectory("crewstats-downloads")
         if (withInstaller) Files.write(dir.resolve("TheOtherRoles-Installer.bat"), "@echo off\r\necho hallo\r\n".toByteArray())
@@ -69,6 +69,7 @@ class WebGuidesTest {
         Files.write(dir.resolve("knifemod-1.1.0+26.3.jar"), ByteArray(12) { 2 })
         Files.write(dir.resolve("knifemod-1.1.0+26.2.jar"), ByteArray(11) { 3 })
         Files.writeString(dir.resolve("Regeln.txt"), "Fair spielen")
+        Files.write(dir.resolve("Karte+Tipps.pdf"), ByteArray(12) { 4 })
         Files.writeString(dir.resolve(".env"), "DISCORD_TOKEN=geheim")
         Files.createDirectories(dir.resolve("sub")).resolve("x.txt").also { Files.writeString(it, "nein") }
         Files.writeString(dir.parent.resolve("draussen-${dir.fileName}.txt"), "nein")
@@ -133,7 +134,8 @@ class WebGuidesTest {
         val downloads = Downloads(dir, { repo -> if (repo == Downloads.CREWSTATS_REPO) crewStatsRelease else torRelease }, executor = sameThread)
         downloads.refreshNow()
         val items = json(downloads.json())["items"]!!.jsonArray.map { it.jsonObject }
-        assertEquals(listOf("theotherroles", "crewstats", "messer-mod", "weitere"), items.map { it.str("id") })
+        assertEquals(listOf("theotherroles", "crewstats", "weitere"), items.map { it.str("id") })
+        assertFalse("knifemod" in items.toString(), "Messer-Mod gibt es auf der Website nicht")
         fun files(item: JsonObject) = item["files"]!!.jsonArray.map { it.jsonObject }
 
         val tor = items[0]
@@ -147,17 +149,13 @@ class WebGuidesTest {
         assertEquals(crewStatsRelease.assets.map { it.url }, files(crewStats).map { it.str("url") })
         assertContains(crewStats.str("notes")!!, "Laufwege")
 
-        // Messer-Mod: neueste Minecraft-Version zuerst, „+“ im Namen bleibt in der Adresse erhalten
-        val knives = files(items[2])
-        assertEquals(listOf("Minecraft 26.3", "Minecraft 26.2", "Minecraft 1.21.11"), knives.map { it.str("label") })
-        assertEquals("/downloads/knifemod-1.1.0%2B26.3.jar", knives[0].str("url"))
-        assertEquals("1.1.0", items[2].str("version"))
+        // Weitere Dateien: keine versteckten Dateien, keine Unterordner, keine Messer-Mod; „+“ bleibt in der Adresse erhalten
+        val others = files(items[2])
+        assertEquals(listOf("Karte+Tipps.pdf", "Regeln.txt"), others.map { it.str("name") })
+        assertEquals("/downloads/Karte%2BTipps.pdf", others[0].str("url"))
 
-        // Weitere Dateien: nur Regeln.txt – keine versteckten Dateien, keine Unterordner
-        assertEquals(listOf("Regeln.txt"), files(items[3]).map { it.str("name") })
-
-        assertNotNull(downloads.localFile("knifemod-1.1.0+26.3.jar"))
-        for (bad in listOf(".env", "sub/x.txt", "sub", "../draussen-${dir.fileName}.txt", "..", "", "gibtsnicht.bat", "x\\y.txt")) {
+        assertNotNull(downloads.localFile("Karte+Tipps.pdf"))
+        for (bad in listOf(".env", "sub/x.txt", "sub", "../draussen-${dir.fileName}.txt", "..", "", "gibtsnicht.bat", "x\\y.txt", "knifemod-1.1.0+26.3.jar")) {
             assertNull(downloads.localFile(bad), bad)
         }
     }
@@ -237,10 +235,10 @@ class WebGuidesTest {
         assertEquals(200, get("/downloads/TheOtherRoles-Installer.bat", method = "HEAD").statusCode())
 
         // „+“ wörtlich oder kodiert
-        assertEquals(12, get("/downloads/knifemod-1.1.0+26.3.jar").body().size)
-        assertEquals(12, get("/downloads/knifemod-1.1.0%2B26.3.jar").body().size)
+        assertEquals(12, get("/downloads/Karte+Tipps.pdf").body().size)
+        assertEquals(12, get("/downloads/Karte%2BTipps.pdf").body().size)
 
-        for (bad in listOf("/downloads/.env", "/downloads/sub/x.txt", "/downloads/sub%2Fx.txt", "/downloads/%2E%2E/draussen-${dir.fileName}.txt", "/downloads/gibtsnicht.bat")) {
+        for (bad in listOf("/downloads/knifemod-1.1.0+26.3.jar", "/downloads/knifemod-1.1.0%2B26.3.jar", "/downloads/.env", "/downloads/sub/x.txt", "/downloads/sub%2Fx.txt", "/downloads/%2E%2E/draussen-${dir.fileName}.txt", "/downloads/gibtsnicht.bat")) {
             assertEquals(404, get(bad).statusCode(), bad)
         }
         assertEquals(405, get("/downloads/TheOtherRoles-Installer.bat", method = "POST").statusCode())
