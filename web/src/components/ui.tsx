@@ -156,11 +156,11 @@ export function Leaderboard({ icon, title, rows, more }: { icon: ReactNode; titl
 export function Roster({ roster }: { roster: RoundItem['roster'] }) {
   return (
     <span className="roster" aria-hidden="true">
-      {roster.map((p) => (
+      {roster.map((p, i) => (
         <span
           key={p.key}
           className={`avatar${p.team === 'IMPOSTOR' ? ' imp' : ''}`}
-          style={{ ['--av' as string]: playerColor(p.colorId, p.key) }}
+          style={{ ['--av' as string]: playerColor(p.colorId, p.key), ['--i' as string]: i }}
           title={p.name}
         />
       ))}

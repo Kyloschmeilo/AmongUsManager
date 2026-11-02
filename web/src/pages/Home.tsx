@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, type PointerEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Clock, Crosshair, Skull, Trophy, Users, Vote } from 'lucide-react';
 import { useApi, type MapDetail, type Overview, type PlayerSummary, type RecordEntry } from '../lib/api';
@@ -6,7 +6,7 @@ import { date, distance as dist, duration, nightLabel, num, pct } from '../lib/f
 import { RECORD_LABEL, TEAM_COLOR, endReason, mapShort } from '../lib/labels';
 import { metric, rank } from '../lib/metrics';
 import { Async, Avatar, BarList, Empty, Leaderboard, RoundList, Section, StatCard } from '../components/ui';
-import { Count, useGrow } from '../components/motion';
+import { Count, reducedMotion, useGrow } from '../components/motion';
 import { MapView } from '../components/MapView';
 
 export function Home() {
@@ -110,15 +110,40 @@ function HeroMap({ mapId }: { mapId: number }) {
   const m = map.data;
   return (
     <figure className="masthead__map">
+      <Vision>
       <MapView layout={m} heat showRooms={false} showVents={false} label={`Laufwege auf ${m.map.map}`}>
         {m.kills.slice(-400).map((k, i) => (
           <path key={i} d={`M${k.x - 0.24} ${-k.y - 0.24}l.48 .48m0 -.48l-.48 .48`} stroke="var(--ember)" strokeWidth={0.16} strokeLinecap="round" />
         ))}
       </MapView>
+      </Vision>
       <figcaption>
         {m.map.map} aus {num(m.map.rounds)} Runden: je heller, desto öfter lief jemand dort lang. Jedes rote Kreuz ist ein Kill.
+        Mit der Maus siehst du nur so weit wie ein Crewmate bei Licht aus.
       </figcaption>
     </figure>
+  );
+}
+
+/**
+ * Sichtfeld wie im Spiel: Solange die Maus (oder ein Finger) über der Karte ist, wird alles außerhalb eines Kreises
+ * um den Zeiger abgedunkelt – so wie Among Us die Sicht nach Licht-Sabotage begrenzt.
+ */
+function Vision({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const move = (e: PointerEvent<HTMLDivElement>) => {
+    const el = ref.current;
+    if (!el || reducedMotion()) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--mx', `${e.clientX - r.left}px`);
+    el.style.setProperty('--my', `${e.clientY - r.top}px`);
+    el.classList.add('is-looking');
+  };
+  const leave = () => ref.current?.classList.remove('is-looking');
+  return (
+    <div className="vision" ref={ref} onPointerMove={move} onPointerLeave={leave} onPointerCancel={leave}>
+      {children}
+    </div>
   );
 }
 
@@ -139,9 +164,9 @@ function TeamSplit({ crew, impostor, neutral }: { crew: number; impostor: number
   const total = Math.max(1, crew + impostor + neutral);
   return (
     <div className="split" aria-label={`Crew ${crew}, Impostor ${impostor}, Neutral ${neutral}`}>
-      {crew > 0 && <div style={{ width: `${(crew / total) * 100}%`, background: TEAM_COLOR.CREW }} />}
-      {impostor > 0 && <div style={{ width: `${(impostor / total) * 100}%`, background: TEAM_COLOR.IMPOSTOR }} />}
-      {neutral > 0 && <div style={{ width: `${(neutral / total) * 100}%`, background: TEAM_COLOR.NEUTRAL }} />}
+      {crew > 0 && <div className="split__crew" style={{ width: `${(crew / total) * 100}%`, background: TEAM_COLOR.CREW }} />}
+      {impostor > 0 && <div className="split__imp" style={{ width: `${(impostor / total) * 100}%`, background: TEAM_COLOR.IMPOSTOR }} />}
+      {neutral > 0 && <div className="split__neutral" style={{ width: `${(neutral / total) * 100}%`, background: TEAM_COLOR.NEUTRAL }} />}
     </div>
   );
 }

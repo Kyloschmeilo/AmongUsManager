@@ -1,4 +1,5 @@
-import { NavLink, Link, Navigate, Route, Routes } from 'react-router-dom';
+import { useLayoutEffect, useRef } from 'react';
+import { NavLink, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useSmoothScroll } from './components/motion';
 import { useApi, type Overview } from './lib/api';
 import { ago } from './lib/format';
@@ -32,8 +33,27 @@ const NAV = [
 function Nav() {
   const { perms } = usePermissions();
   const items = perms?.admin ? [...NAV, { to: '/admin', label: 'Admin' }] : NAV;
+  const ref = useRef<HTMLElement>(null);
+  const marker = useRef<HTMLSpanElement>(null);
+  const location = useLocation();
+  // Der Strich unter dem aktiven Punkt rutscht beim Seitenwechsel hinüber, statt zu springen.
+  useLayoutEffect(() => {
+    const place = () => {
+      const active = ref.current?.querySelector<HTMLElement>('a.active');
+      const m = marker.current;
+      if (!m) return;
+      if (!active) { m.style.opacity = '0'; return; }
+      m.style.opacity = '1';
+      m.style.width = `${active.offsetWidth - 20}px`;
+      m.style.transform = `translateX(${active.offsetLeft + 10}px)`;
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [location.pathname, items.length]);
   return (
-    <nav className="nav" aria-label="Hauptnavigation">
+    <nav className="nav" aria-label="Hauptnavigation" ref={ref}>
+      <span className="nav__marker" ref={marker} aria-hidden="true" />
       {items.map((item) => (
         <NavLink key={item.to} to={item.to} end={'end' in item ? item.end : undefined} className={({ isActive }) => (isActive ? 'active' : undefined)}>
           {item.label}

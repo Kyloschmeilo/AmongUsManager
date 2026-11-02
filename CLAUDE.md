@@ -268,7 +268,12 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Violett #C493EC = Neutral, Gold = Platz 1), Abschnitte mit Linien statt Karten (`.panel` = Linie oben, `.panel--box` für
   echte Kästen), Avatare als Crewmate-Umriss, Startseite mit Spielstand Crew : Impostor. Keine Buchstaben-/Einblend-
   Animationen mehr (`Title`/`Reveal` in `motion.tsx` sind schlicht); CountUp, wachsende Balken, Lenis und Replay bleiben.
-  Schlichte Überschriften statt Fragen/Floskeln. Bot-Embeds/Artifacts nutzen weiter das Standard-Design. Seiten: Übersicht, Bestenliste, Spielerprofil, Runden, Runde mit
+  Schlichte Überschriften statt Fragen/Floskeln. Bot-Embeds/Artifacts nutzen weiter das Standard-Design.
+  Reaktive Animationen (02.11.2026, Kilian: „arbeite auch gerne ein paar reaktive animationen ein“, mit Verbotsliste: keine
+  Lila-Verläufe/Glas/Blur/Emojis/Floskeln/gleiche Hover überall): Sichtfeld um den Zeiger über der Karte im Kopf (`Vision`
+  in `Home.tsx`, wie Licht-Sabotage), Spielstand hebt beim Hover den Team-Anteil im Balken hervor, Nav-Strich rutscht zum
+  aktiven Punkt, in der Rundenliste springen die Impostor hoch, Ranglisten-Crewmates hüpfen, Podest wackelt, Rekordwert
+  rückt nach rechts – jede Stelle anders, alles unter `prefers-reduced-motion: no-preference` (Ende von `styles.css`). Seiten: Übersicht, Bestenliste, Spielerprofil, Runden, Runde mit
   **Replay** (GSAP-Zeitleiste über die Laufwege, Kills/Meetings/Sabotagen), Maps (Laufwege-Heatmap, Kill-Orte), Rollen.
   **Bauen:** `cd web && npm install && npm run build` → schreibt nach `src/main/resources/web/` (wird **mit committet**,
   damit Gradle/Windows ohne Node bauen kann), danach `gradlew statsWebsiteJar`. Entwickeln: Website-JAR auf 8080

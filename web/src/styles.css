@@ -135,7 +135,8 @@ button { font: inherit; color: inherit; }
 }
 .nav a:hover { color: var(--ink); }
 .nav a.active { color: var(--ink); }
-.nav a.active::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 3px; background: var(--ink); }
+.nav { position: relative; }
+.nav__marker { position: absolute; left: 0; bottom: -1px; height: 3px; width: 0; background: var(--ink); pointer-events: none; transition: transform .35s cubic-bezier(.3, .7, .2, 1), width .35s cubic-bezier(.3, .7, .2, 1); }
 @media (max-width: 860px) {
   .topbar__inner { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'brand account' 'nav nav'; height: auto; gap: 0; padding-top: var(--space-3); }
   .brand { grid-area: brand; }
@@ -587,7 +588,7 @@ button { font: inherit; color: inherit; }
 .kv dt { color: var(--ink-faint); }
 .kv dd { margin: 0; color: var(--ink); font-family: var(--font-mono); font-size: 15px; }
 .note { padding: var(--space-3) var(--space-4); border: 0; border-left: 3px solid var(--sky); border-radius: 0; background: var(--surface-1); color: var(--ink-muted); font-size: 15px; display: flex; gap: var(--space-3); align-items: flex-start; }
-.note .icon { color: var(--sky); margin-top: 2px; }
+.note .icon { display: none; }
 .mapcard { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-3) var(--space-3) var(--space-4) 0; color: var(--ink-muted); transition: background .12s ease-out; }
 .mapcard:hover { background: var(--surface-1); color: var(--ink-muted); }
 .mapcard h3 { font: 600 28px/30px var(--font-display); }
@@ -646,3 +647,51 @@ button { font: inherit; color: inherit; }
 /* Fußzeile bei kurzen Seiten unten halten */
 #root { min-height: 100vh; display: flex; flex-direction: column; }
 #root > main { flex: 1; }
+
+/* ---------- Reaktive Bewegung: jede Stelle reagiert anders, passend zu dem, was sie zeigt ---------- */
+
+/* Karte im Kopf: Sichtfeld um den Zeiger (Licht-Sabotage) */
+.vision { position: relative; touch-action: pan-y; }
+.vision::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), transparent 0 70px, #0f1117d9 130px);
+  transition: opacity .3s ease-out;
+}
+.vision.is-looking::after { opacity: 1; }
+
+/* Spielstand: Maus über einer Seite hebt ihren Anteil im Balken hervor */
+.split > div { transition: opacity .2s ease-out, transform .25s ease-out; transform-origin: center bottom; }
+.score:has(.score__side--crew:hover) .split > div:not(.split__crew),
+.score:has(.score__side--imp:hover) .split > div:not(.split__imp) { opacity: .25; }
+.score:has(.score__side--crew:hover) .split__crew,
+.score:has(.score__side--imp:hover) .split__imp { transform: scaleY(1.8); }
+.score__side { cursor: default; }
+.score__num { display: inline-block; transition: transform .25s cubic-bezier(.3, 1.6, .5, 1); }
+.score__side:hover .score__num { transform: translateY(-4px); }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Rundenliste: beim Drüberfahren springen die Impostor der Runde nacheinander hoch */
+  .roster .avatar { transition: transform .22s cubic-bezier(.3, 1.6, .5, 1), opacity .2s ease-out; transition-delay: calc(var(--i, 0) * 18ms); }
+  .round-row:hover .roster .avatar { opacity: .45; }
+  .round-row:hover .roster .avatar.imp { opacity: 1; transform: translateY(-5px); }
+
+  /* Ranglisten: der Crewmate der Zeile hüpft einmal */
+  @keyframes hop { 0% { transform: none; } 35% { transform: translateY(-6px) scaleY(1.06); } 60% { transform: translateY(0) scale(1.08, .9); } 100% { transform: none; } }
+  .board li:hover .avatar, .lb-card li:hover .avatar, .table tbody tr:hover .player .avatar { animation: hop .45s ease-out; transform-origin: center bottom; }
+
+  /* Podest: Platz 1 wackelt kurz wie beim Sieg-Bildschirm */
+  @keyframes wobble { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-6deg); } 75% { transform: rotate(5deg); } }
+  .podium__place:hover .avatar { animation: wobble .5s ease-in-out; transform-origin: center bottom; }
+
+  /* Rekorde: Wert schiebt sich beim Drüberfahren nach rechts, als würde er nachgemessen */
+  .record__value { transition: transform .2s ease-out, color .2s ease-out; }
+  .record:hover .record__value { transform: translateX(6px); color: var(--gold); }
+
+  /* Aktivität: Nachbarsäulen ducken sich weg */
+  .columns:hover .columns__col > div { opacity: .5; transition: opacity .15s ease-out, background .12s ease-out; }
+  .columns .columns__col:hover > div { opacity: 1; }
+
+  /* Maps: Balken der Map zieht sich beim Drüberfahren auseinander */
+  .mapcard .split { transition: gap .2s ease-out; }
+  .mapcard:hover .split { gap: 5px; }
+}
