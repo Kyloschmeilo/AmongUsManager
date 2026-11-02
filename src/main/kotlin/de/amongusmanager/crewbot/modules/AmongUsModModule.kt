@@ -13,6 +13,7 @@ import de.amongusmanager.crewbot.core.isForbidden
 import de.amongusmanager.crewbot.core.memberOption
 import de.amongusmanager.crewbot.core.rethrowIfCancelled
 import de.amongusmanager.crewbot.core.stringOption
+import de.amongusmanager.crewbot.services.PlayerInfoProtocol
 import de.amongusmanager.crewbot.services.Actor
 import de.amongusmanager.crewbot.services.AutoMuteEvent
 import de.amongusmanager.crewbot.services.GameSettingsError
@@ -181,6 +182,34 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "�
             )
         },
         SlashCommand(
+            "verknuepfen-code", "Verknüpft Among Us per Code aus dem Spiel (CrewStats: F7 → Mit Discord verknüpfen)",
+            options = listOf(
+                OptionData(OptionType.STRING, "code", "Der 6-stellige Code, den Among Us dir anzeigt", true)
+                    .setMinLength(4).setMaxLength(12),
+            ),
+        ) { event ->
+            val user = event.author
+            val code = bot.linkCodes.redeem(event.stringOption("code")!!)
+            if (code == null) {
+                event.notify(
+                    "❌ Den Code kenne ich nicht (oder er ist abgelaufen – er gilt 10 Minuten).\n" +
+                        "Hol dir im Spiel einen neuen: **F7** → **Mit Discord verknüpfen**.",
+                    Tone.ERROR,
+                )
+                return@SlashCommand
+            }
+            val owner = bot.links.userFor(code)
+            if (owner != null && owner != user.idLong && !user.hasPermission(Permission.ADMINISTRATOR)) {
+                event.notify("❌ `$code` ist bereits mit <@$owner> verknüpft. Ein Admin kann das ändern.", Tone.ERROR)
+                return@SlashCommand
+            }
+            bot.links.link(code, user.idLong)
+            event.notify(
+                "✅ `$code` ist jetzt mit ${user.asMention} verknüpft. Ab der nächsten Runde gibt es XP & Statistiken!",
+                Tone.SUCCESS,
+            )
+        },
+        SlashCommand(
             "verknuepfungen", "Zeigt, wer seinen Among-Us-Account verknüpft hat", Permission.VOICE_MUTE_OTHERS,
             options = listOf(
                 OptionData(OptionType.USER, "spieler", "Nur diesen Spieler prüfen", false),
@@ -320,6 +349,10 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "�
         if (!message.isWebhookMessage || message.author.idLong != webhookId) return
         val guild = event.guild
 
+        PlayerInfoProtocol.parse(message.contentRaw)?.let { request -> // Komfort-Anfragen (Stats, Verknüpfen)
+            if (isFresh(message)) autoJoin.answerPlayerInfo(message, webhookId, request) else delete(message)
+            return
+        }
         WishProtocol.parse(message.contentRaw)?.let { wish ->
             wishes.onModMessage(message, webhookId, wish, isFresh(message))
             return
