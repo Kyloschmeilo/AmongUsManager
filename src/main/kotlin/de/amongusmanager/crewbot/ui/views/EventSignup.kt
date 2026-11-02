@@ -173,6 +173,9 @@ class EventRoster(val entries: MutableList<String>) {
     }
 }
 
+/** Ergebnis einer An- oder Abmeldung (Button im Discord oder Stats-Website). */
+enum class SignupResult { DONE, ALREADY, NOT_LISTED, CLOSED, GONE }
+
 /** Klicks auf die dauerhaften Event-Buttons. */
 object EventSignup {
     // Ein Lock pro Event-Nachricht verhindert, dass sich gleichzeitige Klicks gegenseitig überschreiben.
@@ -180,47 +183,60 @@ object EventSignup {
 
     private fun lockFor(messageId: Long): Mutex = locks.getOrPut(messageId) { Mutex() }
 
+    /** Wird nach jeder Änderung der Teilnehmerliste aufgerufen (Website: Zwischenspeicher aktualisieren). */
+    var onChange: (Message) -> Unit = {}
+
+    /**
+     * An- ([join] = true) oder abmelden. [fetch] holt die aktuelle Nachricht (im Lock, damit nichts verloren geht),
+     * null = gelöscht. Ist das Event vorbei, wird die Nachricht gesperrt.
+     */
+    suspend fun signup(messageId: Long, member: Member, join: Boolean, fetch: suspend () -> Message?): SignupResult =
+        lockFor(messageId).withLock {
+            val message = fetch() ?: return@withLock SignupResult.GONE
+            val embed = message.embeds.firstOrNull() ?: return@withLock SignupResult.GONE
+            if (isEventOver(embed)) {
+                closeEventMessage(message)
+                return@withLock SignupResult.CLOSED
+            }
+            val roster = EventRoster.fromEmbed(embed)
+            if (join) {
+                if (roster.contains(member)) return@withLock SignupResult.ALREADY
+                roster.add(member)
+            } else if (!roster.remove(member)) {
+                return@withLock SignupResult.NOT_LISTED
+            }
+            val edited = message.editMessageEmbeds(roster.writeTo(EmbedBuilder(embed)).build()).await()
+            onChange(edited)
+            SignupResult.DONE
+        }
+
     suspend fun join(event: ButtonInteractionEvent) {
         event.deferEdit().await()
         val member = event.member ?: return
-        lockFor(event.messageIdLong).withLock {
-            val message = freshMessage(event)
-            val embed = message.embeds.firstOrNull() ?: return
-            if (rejectIfOver(event, message)) return
-            val roster = EventRoster.fromEmbed(embed)
-            if (roster.contains(member)) {
-                event.notify("Du bist schon dabei! 😉")
-                return
-            }
-            roster.add(member)
-            message.editMessageEmbeds(roster.writeTo(EmbedBuilder(embed)).build()).await()
+        when (signup(event.messageIdLong, member, join = true) { freshMessage(event) }) {
+            SignupResult.ALREADY -> event.notify("Du bist schon dabei! 😉")
+            SignupResult.CLOSED -> rejectClosed(event)
+            SignupResult.DONE ->
+                // XP gibt es erst nach dem Event – und nur, wenn man wirklich im Voice war.
+                event.notify(
+                    "🚀 Du bist auf der Liste!\n🎁 Sei beim Event mindestens ${Rules.EVENT_MIN_ATTENDANCE_MINUTES} Minuten im" +
+                        " Voice, dann bekommst du **+${Rules.EVENT_ATTENDANCE_XP} XP**. Eine Erinnerung kommt" +
+                        " ${Rules.EVENT_REMINDER_MINUTES} Minuten vor Start.",
+                    Tone.SUCCESS,
+                )
+            else -> Unit
         }
-
-        // XP gibt es erst nach dem Event – und nur, wenn man wirklich im Voice war.
-        event.notify(
-            "🚀 Du bist auf der Liste!\n🎁 Sei beim Event mindestens ${Rules.EVENT_MIN_ATTENDANCE_MINUTES} Minuten im" +
-                " Voice, dann bekommst du **+${Rules.EVENT_ATTENDANCE_XP} XP**. Eine Erinnerung kommt" +
-                " ${Rules.EVENT_REMINDER_MINUTES} Minuten vor Start.",
-            Tone.SUCCESS,
-        )
     }
 
     suspend fun leave(event: ButtonInteractionEvent) {
         event.deferEdit().await()
         val member = event.member ?: return
-        lockFor(event.messageIdLong).withLock {
-            val message = freshMessage(event)
-            val embed = message.embeds.firstOrNull() ?: return
-            if (rejectIfOver(event, message)) return
-            val roster = EventRoster.fromEmbed(embed)
-            if (!roster.remove(member)) {
-                event.notify("Du stehst sowieso nicht auf der Liste! 😉")
-                return
-            }
-            message.editMessageEmbeds(roster.writeTo(EmbedBuilder(embed)).build()).await()
+        when (signup(event.messageIdLong, member, join = false) { freshMessage(event) }) {
+            SignupResult.NOT_LISTED -> event.notify("Du stehst sowieso nicht auf der Liste! 😉")
+            SignupResult.CLOSED -> rejectClosed(event)
+            SignupResult.DONE -> event.notify("📋 Du wurdest von der Liste gestrichen.")
+            else -> Unit
         }
-
-        event.notify("📋 Du wurdest von der Liste gestrichen.")
     }
 
     suspend fun funButton(event: ButtonInteractionEvent) {
@@ -247,13 +263,8 @@ object EventSignup {
         ).await()
     }
 
-    /** Ist das Event vorbei, wird die Nachricht gesperrt und der Klick abgelehnt. */
-    private suspend fun rejectIfOver(event: ButtonInteractionEvent, message: Message): Boolean {
-        val embed = message.embeds.firstOrNull() ?: return false
-        if (!isEventOver(embed)) return false
-        closeEventMessage(message)
+    private suspend fun rejectClosed(event: ButtonInteractionEvent) {
         event.notify("🔒 Dieses Event ist bereits vorbei – keine An- oder Abmeldung mehr möglich.", Tone.WARNING)
-        return true
     }
 
     /** Holt die aktuelle Version der Nachricht (nicht den Stand beim Klick). */

@@ -33,8 +33,10 @@ import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.interactions.commands.Command
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
@@ -57,6 +59,42 @@ fun parseEventStart(text: String): ZonedDateTime? =
         // wie Pythons strptime: beliebig viele Leerzeichen zwischen Datum und Uhrzeit
         LocalDateTime.parse(text.trim().replace(Regex("\\s+"), " "), DATE_FORMAT).atZone(TIMEZONE)
     } catch (e: DateTimeParseException) {
+        null
+    }
+
+private val eventLog = LoggerFactory.getLogger(EventsModule::class.java)
+
+data class CreatedEvent(val message: Message, val discordEventUrl: String?)
+
+/** Event-Nachricht mit Anmelde-Buttons + Discord-Event anlegen (/create-event und Stats-Website). */
+suspend fun createGameEvent(bot: CrewBot, channel: MessageChannel, game: String, start: ZonedDateTime, creator: Member): CreatedEvent {
+    val eventUrl = createScheduledEvent(creator.guild, game, start)
+    val embed = buildEventEmbed(game, start, creator.effectiveName, eventUrl)
+
+    // Der Ping muss im Nachrichtentext stehen – in einem Embed pingt Discord nicht.
+    val roleId = GAME_PING_ROLES[game]
+    val content = MessageCreateBuilder()
+        .setEmbeds(embed)
+        .setComponents(EventButtons.row())
+        .setAllowedMentions(listOf(Message.MentionType.ROLE, Message.MentionType.USER))
+    if (roleId != null) content.setContent("🔔 <@&$roleId>")
+    val message = channel.sendMessage(content.build()).await()
+    bot.events.add(message.idLong, message.channel.idLong, start.toInstant(), eventEnd(start.toInstant()), Instant.now())
+    return CreatedEvent(message, eventUrl)
+}
+
+private suspend fun createScheduledEvent(guild: Guild, game: String, start: ZonedDateTime): String? =
+    try {
+        val scheduled = guild.createScheduledEvent(
+            "$game Event",
+            "Voice Channels",
+            start.toOffsetDateTime(),
+            start.plusHours(Rules.EVENT_DURATION_HOURS).toOffsetDateTime(),
+        ).setDescription("🎮 Gemeinsame Runde $game! Melde dich im Channel an.").await()
+        "https://discord.com/events/${guild.id}/${scheduled.id}"
+    } catch (e: Exception) {
+        e.rethrowIfCancelled()
+        eventLog.warn("Discord-Event konnte nicht erstellt werden: {}", e.describe())
         null
     }
 
@@ -92,22 +130,9 @@ class EventsModule(private val bot: CrewBot) : CrewModule("Events", "📅") {
 
             event.deferReply(true).await()
 
-            val guild = event.guild!!
-            val eventUrl = createScheduledEvent(guild, game, start)
-            val embed = buildEventEmbed(game, start, event.author.effectiveName, eventUrl)
-
-            // Der Ping muss im Nachrichtentext stehen – in einem Embed pingt Discord nicht.
-            val roleId = GAME_PING_ROLES[game]
-            val content = MessageCreateBuilder()
-                .setEmbeds(embed)
-                .setComponents(EventButtons.row())
-                .setAllowedMentions(listOf(Message.MentionType.ROLE, Message.MentionType.USER))
-            if (roleId != null) content.setContent("🔔 <@&$roleId>")
-            val message = event.channel.sendMessage(content.build()).await()
-            bot.events.add(message.idLong, message.channel.idLong, start.toInstant(), eventEnd(start.toInstant()), Instant.now())
-
-            val note = if (eventUrl != null) "" else "\n⚠️ Das Discord-Event konnte nicht erstellt werden (Rechte?)."
-            event.notify("✅ Event erstellt: ${message.jumpUrl}$note", Tone.SUCCESS)
+            val created = createGameEvent(bot, event.channel, game, start, event.author)
+            val note = if (created.discordEventUrl != null) "" else "\n⚠️ Das Discord-Event konnte nicht erstellt werden (Rechte?)."
+            event.notify("✅ Event erstellt: ${created.message.jumpUrl}$note", Tone.SUCCESS)
         },
         SlashCommand(
             "spieleabend-recap",
@@ -124,7 +149,7 @@ class EventsModule(private val bot: CrewBot) : CrewModule("Events", "📅") {
                 return@SlashCommand
             }
             event.deferReply(true).await()
-            val posted = started.mapNotNull { postRecap(it) }
+            val posted = postStartedRecaps()
             if (posted.isEmpty()) {
                 event.notify("ℹ️ Seit Event-Start wurden keine Mod-Runden aufgezeichnet – kein Recap.", Tone.WARNING)
             } else {
@@ -133,20 +158,9 @@ class EventsModule(private val bot: CrewBot) : CrewModule("Events", "📅") {
         },
     )
 
-    private suspend fun createScheduledEvent(guild: Guild, game: String, start: ZonedDateTime): String? =
-        try {
-            val scheduled = guild.createScheduledEvent(
-                "$game Event",
-                "Voice Channels",
-                start.toOffsetDateTime(),
-                start.plusHours(Rules.EVENT_DURATION_HOURS).toOffsetDateTime(),
-            ).setDescription("🎮 Gemeinsame Runde $game! Melde dich im Channel an.").await()
-            "https://discord.com/events/${guild.id}/${scheduled.id}"
-        } catch (e: Exception) {
-            e.rethrowIfCancelled()
-            log.warn("Discord-Event konnte nicht erstellt werden: {}", e.describe())
-            null
-        }
+    /** Recaps aller schon gestarteten Events jetzt posten (/spieleabend-recap, Website). */
+    suspend fun postStartedRecaps(): List<Message> =
+        bot.events.pendingRecaps().filter { it.startsAt <= Instant.now() }.mapNotNull { postRecap(it) }
 
     // ==========================================
     // EVENT-ABLAUF (läuft jede Minute)

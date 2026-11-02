@@ -67,23 +67,8 @@ class AdminModule(private val bot: CrewBot) : CrewModule("Admin", "🛠️") {
             "rollen-panel", "Postet die Rollen-Auswahl mit Buttons im Rollen-Channel", Permission.ADMINISTRATOR,
         ) { event ->
             event.deferReply(true).await()
-            val channel = event.jda.getChannelById(GuildMessageChannel::class.java, Channels.ROLES)
-            if (channel == null) {
-                event.notify("❌ Den Rollen-Channel (${Channels.ROLES}) finde ich nicht.", Tone.ERROR)
-                return@SlashCommand
-            }
-            val guild = channel.guild
-            for (group in SELF_ROLE_GROUPS) {
-                val counts = bot.rolePanel.counts(guild, group)
-                val message = channel.sendMessageEmbeds(RolePanel.embed(group))
-                    .setComponents(RolePanel.components(group, counts)).await()
-                bot.rolePanel.track(RolePanelMessage(group.key, message.channel.idLong, message.idLong))
-                bot.rolePanel.markShown(message.idLong, counts)
-            }
-            val missing = SELF_ROLE_GROUPS.flatMap { it.roles }.filter { guild.getRoleById(it.roleId) == null }
-            val note = if (missing.isEmpty()) "" else "\n⚠️ Diese Rollen gibt es auf dem Server nicht: " +
-                missing.joinToString(", ") { it.name }
-            event.notify("✅ Rollen-Panel gepostet in ${channel.asMention}. Ältere Panels funktionieren weiter.$note", Tone.SUCCESS)
+            val (text, tone) = postRolePanel(bot)
+            event.notify(text, tone)
         },
         SlashCommand(
             "changelog", "Postet die Neuerungen des letzten Updates in diesen Channel", Permission.ADMINISTRATOR,
@@ -108,6 +93,24 @@ class AdminModule(private val bot: CrewBot) : CrewModule("Admin", "🛠️") {
             event.notify("✅ Tutorial „${tutorial.label}“ gepostet.", Tone.SUCCESS)
         },
     )
+}
+
+/** Postet alle Gruppen des Rollen-Panels in Channels.ROLES (/rollen-panel, Website). Liefert die Rückmeldung. */
+suspend fun postRolePanel(bot: CrewBot): Pair<String, Tone> {
+    val channel = bot.jda.getChannelById(GuildMessageChannel::class.java, Channels.ROLES)
+        ?: return "❌ Den Rollen-Channel (${Channels.ROLES}) finde ich nicht." to Tone.ERROR
+    val guild = channel.guild
+    for (group in SELF_ROLE_GROUPS) {
+        val counts = bot.rolePanel.counts(guild, group)
+        val message = channel.sendMessageEmbeds(RolePanel.embed(group))
+            .setComponents(RolePanel.components(group, counts)).await()
+        bot.rolePanel.track(RolePanelMessage(group.key, message.channel.idLong, message.idLong))
+        bot.rolePanel.markShown(message.idLong, counts)
+    }
+    val missing = SELF_ROLE_GROUPS.flatMap { it.roles }.filter { guild.getRoleById(it.roleId) == null }
+    val note = if (missing.isEmpty()) "" else "\n⚠️ Diese Rollen gibt es auf dem Server nicht: " +
+        missing.joinToString(", ") { it.name }
+    return "✅ Rollen-Panel gepostet in ${channel.asMention}. Ältere Panels funktionieren weiter.$note" to Tone.SUCCESS
 }
 
 /** /hilfe: automatisch generierte Übersicht aller Befehle. */

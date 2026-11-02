@@ -11,6 +11,7 @@ import de.amongusmanager.crewbot.core.await
 import de.amongusmanager.crewbot.core.discordTimestamp
 import de.amongusmanager.crewbot.core.intOption
 import de.amongusmanager.crewbot.core.memberOption
+import de.amongusmanager.crewbot.core.rethrowIfCancelled
 import de.amongusmanager.crewbot.core.stringOption
 import de.amongusmanager.crewbot.services.Actor
 import de.amongusmanager.crewbot.services.BetError
@@ -27,11 +28,14 @@ import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.MessageEmbed
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.commands.Command
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
+import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.Instant
 
@@ -135,7 +139,28 @@ class RoundsModule(private val bot: CrewBot) : CrewModule("Runden & Wetten", "ü
             event.notify("‚ùå Es m√ºssen mindestens 2 Spieler im Voice sein!", Tone.ERROR)
             return
         }
+        val (embed, view) = mvpVotingStart(players)
+        event.replyEmbeds(embed).setComponents(view.components()).await()
+        view.await()
+        event.hook.editOriginalEmbeds(mvpResult(event.guild!!, view)).setComponents().await()
+    }
 
+    /** MVP-Voting von der Stats-Website: postet in [channel] und wertet nach Ablauf selbst aus. */
+    suspend fun mvpVotingIn(channel: MessageChannel, players: List<Member>): Message {
+        val (embed, view) = mvpVotingStart(players)
+        val message = channel.sendMessageEmbeds(embed).setComponents(view.components()).await()
+        bot.scope.launch {
+            view.await()
+            try {
+                message.editMessageEmbeds(mvpResult(players.first().guild, view)).setComponents().await()
+            } catch (e: Exception) {
+                e.rethrowIfCancelled()
+            }
+        }
+        return message
+    }
+
+    private fun mvpVotingStart(players: List<Member>): Pair<MessageEmbed, MvpVotingView> {
         val duration = Duration.ofSeconds(Rules.MVP_VOTING_SECONDS)
         val view = MvpVotingView(players, duration)
         val now = Instant.now()
@@ -151,10 +176,7 @@ class RoundsModule(private val bot: CrewBot) : CrewModule("Runden & Wetten", "ü
             .setColor(Palette.PURPLE)
             .setFooter(view.progressText)
             .build()
-        event.replyEmbeds(embed).setComponents(view.components()).await()
-
-        view.await()
-        event.hook.editOriginalEmbeds(mvpResult(event.guild!!, view)).setComponents().await()
+        return embed to view
     }
 
     private suspend fun mvpResult(guild: Guild, view: MvpVotingView): MessageEmbed {

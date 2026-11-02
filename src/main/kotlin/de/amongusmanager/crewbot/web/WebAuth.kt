@@ -182,7 +182,7 @@ class WebAuth(
 
     // ---------- Helfer ----------
 
-    private fun userOf(request: WebRequest): Long? = accounts.sessionUser(request.cookies[SESSION_COOKIE])
+    internal fun userOf(request: WebRequest): Long? = accounts.sessionUser(request.cookies[SESSION_COOKIE])
 
     private fun redirectUri(request: WebRequest): String = baseUrl(request) + "/auth/callback"
 
@@ -195,7 +195,7 @@ class WebAuth(
     private fun isSecure(request: WebRequest): Boolean = baseUrl(request).startsWith("https://")
 
     /** POST nur von der eigenen Seite (Origin = eigene Adresse, falls der Browser ihn schickt). */
-    private fun sameOrigin(request: WebRequest): WebResponse? {
+    internal fun sameOrigin(request: WebRequest): WebResponse? {
         val origin = request.header("origin") ?: return null
         val own = runCatching { URI(baseUrl(request)) }.getOrNull()
         val from = runCatching { URI(origin) }.getOrNull()

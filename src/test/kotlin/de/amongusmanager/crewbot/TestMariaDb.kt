@@ -32,6 +32,13 @@ object TestMariaDb {
         return Database.mysql("localhost:$port", name, "root", "") to { Database.mysql("localhost:$port", name, "root", "", readOnly = true) }
     }
 
+    /** Neue Test-Datenbank plus beschreibbare Verbindungen ohne Migration (Stats-Website → Auftrags-Tabelle). */
+    fun newDatabaseWithWriter(): Pair<Database, () -> Database> {
+        val name = "crewbot_test_${counter.incrementAndGet()}"
+        server.createDB(name)
+        return Database.mysql("localhost:$port", name, "root", "") to { Database.mysql("localhost:$port", name, "root", "", migrate = false) }
+    }
+
     /** Leere Datenbank (ohne Tabellen), nur lesend verbunden. */
     fun emptyReadOnly(): Database {
         val name = "crewbot_test_${counter.incrementAndGet()}"

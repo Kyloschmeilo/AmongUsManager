@@ -42,6 +42,10 @@ class MariaDbStatsWebsiteTest : StatsWebsiteTest() {
 }
 
 /** Umzug einer bestehenden SQLite-Datenbank nach MySQL. */
+class MariaDbWebControlTest : WebControlTest() {
+    override fun newDatabases(): Pair<Database, () -> Database> = TestMariaDb.newDatabaseWithWriter()
+}
+
 class SqliteToMysqlTest {
     private val pipeline = Golden.section("pipeline")
     private val extra = pipeline["import_extra"]!!.obj

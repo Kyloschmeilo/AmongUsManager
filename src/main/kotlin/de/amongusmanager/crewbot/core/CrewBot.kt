@@ -14,6 +14,7 @@ import de.amongusmanager.crewbot.modules.MinecraftModule
 import de.amongusmanager.crewbot.modules.ProgressionModule
 import de.amongusmanager.crewbot.modules.RoundsModule
 import de.amongusmanager.crewbot.modules.VoiceModule
+import de.amongusmanager.crewbot.modules.WebControlModule
 import de.amongusmanager.crewbot.services.AchievementService
 import de.amongusmanager.crewbot.services.AuditLog
 import de.amongusmanager.crewbot.services.AutoJoinSettings
@@ -123,6 +124,7 @@ class CrewBot(val db: Database) {
         AmongUsModModule(this),
         MinecraftModule(this),
         AdminModule(this),
+        WebControlModule(this),
         HelpModule(this),
     )
 

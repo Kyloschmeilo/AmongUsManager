@@ -14,12 +14,15 @@
  *   WEB_PUBLIC_URL       – Adresse der Website, z.B. http://45.81.233.92:25570 (für die Weiterleitung nach dem Login)
  *   WEB_DOWNLOADS_DIR    – Ordner mit eigenen Downloads (Standard: downloads/ neben dem JAR, z.B. TheOtherRoles-Installer.bat)
  * Eigene Daten der Website (Anmeldungen, Profile, Profilbilder) liegen in data/website.db.
+ * Bot steuern (Event-Tab, Admin-Panel): die Website schreibt Aufträge in die Tabelle web_requests der Bot-Datenbank,
+ * der Bot führt sie aus und prüft dabei die Discord-Rollen selbst.
  */
 package de.amongusmanager.crewbot.web
 
 import de.amongusmanager.crewbot.BotPaths
 import de.amongusmanager.crewbot.Env
 import de.amongusmanager.crewbot.db.Database
+import de.amongusmanager.crewbot.services.WebQueue
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
@@ -69,11 +72,18 @@ fun main() {
     val downloads = Downloads(downloadsDir, GitHubReleases())
     log.info("📦 Downloads: {} ({} eigene Dateien)", downloadsDir, downloads.localFiles().size)
 
+    val auth = WebAuth(accounts, store, discord, authConfig, sync)
+    // Bot steuern (Events, Admin-Panel): eigene, beschreibbare Verbindung nur für die Auftrags-Tabelle des Bots
+    val controlDb = if (db != null) openControlDatabase() else null
+    val control = controlDb?.let { ControlApi(auth, BotLink(WebQueue(it)), store) }
+    if (control == null) log.info("🎛️ Bot-Steuerung aus (keine Bot-Datenbank)")
+
     val port = webPort()
     val server = try {
         StatsServer(
-            store, port, Env.get("WEB_HOST").trim().ifEmpty { "0.0.0.0" }, WebAuth(accounts, store, discord, authConfig, sync), accounts,
+            store, port, Env.get("WEB_HOST").trim().ifEmpty { "0.0.0.0" }, auth, accounts,
             guides = WebGuides(downloads),
+            control = control,
         )
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)
@@ -105,6 +115,7 @@ fun main() {
         scheduler.shutdownNow()
         server.stop()
         db?.close()
+        controlDb?.close()
         accountsDb.close()
     }, "web-shutdown"))
 }
@@ -122,6 +133,16 @@ private fun syncDiscord(sync: DiscordSync?, store: StatsStore) {
         if (message != lastSyncFailure) log.warn("Discord-Profile nicht geladen: {}", message)
         lastSyncFailure = message
     }
+}
+
+/** Zweite Verbindung zur Bot-Datenbank, beschreibbar, ohne Schema-Änderungen (nur für web_requests). */
+private fun openControlDatabase(): Database? = try {
+    val mysql = Env.mysql
+    if (mysql != null) Database.mysql(mysql.host, mysql.name, mysql.user, mysql.password, readOnly = false, migrate = false)
+    else Database.openShared(BotPaths.database)
+} catch (e: Exception) {
+    log.warn("🎛️ Bot-Steuerung aus – Datenbank nicht beschreibbar: {}", e.message)
+    null
 }
 
 /** Port: WEB_PORT, sonst der Port des Panels (SERVER_PORT), sonst 8080. */

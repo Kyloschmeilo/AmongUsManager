@@ -244,6 +244,21 @@ object Schema {
         );
         CREATE INDEX round_raw_received ON round_raw (received_at)
         """,
+        // Version 4: Aufträge der Stats-Website an den Bot (Events, Admin-Panel). Die Website schreibt nur hier hinein,
+        // der Bot holt sie ab, prüft die Rechte selbst und schreibt die Antwort zurück (kein offener Port nötig).
+        """
+        CREATE TABLE web_requests (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id    INTEGER NOT NULL,
+            action     TEXT NOT NULL,
+            payload    TEXT NOT NULL,
+            status     TEXT NOT NULL,
+            result     TEXT,
+            created_at INTEGER NOT NULL,
+            done_at    INTEGER
+        );
+        CREATE INDEX web_requests_status ON web_requests (status)
+        """,
     )
 
     /**
@@ -502,6 +517,20 @@ object Schema {
             undone      INT NOT NULL DEFAULT 0,
             json        LONGTEXT NOT NULL,
             KEY round_raw_received (received_at)
+        ) $MYSQL_TABLE
+        """,
+        // Version 4
+        """
+        CREATE TABLE IF NOT EXISTS web_requests (
+            id         BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            user_id    BIGINT NOT NULL,
+            action     VARCHAR(64) NOT NULL,
+            payload    MEDIUMTEXT NOT NULL,
+            status     VARCHAR(16) NOT NULL,
+            result     MEDIUMTEXT NULL,
+            created_at BIGINT NOT NULL,
+            done_at    BIGINT NULL,
+            KEY web_requests_status (status)
         ) $MYSQL_TABLE
         """,
     )

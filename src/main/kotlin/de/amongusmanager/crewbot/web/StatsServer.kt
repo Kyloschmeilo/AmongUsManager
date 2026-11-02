@@ -25,10 +25,12 @@ class StatsServer(
     private val accounts: WebAccounts? = null,
     /** Hilfe & Mods: Tutorials, Rollen-Lexikon, Downloads (/api/tutorials|lexicon|downloads, /downloads/<datei>). */
     private val guides: WebGuides? = null,
+    /** Bot steuern (Events, Admin-Panel) über die Auftrags-Tabelle, null = ohne. */
+    private val control: ControlApi? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
-    private val executor: ExecutorService = Executors.newFixedThreadPool(8) { task -> Thread(task, "web").apply { isDaemon = true } }
+    private val executor: ExecutorService = Executors.newFixedThreadPool(16) { task -> Thread(task, "web").apply { isDaemon = true } }
     private val static = StaticFiles("web")
 
     init {
@@ -50,6 +52,7 @@ class StatsServer(
             val method = exchange.requestMethod.uppercase()
             val path = URLDecoder.decode(exchange.requestURI.rawPath ?: "/", Charsets.UTF_8)
             if (path == "/api/me" || path == "/api/me/profile" || path.startsWith("/auth/")) return account(exchange, method, path)
+            if (path.startsWith(ControlApi.PREFIX)) return control(exchange, method, path)
             if (method != "GET" && method != "HEAD") {
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
@@ -87,6 +90,23 @@ class StatsServer(
         }
         val cache = response.headers.firstOrNull { it.first.equals("Cache-Control", ignoreCase = true) }?.second ?: "no-store"
         respond(exchange, response.status, response.type, response.body, cache = cache)
+    }
+
+    // ---------- Bot steuern ----------
+
+    private fun control(exchange: HttpExchange, method: String, path: String) {
+        val handler = control ?: return respond(
+            exchange, 503, TYPE_JSON,
+            bytes(obj("error" to "Auf dieser Website ist die Bot-Steuerung aus (keine Bot-Datenbank).", "offline" to true)), cache = "no-store",
+        )
+        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
+        val response = handler.handle(WebRequest(method, path, parseQuery(exchange.requestURI.rawQuery), headers, body))
+        for ((name, value) in response.headers) {
+            if (name.equals("Cache-Control", ignoreCase = true)) continue
+            exchange.responseHeaders.add(name, value)
+        }
+        respond(exchange, response.status, response.type, response.body, cache = "no-store")
     }
 
     /** Höchstens 16 KB, sonst null. */

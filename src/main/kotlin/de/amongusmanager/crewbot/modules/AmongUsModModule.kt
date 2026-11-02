@@ -1,6 +1,7 @@
 /* Among-Us-Mod: Webhook einrichten, Accounts verknüpfen, Statistiken, automatische Auswertung und Rollenwünsche. */
 package de.amongusmanager.crewbot.modules
 
+import de.amongusmanager.crewbot.core.CommandError
 import de.amongusmanager.crewbot.core.CrewBot
 import de.amongusmanager.crewbot.core.CrewModule
 import de.amongusmanager.crewbot.core.SlashCommand
@@ -48,6 +49,7 @@ import kotlinx.coroutines.withContext
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.entities.channel.middleman.StandardGuildMessageChannel
@@ -60,6 +62,33 @@ import java.time.Instant
 
 private const val MOD_CONFIG_PATH = """Among Us\BepInEx\config\de.amongusmanager.crewstats.cfg"""
 private val AUTOMUTE_MAX_AGE: Duration = Duration.ofSeconds(60)
+
+/**
+ * Neuer Webhook für die Mod in [channel] (der alte wird gelöscht, seine URL ungültig). Liefert die neue URL.
+ * Wirft CommandError, wenn das Recht „Webhooks verwalten“ fehlt. (/mod-setup und Stats-Website)
+ */
+suspend fun setupModWebhook(bot: CrewBot, channel: StandardGuildMessageChannel, actor: Member): String {
+    val settings = bot.modSettings
+    // Alten Webhook entfernen, damit die alte URL ungültig wird
+    settings.webhookId?.let { oldId ->
+        try {
+            channel.jda.retrieveWebhookById(oldId).await().delete().reason("CrewStats-Webhook neu eingerichtet").await()
+        } catch (e: Exception) {
+            e.rethrowIfCancelled()
+        }
+    }
+    val webhook = try {
+        channel.createWebhook("CrewStats Mod").reason("/mod-setup von ${Actor.tagOf(actor.user)}").await()
+    } catch (e: Exception) {
+        e.rethrowIfCancelled()
+        if (!e.isForbidden()) throw e
+        throw CommandError("❌ Mir fehlt das Recht **Webhooks verwalten** in diesem Channel.")
+    }
+    val url = webhookUrlOf(webhook) ?: error("Discord hat keinen Webhook-Token geliefert")
+    settings.set(webhook.idLong, channel.idLong)
+    bot.audit.log(Actor.of(actor), "CrewStats-Mod eingerichtet", "Ergebnis-Channel: ${channel.asMention}")
+    return url
+}
 
 class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "🛰️") {
     private val log = LoggerFactory.getLogger(AmongUsModModule::class.java)
@@ -80,29 +109,12 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "�
         ) { event ->
             val channel = event.getOption("kanal")!!.asChannel as StandardGuildMessageChannel
             event.deferReply(true).await()
-            val settings = bot.modSettings
-
-            // Alten Webhook entfernen, damit die alte URL ungültig wird
-            settings.webhookId?.let { oldId ->
-                try {
-                    event.jda.retrieveWebhookById(oldId).await().delete().reason("CrewStats-Webhook neu eingerichtet").await()
-                } catch (e: Exception) {
-                    e.rethrowIfCancelled()
-                }
-            }
-
-            val webhook = try {
-                channel.createWebhook("CrewStats Mod").reason("/mod-setup von ${Actor.tagOf(event.user)}").await()
-            } catch (e: Exception) {
-                e.rethrowIfCancelled()
-                if (!e.isForbidden()) throw e
-                event.notify("❌ Mir fehlt das Recht **Webhooks verwalten** in diesem Channel.", Tone.ERROR)
+            val url = try {
+                setupModWebhook(bot, channel, event.author)
+            } catch (e: CommandError) {
+                event.notify(e.message ?: "❌ Fehler", Tone.ERROR)
                 return@SlashCommand
             }
-            val url = webhookUrlOf(webhook) ?: error("Discord hat keinen Webhook-Token geliefert")
-
-            settings.set(webhook.idLong, channel.idLong)
-            bot.audit.log(Actor.of(event.author), "CrewStats-Mod eingerichtet", "Ergebnis-Channel: ${channel.asMention}")
 
             val embed = EmbedBuilder()
                 .setTitle("🛰️ CrewStats-Mod eingerichtet")

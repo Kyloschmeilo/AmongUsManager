@@ -13,15 +13,35 @@ import { DownloadsPage, TutorialsPage } from './pages/Guides';
 import { NotFound } from './pages/NotFound';
 import { AccountButton, LoginNotice } from './components/Account';
 import { MeProvider } from './lib/me';
+import { PermissionProvider, usePermissions } from './lib/control';
+import { EventsPage } from './pages/Events';
+import { AdminPage } from './pages/Admin';
+import './control.css';
 
 const NAV = [
   { to: '/', label: 'Übersicht', end: true },
+  { to: '/events', label: 'Events' },
   { to: '/bestenliste', label: 'Bestenliste' },
   { to: '/runden', label: 'Runden' },
   { to: '/maps', label: 'Maps' },
   { to: '/rollen', label: 'Rollen' },
   { to: '/hilfe', label: 'Hilfe & Mods' }
 ];
+
+/** Navigation; „Admin“ nur für Mitglieder mit der Admin-Rolle im Discord. */
+function Nav() {
+  const { perms } = usePermissions();
+  const items = perms?.admin ? [...NAV, { to: '/admin', label: 'Admin' }] : NAV;
+  return (
+    <nav className="nav" aria-label="Hauptnavigation">
+      {items.map((item) => (
+        <NavLink key={item.to} to={item.to} end={'end' in item ? item.end : undefined} className={({ isActive }) => (isActive ? 'active' : undefined)}>
+          {item.label}
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
 
 function Brand() {
   return (
@@ -56,17 +76,12 @@ export function App() {
   useSmoothScroll();
   return (
     <MeProvider>
+      <PermissionProvider>
       <a className="sr-only" href="#inhalt">Zum Inhalt</a>
       <header className="topbar">
         <div className="wrap topbar__inner">
           <Brand />
-          <nav className="nav" aria-label="Hauptnavigation">
-            {NAV.map((item) => (
-              <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => (isActive ? 'active' : undefined)}>
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
+          <Nav />
           <div className="topbar__account">
             <AccountButton />
           </div>
@@ -86,10 +101,13 @@ export function App() {
           <Route path="/hilfe" element={<TutorialsPage />} />
           <Route path="/hilfe/downloads" element={<DownloadsPage />} />
           <Route path="/downloads" element={<Navigate to="/hilfe/downloads" replace />} />
+          <Route path="/events" element={<EventsPage />} />
+          <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       <Footer />
+      </PermissionProvider>
     </MeProvider>
   );
 }

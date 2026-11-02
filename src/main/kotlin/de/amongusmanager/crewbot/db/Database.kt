@@ -67,6 +67,15 @@ class Database private constructor(
             return Database(Dialect.SQLITE, "SQLite ${file.toAbsolutePath()} (nur lesen)", readOnly = true) { config.createConnection(url) }
         }
 
+        /**
+         * Die Datei des Bots beschreibbar öffnen, ohne das Schema anzufassen (Stats-Website: nur für die Auftrags-Tabelle
+         * `web_requests`, die der Bot selbst anlegt). Sie muss schon existieren.
+         */
+        fun openShared(file: Path): Database {
+            require(Files.exists(file)) { "Datenbank nicht gefunden: ${file.toAbsolutePath()}" }
+            return sqlite("jdbc:sqlite:${file.toAbsolutePath()}", wal = true, description = file.toAbsolutePath().toString(), botSchema = false)
+        }
+
         /** Für Tests: Datenbank nur im Speicher ([botSchema] = false: leer, für eigene Tabellen). */
         fun inMemory(botSchema: Boolean = true): Database =
             sqlite("jdbc:sqlite::memory:", wal = false, description = "Arbeitsspeicher", botSchema = botSchema)
@@ -87,8 +96,11 @@ class Database private constructor(
             return Database(Dialect.SQLITE, "SQLite $description", readOnly = false, botSchema = botSchema) { config.createConnection(url) }
         }
 
-        /** MySQL/MariaDB, z.B. host = "45.81.233.92:3306". [readOnly]: nur lesen (Stats-Website), kein Schema anlegen. */
-        fun mysql(host: String, name: String, user: String, password: String, readOnly: Boolean = false): Database {
+        /**
+         * MySQL/MariaDB, z.B. host = "45.81.233.92:3306". [readOnly]: nur lesen (Stats-Website), kein Schema anlegen.
+         * [migrate] = false: beschreibbar, aber ohne Schema-Änderungen (Stats-Website → Auftrags-Tabelle des Bots).
+         */
+        fun mysql(host: String, name: String, user: String, password: String, readOnly: Boolean = false, migrate: Boolean = !readOnly): Database {
             val url = "jdbc:mariadb://$host/$name"
             val properties = Properties().apply {
                 setProperty("user", user)
@@ -100,7 +112,7 @@ class Database private constructor(
             // Treiber direkt benutzen statt über DriverManager – im Fat-JAR ist auf die Service-Registrierung kein Verlass
             val driver = org.mariadb.jdbc.Driver()
             val description = "MySQL $name auf $host" + if (readOnly) " (nur lesen)" else ""
-            return Database(Dialect.MYSQL, description, readOnly) {
+            return Database(Dialect.MYSQL, description, readOnly, botSchema = migrate) {
                 (driver.connect(url, properties) ?: error("MariaDB-Treiber lehnt die URL ab: $url")).also { connection ->
                     connection.createStatement().use { it.execute("SET NAMES utf8mb4 COLLATE utf8mb4_bin") }
                     if (readOnly) connection.isReadOnly = true
