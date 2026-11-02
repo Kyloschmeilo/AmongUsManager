@@ -435,8 +435,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - Rundenarchiv `round_raw` (01.11.2026, noch Version 2.5.0): JAR in `/mnt/project-files/bot-2.5.0-rundenarchiv/crewbot-update.zip`,
   Deploy macht Kilian.
 - Stats-Website (01.11.2026): auf `main`, JAR in `/mnt/project-files/stats-website/StatsWebsite.zip` (+ `Anleitung.md`
-  inkl. Developer-Portal-Schritten); nur mit erfundenen Testrunden geprüft (Screenshots Desktop + Handy), Discord-Login nur
-  mit Fake-Discord getestet. Panel-Server richtet Kilian ein. Braucht für Replays/Laufwege den
+  inkl. Developer-Portal-Schritten); nur mit erfundenen Testrunden geprüft (Screenshots Desktop + Handy), Discord-Login läuft
+  auf dem Panel (02.11.2026 von Kilian bestätigt: „geht jetzt“). Panel-Server richtet Kilian ein. Braucht für Replays/Laufwege den
   Bot mit Rundenarchiv **und** CrewStats 1.5.0 beim Host; ältere Runden kommen ohne Replay aus `round_history`.
 - Bot **v2.5.0** (24.10.2026, The Other Roles in XP-Vergabe + Discord-Mute bei Blackmailer/Jailor): auf `main`, JAR in
   `/mnt/project-files/bot-2.5.0/crewbot-update.zip`, Deploy macht Kilian. Passend dazu CrewStats **1.4.0** released.
