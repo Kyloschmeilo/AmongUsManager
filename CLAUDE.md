@@ -220,6 +220,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   **Keine Discord-Namen/-IDs in den Antworten** (sonst könnte jeder mit der Auto-Join-URL Friendcode → Discord auflösen).
   Mod-Seite: `PlayerInfoRules.cs` (getestet), `BotClient.cs` (+ `ConnectionStatus`), `Comfort.cs`, `ComfortUi.cs`
   (Unity-IMGUI per `AddComponent`, nur `GUI.*` mit festen Rects, kein GUILayout), `RoundSummary.cs`. Im echten Spiel ungetestet.
+  Am 02.11.2026 als CrewStats **v1.7.0** veröffentlicht (Kilian: „realese“), beide PRs auf main. Bot-JAR dazu:
+  `/mnt/project-files/bot-crewstats-komfort/crewbot-update.zip`, Deploy macht Kilian.
 - Mod-Runden und manuelle Auswertung (`/crew-win`, Runden-Assistent) nicht doppelt nutzen.
 - Mod-Runde auswerten = Stats → Verlauf → Erfolge → Protokoll (alles in einer Transaktion), danach
   Level-Rollen. „Zurücksetzen“ nimmt alles zurück (XP, Siege, Wetten, Stats, Verlauf, Erfolge).
@@ -409,7 +411,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Container; auch Weltkoordinaten-Ansatz klappte nicht) → zurückgenommen, Nutzer will es so lassen.
   Falls doch: Schalter in den Reiter „Graphics“ verschieben oder nur per Config.
 - **Verteilung & Updates**: Repo `mod/` (nur Mod + Installer, kein Bot-Code, keine Webhook-URLs!).
-  Aktuelles Release: **v1.6.0** (02.11.2026, Auto-Join + TOR-Rollenwünsche, im echten Spiel ungetestet). Davor **v1.5.0** (01.11.2026, Kilians Wunsch: Rundenformat 2 für eine Stats-Website, s.o.; im echten Spiel
+  Aktuelles Release: **v1.7.0** (02.11.2026, Komfort-Funktionen, s.o. „CrewStats-Komfort“, im echten Spiel ungetestet). Davor
+  **v1.6.0** (02.11.2026, Auto-Join + TOR-Rollenwünsche, im echten Spiel ungetestet). Davor **v1.5.0** (01.11.2026, Kilians Wunsch: Rundenformat 2 für eine Stats-Website, s.o.; im echten Spiel
   ungetestet). Davor v1.4.1 (24.10.2026, Kilians Wunsch: Fix gegen Kicks mit TOR – `TorPacketFix.cs` ersetzt TORs
   `CustomOption.ShareOptionSelections` durch kleine Pakete; TOR schickte bei jedem Beitritt die Guesser-Rollenfilter in einem
   1635-Byte-Paket, das auf Modded EU nicht ankam → „Reliable packet … was not ack'd after 7500ms“ im `Player.log`, alle
