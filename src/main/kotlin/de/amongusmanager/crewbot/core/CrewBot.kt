@@ -18,6 +18,9 @@ import de.amongusmanager.crewbot.modules.WebControlModule
 import de.amongusmanager.crewbot.services.AchievementService
 import de.amongusmanager.crewbot.services.AuditLog
 import de.amongusmanager.crewbot.services.AutoJoinSettings
+import de.amongusmanager.crewbot.services.LinkCodes
+import de.amongusmanager.crewbot.services.PlayerInfoService
+import de.amongusmanager.crewbot.ui.views.playerRoleLabel
 import de.amongusmanager.crewbot.services.RoundArchiveService
 import de.amongusmanager.crewbot.services.AutoRoleService
 import de.amongusmanager.crewbot.services.AutoMuteService
@@ -100,6 +103,8 @@ class CrewBot(val db: Database) {
     val roundArchive = RoundArchiveService(db)
     val modRounds = ModRoundService(db, levels, bets, rounds, links, gameStats, roundHistory, achievements, roundArchive)
     val roleWishes = RoleWishService(db, levels, links, { gameSettings.latest })
+    val playerInfo = PlayerInfoService(db, links, levels, gameStats, roundHistory, ::playerRoleLabel) // CrewStats-Komfort
+    val linkCodes = LinkCodes() // /verknuepfen-code
     val lobby = LobbyAnnouncer({ jda }, Channels.CODES, links, bets, { event, host -> buildLobbyEmbed(event, host) }, scope)
 
     // Minecraft-Plugin (CoreSMP): Rohdaten kommen im Inbox-Channel an, Ankündigungen gehen in den /dc-Channel

@@ -210,6 +210,16 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Versionsnummer; Beitreten per `AmongUsClient.CoJoinOnlineGameFromCode(GameCode.GameNameToInt(code))` (aktuelle Region,
   muss Modded NA sein). Installer fragt die Auto-Join-URL optional ab. **Im echten Spiel noch ungetestet.**
   Bot-JAR (mit Spezial-Rollenwunsch-Befehlen) in `/mnt/project-files/bot-autojoin/crewbot-update.zip`, Deploy macht Kilian.
+- **CrewStats-Komfort** (02.11.2026, Kilian: „pack die alle mal rein“ – Auto-Update-Hinweis, Lobby-Overlay mit eigenen
+  Stats, Rundenzusammenfassung, Verknüpfen per Code, Lobby-Info, Einstellungsmenü, Verbindungsstatus, Offline-Puffer;
+  CrewStats 1.7.0, alles einzeln abschaltbar unter `[Komfort]` bzw. im Spiel per **F7**). Bot: `services/ModPlayerInfo.kt`
+  (`PlayerInfoProtocol`, `PlayerInfoService`, `LinkCodes`), beantwortet in `AutoJoinCommands.answerPlayerInfo` über den
+  Auto-Join- **oder** Mod-Webhook (gleicher ?wait=true-Ablauf wie Auto-Join): `stats` (me + ≤ 15 Lobby-Friendcodes →
+  linked/level/games/wins, für „me“ zusätzlich xp/rank/kills + letzte Runde mit Rolle/Team/Sieg/XP/„ago“) und `link`
+  (6-stelliger Code, 10 min, nur im Speicher) → `/verknuepfen-code` (gleiche Besitz-Regel wie `/verknuepfen`).
+  **Keine Discord-Namen/-IDs in den Antworten** (sonst könnte jeder mit der Auto-Join-URL Friendcode → Discord auflösen).
+  Mod-Seite: `PlayerInfoRules.cs` (getestet), `BotClient.cs` (+ `ConnectionStatus`), `Comfort.cs`, `ComfortUi.cs`
+  (Unity-IMGUI per `AddComponent`, nur `GUI.*` mit festen Rects, kein GUILayout), `RoundSummary.cs`. Im echten Spiel ungetestet.
 - Mod-Runden und manuelle Auswertung (`/crew-win`, Runden-Assistent) nicht doppelt nutzen.
 - Mod-Runde auswerten = Stats → Verlauf → Erfolge → Protokoll (alles in einer Transaktion), danach
   Level-Rollen. „Zurücksetzen“ nimmt alles zurück (XP, Siege, Wetten, Stats, Verlauf, Erfolge).
