@@ -209,6 +209,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   nur einmal, F5 = sofort (auch erneut), F6 = an/aus (`[AutoJoin] Url/Automatisch/TasteJetzt/TasteAnAus`), Status unter der
   Versionsnummer; Beitreten per `AmongUsClient.CoJoinOnlineGameFromCode(GameCode.GameNameToInt(code))` (aktuelle Region,
   muss Modded NA sein). Installer fragt die Auto-Join-URL optional ab. **Im echten Spiel noch ungetestet.**
+  Bot-JAR (mit Spezial-Rollenwunsch-Befehlen) in `/mnt/project-files/bot-autojoin/crewbot-update.zip`, Deploy macht Kilian.
 - Mod-Runden und manuelle Auswertung (`/crew-win`, Runden-Assistent) nicht doppelt nutzen.
 - Mod-Runde auswerten = Stats → Verlauf → Erfolge → Protokoll (alles in einer Transaktion), danach
   Level-Rollen. „Zurücksetzen“ nimmt alles zurück (XP, Siege, Wetten, Stats, Verlauf, Erfolge).
@@ -377,7 +378,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Container; auch Weltkoordinaten-Ansatz klappte nicht) → zurückgenommen, Nutzer will es so lassen.
   Falls doch: Schalter in den Reiter „Graphics“ verschieben oder nur per Config.
 - **Verteilung & Updates**: Repo `mod/` (nur Mod + Installer, kein Bot-Code, keine Webhook-URLs!).
-  Aktuelles Release: **v1.5.0** (01.11.2026, Kilians Wunsch: Rundenformat 2 für eine Stats-Website, s.o.; im echten Spiel
+  Aktuelles Release: **v1.6.0** (02.11.2026, Auto-Join + TOR-Rollenwünsche, im echten Spiel ungetestet). Davor **v1.5.0** (01.11.2026, Kilians Wunsch: Rundenformat 2 für eine Stats-Website, s.o.; im echten Spiel
   ungetestet). Davor v1.4.1 (24.10.2026, Kilians Wunsch: Fix gegen Kicks mit TOR – `TorPacketFix.cs` ersetzt TORs
   `CustomOption.ShareOptionSelections` durch kleine Pakete; TOR schickte bei jedem Beitritt die Guesser-Rollenfilter in einem
   1635-Byte-Paket, das auf Modded EU nicht ankam → „Reliable packet … was not ack'd after 7500ms“ im `Player.log`, alle
