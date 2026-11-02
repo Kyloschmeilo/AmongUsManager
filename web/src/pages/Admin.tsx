@@ -2,7 +2,7 @@
 // Spieler-XP/Level (/admin-panel), Discord-Rollen, Rollen für die nächste Runde (/rolle-zuweisen), Voice-Steuerung
 // (/panel), Runde beenden (/crew-win, /impostor-win, /runde-abbrechen), MVP-Voting, Panels/Changelog/Tutorial posten,
 // Spieleabend-Recap, Event-Channel und /mod-setup. Der Bot prüft jede Aktion selbst noch einmal.
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   ArrowRightLeft, Copy, Crown, Drama, Headphones, LogIn, Megaphone, MicOff, RotateCcw, Search, Settings, ShieldAlert, Trophy, UserCog, Users, Volume2
@@ -277,9 +277,14 @@ function PlayerEditor({ member, overview, onChange }: { member: Member; overview
   const [confirmReset, setConfirmReset] = useState(false);
   const [wishRole, setWishRole] = useState(member.wish?.role ?? overview.wishRoles[0]?.id ?? '');
   const player = { player: member.key };
+  const top = useRef<HTMLDivElement>(null);
+  // Am Handy steht der Editor unter der Liste – hinscrollen
+  useEffect(() => {
+    if (window.innerWidth < 960) top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   return (
-    <div className="stack" style={{ gap: 16 }}>
+    <div className="stack" style={{ gap: 16, scrollMarginTop: 16 }} ref={top}>
       <AdminCard icon={<UserCog className="icon" aria-hidden="true" />} title={member.name} caption={`@${member.username}${member.voice ? ` · im Voice #${member.voice}` : ''}`}>
         <div className="admin-stats">
           <div><span className="caption">Level</span><b className="mono">{member.level}</b></div>
@@ -291,7 +296,7 @@ function PlayerEditor({ member, overview, onChange }: { member: Member; overview
         <div className="admin-form">
           <label className="field">
             <span className="field__label">XP</span>
-            <div className="row" style={{ gap: 6 }}>
+            <div className="input-row">
               <input className="input" type="number" min={0} value={xp} onChange={(e) => setXp(e.target.value)} />
               <button type="button" className="btn btn--primary" disabled={busy !== null || xp === String(member.xp)} onClick={() => void run('xp', 'admin.player.set', { ...player, xp: Number(xp) })}>Setzen</button>
             </div>
@@ -305,7 +310,7 @@ function PlayerEditor({ member, overview, onChange }: { member: Member; overview
           </label>
           <label className="field">
             <span className="field__label">Level</span>
-            <div className="row" style={{ gap: 6 }}>
+            <div className="input-row">
               <input className="input" type="number" min={1} value={level} onChange={(e) => setLevel(e.target.value)} />
               <button type="button" className="btn btn--primary" disabled={busy !== null || level === String(member.level)} onClick={() => void run('level', 'admin.player.set', { ...player, level: Number(level) })}>Setzen</button>
             </div>
@@ -658,7 +663,7 @@ function SettingsTab({ overview, onChange }: { overview: Overview; onChange: () 
         {webhook && (
           <div className="stack" style={{ gap: 8 }}>
             <span className="caption ember">Geheim! Wer die URL hat, kann Runden einschicken. Sie wird nur jetzt angezeigt.</span>
-            <div className="row" style={{ gap: 6 }}>
+            <div className="input-row">
               <input className="input mono" readOnly value={webhook} onFocus={(e) => e.currentTarget.select()} style={{ flex: 1 }} />
               <button type="button" className="btn btn--icon" aria-label="URL kopieren" onClick={() => void navigator.clipboard?.writeText(webhook)}>
                 <Copy className="icon icon--sm" aria-hidden="true" />

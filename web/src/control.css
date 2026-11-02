@@ -73,3 +73,6 @@
   .admin__body { padding: var(--space-4); }
   .admin-card { padding: var(--space-4); }
 }
+.input-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.input-row .input { flex: 1; width: auto; }
+.input-row .btn { flex: none; }

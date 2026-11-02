@@ -124,9 +124,11 @@ class CrewBot(val db: Database) {
         AmongUsModModule(this),
         MinecraftModule(this),
         AdminModule(this),
-        WebControlModule(this),
         HelpModule(this),
     )
+
+    /** Aufträge der Stats-Website (Events, Admin-Panel) – ohne eigene Slash-Commands, daher nicht in /hilfe. */
+    val webControl = WebControlModule(this)
 
     private val commandsByName: Map<String, SlashCommand> =
         modules.flatMap { it.commands }.associateBy { it.name }
@@ -190,7 +192,7 @@ class CrewBot(val db: Database) {
         }
         // Auto-Rollen für alle, die beim Start noch keine haben (läuft nebenher, JDA drosselt die Anfragen)
         scope.launch { for (guild in jda.guilds) autoRoles.syncAll(guild) }
-        for (module in modules) {
+        for (module in modules + webControl) {
             try {
                 module.onReady()
             } catch (e: Exception) {
