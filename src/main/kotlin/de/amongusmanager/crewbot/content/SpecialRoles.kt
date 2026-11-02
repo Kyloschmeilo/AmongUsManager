@@ -247,6 +247,15 @@ private val TOR_ROLE_NAMES: Map<String, Pair<String, String>> = mapOf(
     "antiTeleportPostfix" to ("antiTeleport" to "Anti Teleport"),
 )
 
+/**
+ * Alle nameKeys, unter denen CrewStats eine [SpecialRole] meldet (z.B. "guesser" -> niceGuesser, evilGuesser) mit dem
+ * Namen im Spiel – für das Rollen-Lexikon der Stats-Website. Die Rolle selbst steht immer zuerst.
+ */
+fun torNameKeys(roleId: String): List<Pair<String, String>> {
+    val role = SPECIAL_ROLES[roleId] ?: return emptyList()
+    return listOf(roleId to role.name) + TOR_ROLE_NAMES.filter { it.value.first == roleId }.map { (key, value) -> key to value.second }
+}
+
 /** Rollen ohne Besonderheit – dafür zeigt der Bot die Rolle des Spiels (Crewmate/Impostor). */
 private val TOR_PLAIN_ROLES = setOf("", "crewmate", "impostor")
 

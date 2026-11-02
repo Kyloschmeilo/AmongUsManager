@@ -12,6 +12,7 @@
  *   DISCORD_CLIENT_SECRET – „Mit Discord anmelden“ (Developer-Portal → OAuth2), Client-ID kommt aus dem Token
  *                          (oder DISCORD_CLIENT_ID)
  *   WEB_PUBLIC_URL       – Adresse der Website, z.B. http://45.81.233.92:25570 (für die Weiterleitung nach dem Login)
+ *   WEB_DOWNLOADS_DIR    – Ordner mit eigenen Downloads (Standard: downloads/ neben dem JAR, z.B. TheOtherRoles-Installer.bat)
  * Eigene Daten der Website (Anmeldungen, Profile, Profilbilder) liegen in data/website.db.
  */
 package de.amongusmanager.crewbot.web
@@ -63,9 +64,17 @@ fun main() {
         log.error("❌ Runden konnten nicht geladen werden (neuer Versuch in Kürze): {}", e.message, e)
     }
 
+    // Hilfe & Mods: eigene Dateien aus downloads/, Versionen von CrewStats/The Other Roles von GitHub
+    val downloadsDir = Env.get("WEB_DOWNLOADS_DIR").trim().ifEmpty { null }?.let { Path.of(it) } ?: BotPaths.projectDir.resolve("downloads")
+    val downloads = Downloads(downloadsDir, GitHubReleases())
+    log.info("📦 Downloads: {} ({} eigene Dateien)", downloadsDir, downloads.localFiles().size)
+
     val port = webPort()
     val server = try {
-        StatsServer(store, port, Env.get("WEB_HOST").trim().ifEmpty { "0.0.0.0" }, WebAuth(accounts, store, discord, authConfig, sync), accounts)
+        StatsServer(
+            store, port, Env.get("WEB_HOST").trim().ifEmpty { "0.0.0.0" }, WebAuth(accounts, store, discord, authConfig, sync), accounts,
+            guides = WebGuides(downloads),
+        )
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)
         exitProcess(1)
@@ -89,6 +98,7 @@ fun main() {
         syncDiscord(sync, store)
     }, refreshSeconds, refreshSeconds, TimeUnit.SECONDS)
     scheduler.execute { syncDiscord(sync, store) } // Profilbilder gleich nach dem Start holen
+    scheduler.execute { downloads.refreshNow() } // Versionen für die Download-Seite
 
     Runtime.getRuntime().addShutdownHook(Thread({
         log.info("Stats-Website wird beendet …")

@@ -23,6 +23,8 @@ class StatsServer(
     private val auth: WebAuth? = null,
     /** Website-eigene Daten (Profilbilder), null = ohne. */
     private val accounts: WebAccounts? = null,
+    /** Hilfe & Mods: Tutorials, Rollen-Lexikon, Downloads (/api/tutorials|lexicon|downloads, /downloads/<datei>). */
+    private val guides: WebGuides? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
@@ -52,6 +54,7 @@ class StatsServer(
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
             }
+            if (path.startsWith("/downloads/")) return download(exchange)
             if (path == "/api" || path.startsWith("/api/")) api(exchange, path.removePrefix("/api").trim('/')) else staticFile(exchange, path)
         } catch (e: Exception) {
             log.warn("Fehler bei {} {}: {}", exchange.requestMethod, exchange.requestURI, e.toString())
@@ -130,6 +133,7 @@ class StatsServer(
             return respond(exchange, 200, TYPE_JSON, body, cache = "no-store")
         }
         if (parts.size == 2 && parts[0] == "avatar") return avatar(exchange, parts[1])
+        if (parts.size == 1 && parts[0] in WebGuides.ROUTES) return guidesApi(exchange, parts)
         if (exchange.requestHeaders.getFirst("If-None-Match") == etag) return notModified(exchange, etag)
 
         val body: ByteArray? = when {
@@ -154,6 +158,43 @@ class StatsServer(
     }
 
     private fun error(message: String): ByteArray = bytes(obj("error" to message))
+
+    // ---------- Hilfe & Mods ----------
+
+    /** Tutorials/Lexikon/Downloads hängen nicht an den Runden – eigenes ETag aus dem Inhalt. */
+    private fun guidesApi(exchange: HttpExchange, parts: List<String>) {
+        val body = guides?.route(parts) ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-cache")
+        val etag = "W/\"g${shortHash(String(body, Charsets.UTF_8))}\""
+        if (exchange.requestHeaders.getFirst("If-None-Match") == etag) return notModified(exchange, etag)
+        respond(exchange, 200, TYPE_JSON, body, cache = "no-cache", etag = etag)
+    }
+
+    /** Eigene Datei aus dem Download-Ordner, immer als Download (nicht im Browser anzeigen), gestreamt. */
+    private fun download(exchange: HttpExchange) {
+        // Pfad ohne „+ = Leerzeichen“ (Dateinamen wie knifemod-1.1.0+26.3.jar)
+        val name = (exchange.requestURI.path ?: "").removePrefix("/downloads/")
+        val file = guides?.downloads?.localFile(name)
+            ?: return respond(exchange, 404, "text/plain; charset=utf-8", "Nicht gefunden".toByteArray(), cache = "no-cache")
+        val size = java.nio.file.Files.size(file)
+        val modified = java.nio.file.Files.getLastModifiedTime(file).toMillis()
+        val etag = "W/\"d${shortHash("$name:$size:$modified")}\""
+        if (exchange.requestHeaders.getFirst("If-None-Match") == etag) return notModified(exchange, etag)
+        val headers = exchange.responseHeaders
+        headers.add("Content-Type", Downloads.contentType(name))
+        headers.add("Content-Disposition", "attachment; filename=\"${name.replace("\"", "")}\"; filename*=UTF-8''" +
+            java.net.URLEncoder.encode(name, Charsets.UTF_8).replace("+", "%20"))
+        headers.add("Cache-Control", "no-cache")
+        headers.add("ETag", etag)
+        headers.add("X-Content-Type-Options", "nosniff")
+        headers.add("Referrer-Policy", "same-origin")
+        if (exchange.requestMethod.equals("HEAD", ignoreCase = true)) {
+            headers.add("Content-Length", size.toString())
+            exchange.sendResponseHeaders(200, -1)
+            return
+        }
+        exchange.sendResponseHeaders(200, if (size == 0L) -1 else size)
+        if (size > 0) exchange.responseBody.use { out -> java.nio.file.Files.newInputStream(file).use { it.copyTo(out) } }
+    }
 
     private fun parseQuery(raw: String?): Map<String, String> {
         if (raw.isNullOrEmpty()) return emptyMap()

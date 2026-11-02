@@ -1,4 +1,4 @@
-import { NavLink, Link, Route, Routes } from 'react-router-dom';
+import { NavLink, Link, Navigate, Route, Routes } from 'react-router-dom';
 import { useSmoothScroll } from './components/motion';
 import { useApi, type Overview } from './lib/api';
 import { ago } from './lib/format';
@@ -9,6 +9,7 @@ import { RoundsPage } from './pages/Rounds';
 import { RoundPage } from './pages/Round';
 import { MapsPage, MapPage } from './pages/Maps';
 import { RolesPage } from './pages/Roles';
+import { DownloadsPage, TutorialsPage } from './pages/Guides';
 import { NotFound } from './pages/NotFound';
 import { AccountButton, LoginNotice } from './components/Account';
 import { MeProvider } from './lib/me';
@@ -18,7 +19,8 @@ const NAV = [
   { to: '/bestenliste', label: 'Bestenliste' },
   { to: '/runden', label: 'Runden' },
   { to: '/maps', label: 'Maps' },
-  { to: '/rollen', label: 'Rollen' }
+  { to: '/rollen', label: 'Rollen' },
+  { to: '/hilfe', label: 'Hilfe & Mods' }
 ];
 
 function Brand() {
@@ -81,6 +83,9 @@ export function App() {
           <Route path="/maps" element={<MapsPage />} />
           <Route path="/maps/:mapId" element={<MapPage />} />
           <Route path="/rollen" element={<RolesPage />} />
+          <Route path="/hilfe" element={<TutorialsPage />} />
+          <Route path="/hilfe/downloads" element={<DownloadsPage />} />
+          <Route path="/downloads" element={<Navigate to="/hilfe/downloads" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

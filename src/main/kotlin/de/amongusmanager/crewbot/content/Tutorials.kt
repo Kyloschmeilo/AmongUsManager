@@ -138,7 +138,8 @@ val TUTORIALS: List<Tutorial> = listOf(
             TutorialSection(
                 "INSTALLIEREN",
                 listOf(
-                    "1. Lade die Datei `TheOtherRoles-Installer.bat` herunter, die hier im Channel gepostet ist",
+                    "1. Lade die Datei `TheOtherRoles-Installer.bat` herunter – sie ist im Discord gepostet und liegt" +
+                        " auf der Stats-Website unter Downloads",
                     "2. Doppelklicken. Warnt Windows, klick **Weitere Informationen → Trotzdem ausführen**",
                     "3. Enter drücken – der Installer findet Among Us, legt daneben eine eigene Kopie für die Mod an" +
                         " und installiert dort alles. Dein normales Among Us bleibt unverändert",
@@ -152,8 +153,10 @@ val TUTORIALS: List<Tutorial> = listOf(
                 "WICHTIG",
                 listOf(
                     "**Alle Spieler der Lobby** brauchen die Mod in derselben Version",
-                    "Gespielt wird auf dem Server **Modded EU** – der Installer stellt ihn schon ein." +
+                    "Gespielt wird auf dem Server **Modded NA** – der Installer stellt ihn schon ein." +
                         " Auf den normalen Among-Us-Servern geht die Mod nicht",
+                    "Hosts: Lass CrewStats an (der Installer übernimmt es, wenn du es hast) – es verhindert Kicks," +
+                        " wenn jemand deiner Lobby beitritt",
                     "Nur für Among Us auf Steam (Windows, 64-Bit). Die Mod selbst: [GitHub]($TOR_GITHUB)",
                 ),
             ),

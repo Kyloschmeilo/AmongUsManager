@@ -136,7 +136,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   verteilt `buildTutorialEmbeds` es auf mehrere Nachrichten) (`content/Tutorials.kt`, `ui/TutorialUi.kt`).
   Im Standard-Design (Akzent `Palette.ACCENT` #1FBF7A, Abschnitte in Großbuchstaben, keine Emoji-Aufzählungen).
   `/befehle` im Text werden anklickbar (`linkCommands` in `ui/Text.kt`), `TutorialTest` prüft, dass es sie gibt.
-  Special-Rollen-Text bei Änderungen am TheOtherRoles-Installer mitziehen.
+  Special-Rollen-Text bei Änderungen am TheOtherRoles-Installer mitziehen (auch die Download-Karte in `web/Downloads.kt`).
 - **The Other Roles** (seit 23.10.2026, Kilian: „ganz anderer Ansatz“ – ersetzt die eigene Rollen-Mod SpecialRoles):
   Das Original (TheOtherRolesAU, letzte Version 4.8.0 für Among Us 2024.11.26, 32-Bit) läuft nicht mit 2026.9.29 →
   Kilian hat **TheOtherRoles GMIA** gewählt (github.com/GMIA-Nexus/TheOtherRolesGMIA, 1.4.1 vom 11.10.2026, GameLibs
@@ -144,7 +144,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   nur Englisch/Japanisch/Chinesisch). `content/SpecialRoles.kt` = deren Rollen (Texte aus `stringData.json` in der DLL),
   `/special-rolle` (Modul Wissen) + Tutorials beschreiben sie. **Installer** `TheOtherRoles-Installer.bat` liegt **nicht
   auf GitHub** (Kilian: „gib mir nur die Datei“), sondern in `/mnt/project-files/theotherroles/`; Kilian postet ihn im
-  Discord. Er kopiert das Steam-Among-Us nach `Among Us - The Other Roles` (ohne BepInEx/Mods, Marker
+  Discord, und die Stats-Website bietet ihn aus ihrem `downloads/`-Ordner an (siehe „Hilfe & Mods“). Er kopiert das Steam-Among-Us nach `Among Us - The Other Roles` (ohne BepInEx/Mods, Marker
   `.theotherroles-installer`), entpackt dort das neueste GMIA-Release-Zip (Fallback 1.4.1), übernimmt auf Wunsch CrewStats
   (+ Config) und legt eine Desktop-Verknüpfung an; Start der Kopie direkt per exe (Steam muss laufen). Testen mit
   `TOR_GAME_DIR`, `TOR_COPY_DIR`, `TOR_ZIP` (portables pwsh, `Read-Host` per Funktion überschreiben). CRLF, ohne BOM;
@@ -272,6 +272,18 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - Bestenliste (seit 01.11.2026, Kilian: „etwas übersichtlicher, alles in eine Liste geworfen“): Bereiche Allgemein/Crew/
   Impostor/Unterwegs (`GROUPS` in `metrics.ts`) → Kärtchen je Kennzahl mit Top 3 (Handy: zum Wischen) → Podest →
   Tabelle ab Platz 4 (Suche zeigt alle), „Du: Platz N“ für Angemeldete.
+- **Hilfe & Mods** (02.11.2026, Kilian: „ein Teil auf der Website wo die Tutorials und Mod downloads sind“, „man soll auch alle
+  Rollen nachgucken können“): `web/Guides.kt` + `web/Downloads.kt`, Seite `pages/Guides.tsx` (`/hilfe` Tutorials, `/hilfe/downloads`,
+  `/downloads` leitet um), Stil in `web/src/guides.css`. **Tutorials** = `TUTORIALS` des Bots (ohne „Alle Special-Rollen erklärt“)
+  + Host-Anleitung `WebGuides.HOST_TUTORIAL` (nur Website); `<#Channel>` wird zu Text, Discord-only-Sätze stehen in
+  `WebGuides.DISCORD_ONLY` (Test prüft, dass es sie im Bot-Text noch gibt). **Rollen-Seite** `/rollen` = Lexikon aller Rollen
+  (`/api/lexicon`: `ROLES` + `SPECIAL_ROLES`, `torNameKeys` ordnet TOR-Varianten wie niceGuesser zu) mit Statistik aus `/api/roles`,
+  ungespielte mit „Noch nicht gespielt“. **Downloads** (`/api/downloads`): eigene Dateien aus `downloads/` neben dem JAR
+  (`WEB_DOWNLOADS_DIR`; ausgeliefert unter `/downloads/<datei>`, nur direkt im Ordner, keine versteckten) – dort liegen der
+  TheOtherRoles-Installer (bleibt so vom GitHub fern) und die Messer-Mod-JARs (`knifemod-<v>+<mc>.jar`, Karte nur wenn
+  vorhanden), alles andere erscheint als „Weitere Dateien“. CrewStats + TOR-Version: GitHub-API `releases/latest` alle 30 min
+  im Hintergrund (ohne Token; Fehler → alte Infos, Links `…/releases/latest/download/<Datei>` gehen immer). CrewStats-Dateien
+  lädt der Browser direkt von GitHub. `StatsWebsite.zip` enthält deshalb `downloads/` mit Installer + Messer-Mod.
 
 ## Minecraft-Kopplung (CoreSMP-Plugin `CoreHold`, Projekt `C:\Users\petra\Desktop\CoreSMP`)
 - Plugin → Bot ebenfalls per **Webhook**, der im Log-Channel (`Channels.MINECRAFT_INBOX` =
