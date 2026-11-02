@@ -46,6 +46,7 @@ val TUTORIALS: List<Tutorial> = listOf(
                 listOf(
                     "/code – teilt deinen Lobby-Code in <#${Channels.CODES}>",
                     "/moveall – holt alle aus deinem Voice in den Among-Us-Channel",
+                    "/autojoin – Among Us tritt mit CrewStats von selbst der neuesten Lobby bei",
                     "/create-event – plant einen Spieleabend mit Anmeldung",
                     "/bet – setz bis zu ${Rules.MAX_BET} XP auf Crew oder Impostor. Gewinnt dein Team, bekommst du" +
                         " das ${Rules.BET_PAYOUT_FACTOR}-Fache. Sobald die Runde läuft, ist das Wettbüro zu",

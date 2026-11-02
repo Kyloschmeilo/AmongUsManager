@@ -3,6 +3,7 @@ package de.amongusmanager.crewbot
 import de.amongusmanager.crewbot.content.ROLES
 import de.amongusmanager.crewbot.content.SPECIAL_ROLES
 import de.amongusmanager.crewbot.content.TUTORIALS
+import de.amongusmanager.crewbot.content.Tutorial
 import de.amongusmanager.crewbot.core.CrewBot
 import de.amongusmanager.crewbot.core.parseJson
 import de.amongusmanager.crewbot.db.Database
@@ -79,7 +80,10 @@ class WebGuidesTest {
     @Test
     fun tutorialsAreTheBotTextsForTheWeb() {
         val tutorials = json(WebGuides(null).tutorialsJson)["tutorials"]!!.jsonArray.map { it.jsonObject }
-        assertEquals(listOf("befehle", "verknuepfen", "special-rollen", "crewstats-host"), tutorials.map { it.str("key") })
+        assertEquals(
+            listOf("befehle", "verknuepfen", "special-rollen", "crewstats-host", "autojoin"),
+            tutorials.map { it.str("key") },
+        )
         val text = tutorials.toString()
         assertFalse("<#" in text, "keine Discord-Channel-Erwähnungen auf der Website")
         assertContains(text, "den Lobby-Code-Channel")
@@ -95,12 +99,12 @@ class WebGuidesTest {
     }
 
     @Test
-    fun hostTutorialOnlyNamesExistingCommands() {
+    fun webOnlyTutorialsOnlyNameExistingCommands() {
         val commands = CrewBot(Database.inMemory()).modules.flatMap { it.commands }.map { it.name }.toSet()
-        val t = WebGuides.HOST_TUTORIAL
-        val mentioned = (listOf(t.intro, t.footer) + t.sections.flatMap { it.lines }).flatMap(::commandsIn).toSet()
-        assertTrue("verknuepfen" in mentioned)
-        assertEquals(emptySet(), mentioned - commands)
+        fun mentioned(t: Tutorial) = (listOf(t.intro, t.footer) + t.sections.flatMap { it.lines }).flatMap(::commandsIn).toSet()
+        assertTrue("verknuepfen" in mentioned(WebGuides.HOST_TUTORIAL))
+        assertTrue("autojoin" in mentioned(WebGuides.AUTOJOIN_TUTORIAL))
+        for (t in listOf(WebGuides.HOST_TUTORIAL, WebGuides.AUTOJOIN_TUTORIAL)) assertEquals(emptySet(), mentioned(t) - commands, t.key)
     }
 
     @Test

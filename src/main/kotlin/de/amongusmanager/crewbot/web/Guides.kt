@@ -1,7 +1,7 @@
 /*
  * Stats-Website, Bereich „Hilfe & Mods“: Tutorials (dieselben Texte wie /tutorial im Bot, content/Tutorials.kt, plus
- * eine Host-Anleitung nur für die Website), das Rollen-Lexikon (alle Rollen aus Among Us und The Other Roles, auch nie
- * gespielte) und die Downloads (Downloads.kt). Nichts davon kommt aus der Datenbank.
+ * Anleitungen für Hosts und Auto-Join nur für die Website), das Rollen-Lexikon (alle Rollen aus Among Us und The Other
+ * Roles, auch nie gespielte) und die Downloads (Downloads.kt). Nichts davon kommt aus der Datenbank.
  */
 package de.amongusmanager.crewbot.web
 
@@ -35,7 +35,7 @@ class WebGuides(val downloads: Downloads?) {
          * und die Host-Anleitung. Reihenfolge = Reiter auf der Seite.
          */
         val WEB_TUTORIALS: List<Tutorial> by lazy {
-            TUTORIALS.filter { it.key != "special-rollen-liste" } + HOST_TUTORIAL
+            TUTORIALS.filter { it.key != "special-rollen-liste" } + HOST_TUTORIAL + AUTOJOIN_TUTORIAL
         }
 
         /** Nur auf der Website: CrewStats für Hosts (passt zur Download-Karte). */
@@ -44,7 +44,8 @@ class WebGuides(val downloads: Downloads?) {
             label = "Hosten mit CrewStats",
             title = "Als Host Runden aufzeichnen",
             intro = "Damit Runden zählen – XP, Wetten, /stats und diese Website –, braucht der **Host** der Lobby die Mod" +
-                " CrewStats. Alle anderen brauchen sie nicht, sie verknüpfen nur einmal ihren Account.",
+                " CrewStats. Alle anderen brauchen sie nur für Auto-Join – ihre Runden zählen auch so, sobald sie einmal ihren" +
+                " Account verknüpft haben.",
             sections = listOf(
                 TutorialSection(
                     "1 · INSTALLIEREN",
@@ -54,13 +55,15 @@ class WebGuides(val downloads: Downloads?) {
                         "2. Enter drücken – der Installer findet Among Us und installiert BepInEx (64-Bit) und die Mod",
                         "3. Er fragt nach der **Webhook-URL**. Die bekommst du von einem Admin – sie ist geheim, gib sie" +
                             " nicht weiter",
+                        "4. Danach fragt er nach der **Auto-Join-URL** – die ist freiwillig (siehe Auto-Join), Enter" +
+                            " überspringt sie",
                     ),
                 ),
                 TutorialSection(
                     "2 · MIT THE OTHER ROLES",
                     listOf(
                         "Erst CrewStats installieren, dann den TheOtherRoles-Installer starten – er übernimmt CrewStats" +
-                            " samt Webhook-URL in die Mod-Kopie",
+                            " samt Webhook- und Auto-Join-URL in die Mod-Kopie",
                         "Hast du The Other Roles schon? Starte den TheOtherRoles-Installer einfach nochmal und antworte" +
                             " bei CrewStats mit `j`",
                         "Lass CrewStats dort an – es verhindert Kicks, wenn jemand deiner Lobby beitritt",
@@ -78,6 +81,49 @@ class WebGuides(val downloads: Downloads?) {
                 ),
             ),
             footer = "Probleme? Schick die Datei BepInEx\\LogOutput.log aus deinem Among-Us-Ordner an einen Admin.",
+        )
+
+        /** Nur auf der Website: Auto-Join (CrewStats ≥ 1.6.0) einrichten – im Discord erklärt es /autojoin selbst. */
+        val AUTOJOIN_TUTORIAL = Tutorial(
+            key = "autojoin",
+            label = "Auto-Join",
+            title = "Automatisch der Lobby beitreten",
+            intro = "Mit Auto-Join tritt Among Us im Hauptmenü **von selbst der neuesten Lobby** bei, die der Bot im" +
+                " Discord ankündigt – kein Code-Abtippen mehr. Das geht für alle Spieler, nicht nur für Hosts.",
+            sections = listOf(
+                TutorialSection(
+                    "1 · EINRICHTEN",
+                    listOf(
+                        "1. Führ im Discord /autojoin aus – der Bot zeigt nur dir deine Auto-Join-URL",
+                        "2. Among Us schließen und unter Downloads den CrewStats-Installer herunterladen und starten." +
+                            " Hast du CrewStats schon, starte ihn einfach nochmal",
+                        "3. Die Frage nach der **Webhook-URL** mit Enter überspringen – die brauchen nur Hosts",
+                        "4. Bei **Auto-Join-URL** die URL aus /autojoin einfügen",
+                    ),
+                ),
+                TutorialSection(
+                    "2 · MIT THE OTHER ROLES",
+                    listOf(
+                        "Danach den TheOtherRoles-Installer nochmal starten – er übernimmt CrewStats samt Auto-Join-URL" +
+                            " in die Mod-Kopie",
+                        "Fragt er, ob CrewStats auch in The Other Roles laufen soll, antworte mit `j`",
+                    ),
+                ),
+                TutorialSection(
+                    "3 · IM SPIEL",
+                    listOf(
+                        "Im Hauptmenü wartet die Mod auf eine offene Lobby und tritt ihr bei. Was sie gerade macht, steht" +
+                            " unter der Versionsnummer",
+                        "Jede Lobby nur einmal automatisch – wer sie verlässt, bleibt draußen",
+                        "**F5** im Hauptmenü: sofort der neuesten Lobby beitreten (auch nochmal) · **F6**: automatisches" +
+                            " Beitreten an/aus",
+                        "Die Server-Region im Spiel muss die der Lobby sein – bei uns **Modded NA**",
+                        "Klappt nur mit Lobbys, deren Host CrewStats hat – von Hand gepostete Codes kennt Auto-Join nicht",
+                    ),
+                ),
+            ),
+            footer = "Die Auto-Join-URL bitte nicht außerhalb des Servers teilen. Mit ihr kann man nur nach Lobbys fragen –" +
+                " sie ist nicht die geheime Webhook-URL der Hosts.",
         )
 
         /** Channel-Erwähnungen (<#id>) gibt es auf der Website nicht – dort steht, welcher Channel gemeint ist. */

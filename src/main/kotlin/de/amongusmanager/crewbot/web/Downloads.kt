@@ -200,8 +200,8 @@ class Downloads(
             "points" to listOf(
                 "Gespielt wird auf **Modded NA** – der Installer stellt den Server schon ein",
                 "**Alle in der Lobby** brauchen die Mod in derselben Version",
-                "Hosts: erst CrewStats installieren, dann diesen Installer – er übernimmt CrewStats samt Webhook-URL. " +
-                    "Lass es an, es verhindert Kicks, wenn jemand der Lobby beitritt",
+                "Hosts und alle mit Auto-Join: erst CrewStats installieren, dann diesen Installer – er übernimmt CrewStats " +
+                    "samt URLs. Hosts: lass es an, es verhindert Kicks, wenn jemand der Lobby beitritt",
                 "Neue Version oder Among-Us-Update? Installer einfach nochmal starten. Deinstallieren: Installer starten und `2` wählen",
             ),
             "notes" to null,
@@ -229,9 +229,9 @@ class Downloads(
             "id" to "crewstats",
             "title" to "CrewStats",
             "game" to "Among Us",
-            "audience" to "Für Hosts",
+            "audience" to "Für Hosts · Auto-Join für alle",
             "summary" to "Zeichnet als Host jede Runde auf und schickt sie an den Bot: XP, Wetten, /stats und diese Website. " +
-                "Dazu Discord-Auto-Mute und Rollenwünsche. Wer nicht hostet, braucht es nicht.",
+                "Dazu Discord-Auto-Mute, Rollenwünsche und Auto-Join: Among Us tritt der neuesten Lobby von selbst bei.",
             "version" to crewStats?.tag,
             "versionNote" to null,
             "publishedAt" to crewStats?.publishedAt,
@@ -243,17 +243,21 @@ class Downloads(
             "steps" to listOf(
                 "Installer herunterladen und doppelklicken (Warnung: **Weitere Informationen → Trotzdem ausführen**)",
                 "Enter drücken – er installiert BepInEx (64-Bit) und die Mod in dein normales Among Us",
-                "Die **Webhook-URL** bekommst du von einem Admin. Sie ist geheim – nicht weitergeben",
+                "Nur Hosts: Die **Webhook-URL** bekommst du von einem Admin. Sie ist geheim – nicht weitergeben. " +
+                    "Alle anderen drücken Enter",
+                "Für Auto-Join bei **Auto-Join-URL** die URL einfügen, die dir /autojoin im Discord zeigt",
                 "Einmal im Discord den Friendcode verknüpfen: /verknuepfen",
             ),
             "points" to listOf(
                 "Aktualisiert sich beim Spielstart selbst",
+                "Auto-Join im Hauptmenü: **F5** = sofort beitreten, **F6** = an/aus",
                 "Auto-Mute an/aus im Spiel: **ESC → Allgemein → Auto-Mute**",
-                "Spielst du The Other Roles: danach den TheOtherRoles-Installer starten, er übernimmt CrewStats",
+                "Spielst du The Other Roles: danach den TheOtherRoles-Installer starten, er übernimmt CrewStats samt URLs",
             ),
             "notes" to crewStats?.notes,
             "links" to listOf(
                 obj("label" to "Anleitung für Hosts", "to" to "/hilfe?t=crewstats-host"),
+                obj("label" to "Auto-Join einrichten", "to" to "/hilfe?t=autojoin"),
                 obj("label" to "Alle Versionen", "href" to "https://github.com/$CREWSTATS_REPO/releases"),
             ),
         )

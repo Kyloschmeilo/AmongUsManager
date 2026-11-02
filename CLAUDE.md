@@ -296,7 +296,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - **Hilfe & Mods** (02.11.2026, Kilian: „ein Teil auf der Website wo die Tutorials und Mod downloads sind“, „man soll auch alle
   Rollen nachgucken können“): `web/Guides.kt` + `web/Downloads.kt`, Seite `pages/Guides.tsx` (`/hilfe` Tutorials, `/hilfe/downloads`,
   `/downloads` leitet um), Stil in `web/src/guides.css`. **Tutorials** = `TUTORIALS` des Bots (ohne „Alle Special-Rollen erklärt“)
-  + Host-Anleitung `WebGuides.HOST_TUTORIAL` (nur Website); `<#Channel>` wird zu Text, Discord-only-Sätze stehen in
+  + Host-Anleitung `WebGuides.HOST_TUTORIAL` und Auto-Join-Anleitung `WebGuides.AUTOJOIN_TUTORIAL` (`/hilfe?t=autojoin`, nur Website); `<#Channel>` wird zu Text, Discord-only-Sätze stehen in
   `WebGuides.DISCORD_ONLY` (Test prüft, dass es sie im Bot-Text noch gibt). **Rollen-Seite** `/rollen` = Lexikon aller Rollen
   (`/api/lexicon`: `ROLES` + `SPECIAL_ROLES`, `torNameKeys` ordnet TOR-Varianten wie niceGuesser zu) mit Statistik aus `/api/roles`,
   ungespielte mit „Noch nicht gespielt“. **Downloads** (`/api/downloads`): eigene Dateien aus `downloads/` neben dem JAR

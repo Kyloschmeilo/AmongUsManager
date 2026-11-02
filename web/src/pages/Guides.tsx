@@ -32,7 +32,7 @@ function HelpHeader({ active }: { active: HelpTab }) {
         <Title text={active === 'downloads' ? 'Downloads' : 'Tutorials'} className="page-title" />
         <p className="lead">
           {active === 'downloads'
-            ? 'Alle Mods für den Spieleabend: The Other Roles für alle, CrewStats für Hosts – mit Anleitung.'
+            ? 'Alle Mods für den Spieleabend: The Other Roles für alle, CrewStats für Hosts und Auto-Join – mit Anleitung.'
             : 'Alles, was du zum Mitspielen brauchst – Schritt für Schritt erklärt.'}
         </p>
       </div>
@@ -66,20 +66,11 @@ export function TutorialsPage() {
           return (
             <Reveal>
               <div className="panel guide">
-                <div className="tabs" role="tablist" aria-label="Tutorial">
-                  {data.tutorials.map((t) => (
-                    <button
-                      key={t.key}
-                      type="button"
-                      role="tab"
-                      className="tab"
-                      aria-selected={t.key === current.key}
-                      onClick={() => setParams(t.key === data.tutorials[0].key ? {} : { t: t.key }, { replace: true })}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
+                <TutorialTabs
+                  tutorials={data.tutorials}
+                  current={current.key}
+                  onSelect={(key) => setParams(key === data.tutorials[0].key ? {} : { t: key }, { replace: true })}
+                />
                 <TutorialView key={current.key} tutorial={current} />
               </div>
             </Reveal>
@@ -92,6 +83,29 @@ export function TutorialsPage() {
           Befehle wie <span className="cmd">/verknuepfen</span> gibst du im Discord ein: <span className="kbd">/</span> tippen und den Befehl aus der Liste wählen.
         </span>
       </div>
+    </div>
+  );
+}
+
+/** Reiter der Tutorials; der gewählte wird auch auf dem Handy sichtbar gescrollt (Links wie /hilfe?t=autojoin). */
+function TutorialTabs({ tutorials, current, onSelect }: { tutorials: TutorialData[]; current: string; onSelect: (key: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const list = ref.current;
+    const tab = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!list || !tab) return;
+    const left = tab.offsetLeft - list.offsetLeft;
+    if (left < list.scrollLeft || left + tab.offsetWidth > list.scrollLeft + list.clientWidth) {
+      list.scrollLeft = Math.max(0, left - 16);
+    }
+  }, [current]);
+  return (
+    <div className="tabs" role="tablist" aria-label="Tutorial" ref={ref}>
+      {tutorials.map((t) => (
+        <button key={t.key} type="button" role="tab" className="tab" aria-selected={t.key === current} onClick={() => onSelect(t.key)}>
+          {t.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -132,13 +146,16 @@ function TutorialActions({ tutorialKey }: { tutorialKey: string }) {
       </div>
     );
   }
-  if (tutorialKey === 'crewstats-host') {
+  if (tutorialKey === 'crewstats-host' || tutorialKey === 'autojoin') {
     return (
       <div className="row">
         <Link className="btn btn--primary" to="/hilfe/downloads#crewstats">
           <Download className="icon icon--sm" aria-hidden="true" />
           CrewStats
         </Link>
+        {tutorialKey === 'autojoin' && (
+          <Link className="btn" to="/hilfe/downloads#theotherroles">The Other Roles</Link>
+        )}
       </div>
     );
   }
