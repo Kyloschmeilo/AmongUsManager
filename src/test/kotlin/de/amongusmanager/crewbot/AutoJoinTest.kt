@@ -81,6 +81,20 @@ class AutoJoinTest {
         assertFalse("sender" in reply) // Friendcode des Hosts geht nicht an alle
 
         assertEquals("""{"crewstats":"join-reply","v":1,"state":"none"}""", AutoJoinProtocol.reply(null))
+        assertFalse("region" in reply) // Host mit älterer Mod meldet keine Region
+    }
+
+    @Test
+    fun regionDesHostsGehtMit() {
+        // Lobby-Codes gelten nur auf dem Server des Hosts – sonst meldet das Spiel „Spiel nicht gefunden“
+        val event = LobbyEvent.parse(
+            """{"crewstats":"lobby","v":1,"state":"open","code":"FTKJFG","map":"Skeld","players":2,"max":15,""" +
+                """"host":"Kilian","sender":"kilian#1234","region":"Europe","server":"https://matchmaker-eu.among.us"}""",
+        )!!
+        assertEquals("Europe", event.region)
+        val reply = Json.parseToJsonElement(AutoJoinProtocol.reply(event to Instant.now())).jsonObject
+        assertEquals("Europe", reply["region"]!!.jsonPrimitive.content)
+        assertEquals("https://matchmaker-eu.among.us", reply["server"]!!.jsonPrimitive.content)
     }
 
     @Test

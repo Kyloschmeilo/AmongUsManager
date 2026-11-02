@@ -209,6 +209,11 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   nur einmal, F5 = sofort (auch erneut), F6 = an/aus (`[AutoJoin] Url/Automatisch/TasteJetzt/TasteAnAus`), Status unter der
   Versionsnummer; Beitreten per `AmongUsClient.CoJoinOnlineGameFromCode(GameCode.GameNameToInt(code))` (aktuelle Region,
   muss Modded NA sein). Installer fragt die Auto-Join-URL optional ab. **Im echten Spiel noch ungetestet.**
+  **Fix 1.7.1** (02.11.2026, Kilian: „er sagt immer das er das spiel nicht finden konnte“): Codes gelten nur auf dem Server
+  der Lobby, die Mod trat in der eigenen Region bei (Kilian hostete im normalen Among Us auf „Europe“). Jetzt meldet der Host
+  `region` + `server` (Adresse) in der Lobby-JSON, der Bot reicht sie in `join-reply` weiter (nur wenn gemeldet), die Mod
+  sucht die Region (`AutoJoinRules.FindRegion`: Adresse, dann Name) und wechselt per `ServerManager.SetRegion`; fehlt sie
+  (z.B. TOR-Kopie ohne offizielle Server), steht das im Status. Braucht Host-Mod 1.7.1 + neuen Bot.
   Bot-JAR (mit Spezial-Rollenwunsch-Befehlen) in `/mnt/project-files/bot-autojoin/crewbot-update.zip`, Deploy macht Kilian.
 - **CrewStats-Komfort** (02.11.2026, Kilian: „pack die alle mal rein“ – Auto-Update-Hinweis, Lobby-Overlay mit eigenen
   Stats, Rundenzusammenfassung, Verknüpfen per Code, Lobby-Info, Einstellungsmenü, Verbindungsstatus, Offline-Puffer;
@@ -411,7 +416,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Container; auch Weltkoordinaten-Ansatz klappte nicht) → zurückgenommen, Nutzer will es so lassen.
   Falls doch: Schalter in den Reiter „Graphics“ verschieben oder nur per Config.
 - **Verteilung & Updates**: Repo `mod/` (nur Mod + Installer, kein Bot-Code, keine Webhook-URLs!).
-  Aktuelles Release: **v1.7.0** (02.11.2026, Komfort-Funktionen, s.o. „CrewStats-Komfort“, im echten Spiel ungetestet). Davor
+  Aktuelles Release: **v1.7.1** (02.11.2026, Auto-Join wechselt in die Region des Hosts). Davor **v1.7.0** (02.11.2026, Komfort-Funktionen, s.o. „CrewStats-Komfort“, im echten Spiel ungetestet). Davor
   **v1.6.0** (02.11.2026, Auto-Join + TOR-Rollenwünsche, im echten Spiel ungetestet). Davor **v1.5.0** (01.11.2026, Kilians Wunsch: Rundenformat 2 für eine Stats-Website, s.o.; im echten Spiel
   ungetestet). Davor v1.4.1 (24.10.2026, Kilians Wunsch: Fix gegen Kicks mit TOR – `TorPacketFix.cs` ersetzt TORs
   `CustomOption.ShareOptionSelections` durch kleine Pakete; TOR schickte bei jedem Beitritt die Guesser-Rollenfilter in einem

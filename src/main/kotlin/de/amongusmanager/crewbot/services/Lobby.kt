@@ -44,6 +44,8 @@ data class LobbyEvent(
     val maxPlayers: Int,
     val host: String, // Ingame-Name des Hosts
     val sender: String, // Friendcode des Hosts
+    val region: String = "", // Server-Region des Hosts (CrewStats ≥ 1.7.1), für Auto-Join
+    val server: String = "", // Adresse des Servers dieser Region
 ) {
     companion object {
         /** Liest die Nachricht der Mod; null, wenn es keine Lobby-Nachricht ist. */
@@ -61,6 +63,8 @@ data class LobbyEvent(
                     maxPlayers = data["max"].let { if (it.pyTruthy()) it.pyInt() else 0 },
                     host = data["host"].orDefault(""),
                     sender = data["sender"].orDefault(""),
+                    region = data["region"].orDefault(""),
+                    server = data["server"].orDefault(""),
                 )
             } catch (e: Exception) {
                 null

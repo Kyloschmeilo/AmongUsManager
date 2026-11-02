@@ -8,7 +8,8 @@
  * Ablauf wie bei den Rollenwünschen (kein offener Port):
  *   1. Mod schickt   {"crewstats":"join","v":1}   (mit ?wait=true, kennt dadurch die Nachrichten-ID)
  *   2. Bot bearbeitet GENAU diese Webhook-Nachricht zu
- *                    {"crewstats":"join-reply","v":1,"state":"open|started|none","code","map","players","max","host","age"}
+ *                    {"crewstats":"join-reply","v":1,"state":"open|started|none","code","map","players","max","host","age",
+ *                     "region","server"}   (region/server nur, wenn der Host sie meldet – Codes gelten nur auf diesem Server)
  *   3. Mod liest sie (GET …/messages/<id>) und löscht sie; sonst räumt der Bot nach 30 s auf.
  *
  * Lobby-Codes stehen ohnehin im Codes-Channel, deshalb ohne Verschlüsselung.
@@ -50,6 +51,8 @@ object AutoJoinProtocol {
         put("max", lobby.maxPlayers)
         put("host", lobby.host)
         put("age", Duration.between(at, now).seconds.coerceAtLeast(0))
+        if (lobby.region.isNotEmpty()) put("region", lobby.region)
+        if (lobby.server.isNotEmpty()) put("server", lobby.server)
     }.toString()
 }
 
