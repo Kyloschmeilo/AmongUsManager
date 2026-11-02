@@ -270,6 +270,26 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   (Login an), `WEB_PUBLIC_URL` (Redirect `<url>/auth/callback`, muss im Developer-Portal unter OAuth2 → Redirects
   stehen), optional `DISCORD_CLIENT_ID` (sonst aus dem Token), `WEB_GUILD_ID`. Discord nimmt `http://IP:Port` als Redirect
   an (am 02.11.2026 von Kilian bestätigt). `invalid_client` beim Code-Tausch = falsches Client Secret (nicht Public Key).
+- **Bot steuern über die Website** (02.11.2026, Kilian: „Event Tab … anmelden wenn dc connected, Event Maker kann Events
+  machen, Admin Panel für alle mit Admin-Rolle mit allen Panel-Commands, Rollen-Zuweisung usw.“): Website hat keinen
+  Gateway-Login → **Auftrags-Tabelle `web_requests`** in der Bot-Datenbank (Schema v4, `services/WebQueue.kt`). Website
+  (`web/ControlApi.kt`, `POST /api/bot/<aktion>`, nur JSON + gleiche Origin + Sitzung, 60/min) schreibt Auftrag mit der
+  Discord-ID aus der Sitzung (zweite, beschreibbare Verbindung ohne Migration: `Database.mysql(…, migrate = false)` bzw.
+  `openShared`), wartet ≤ 30 s und bricht sonst ab (new → cancelled). Bot (`modules/WebControlModule.kt`, nicht in
+  `CrewBot.modules`, damit /hilfe + Golden-Test gleich bleiben; `bot.webControl`) fragt alle 250 ms (nach Aktivität) bzw.
+  1 s ab, Heartbeat `web.bot_heartbeat` alle 20 s (Website: > 60 s = offline), prüft Rechte selbst: Admin = Recht
+  ADMINISTRATOR, Event Maker = `Roles.EVENT_MANAGER` oder Admin. Aktionen: `me`, `events.list` (auch Gäste als ID 0),
+  `events.join|leave|create`, `admin.*` (Spieler XP/Level/Reset, Discord-Rollen nur aus `SELF_ROLE_GROUPS` +
+  Event Maker + Level-Rollen, `/rolle-zuweisen` inkl. TOR-Rollen, Voice mute/unmute/move, Runde beenden/abbrechen
+  (Ergebnis in den Chat des Voice-Channels), MVP-Voting, Steuerpult/Rollen-Panel/Changelog/Tutorial posten, Recap,
+  Event-Channel `web.event_channel` (sonst Channel des letzten Events), Mod-Setup → Webhook-URL nur in der Antwort,
+  Auftrag wird beim Abholen gelöscht). Mitglieder nur per Spieler-Schlüssel (`WebAuth.playerKeyOf`), nie Discord-IDs
+  an den Browser; Channel-/Rollen-IDs als Text. Jede Admin-Aktion → Log-Channel „(Website)“. Gemeinsamer Code mit den
+  Slash-Commands: `createGameEvent`, `EventSignup.signup`, `postRolePanel`, `setupModWebhook`, `mvpVotingIn`,
+  `postStartedRecaps`. Frontend: `pages/Events.tsx`, `pages/Admin.tsx`, `lib/control.tsx`, `control.css`; „Admin“ in
+  der Navigation nur für Admins. Tests: `WebControlTest` (+ MariaDB). Discord-Seite des Bots nur kompiliert, nicht live
+  getestet. JARs: `/mnt/project-files/bot-website-steuerung/crewbot-update.zip` + neues `StatsWebsite.zip` (Anleitung
+  Schritt 7).
 - Bestenliste (seit 01.11.2026, Kilian: „etwas übersichtlicher, alles in eine Liste geworfen“): Bereiche Allgemein/Crew/
   Impostor/Unterwegs (`GROUPS` in `metrics.ts`) → Kärtchen je Kennzahl mit Top 3 (Handy: zum Wischen) → Podest →
   Tabelle ab Platz 4 (Suche zeigt alle), „Du: Platz N“ für Angemeldete.
