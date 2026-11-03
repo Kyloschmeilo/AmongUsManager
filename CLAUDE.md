@@ -266,7 +266,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   die Website nicht komplett vibe-coded aussieht“): Almanach/Anzeigetafel statt Dashboard – Barlow + Barlow Condensed,
   Hintergrund #0F1117, Text #EEEBE3, Farben nur mit Bedeutung (Visier-Blau #7CC6E4 = Crew/Links, Rot #F2584C = Impostor,
   Violett #C493EC = Neutral, Gold = Platz 1), Abschnitte mit Linien statt Karten (`.panel` = Linie oben, `.panel--box` für
-  echte Kästen), Avatare als Crewmate-Umriss, Startseite mit Spielstand Crew : Impostor. Keine Buchstaben-/Einblend-
+  echte Kästen), Avatare als Crewmate-Umriss, Startseite mit Überschrift „CrewStats“ (03.11.2026, Kilian: statt „Wer war sus?“) und Spielstand Crew : Impostor. Keine Buchstaben-/Einblend-
   Animationen mehr (`Title`/`Reveal` in `motion.tsx` sind schlicht); CountUp, wachsende Balken, Lenis und Replay bleiben.
   Schlichte Überschriften statt Fragen/Floskeln. Bot-Embeds/Artifacts nutzen weiter das Standard-Design.
   Reaktive Animationen (02.11.2026, Kilian: „arbeite auch gerne ein paar reaktive animationen ein“, mit Verbotsliste: keine

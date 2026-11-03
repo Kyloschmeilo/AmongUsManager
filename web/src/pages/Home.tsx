@@ -70,7 +70,7 @@ function Masthead({ overview }: { overview: Overview }) {
     <section className="masthead">
       <div className="masthead__text">
         <h1 className="masthead__title">
-          Wer war<span>sus?</span>
+          Crew<span>Stats</span>
         </h1>
         <p className="lead">
           Unsere Among-Us-Runden vom Spieleabend

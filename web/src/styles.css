@@ -478,7 +478,7 @@ button { font: inherit; color: inherit; }
 .masthead { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: var(--space-8) var(--space-12); align-items: start; }
 .masthead__text { display: flex; flex-direction: column; gap: var(--space-5); padding-top: var(--space-2); }
 .masthead__title { font: 700 76px/68px var(--font-display); letter-spacing: -.01em; text-transform: uppercase; color: var(--ink); }
-.masthead__title span { display: block; color: var(--ember); }
+.masthead__title span { color: var(--ember); }
 .masthead__map { margin: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .masthead__map figcaption { font: 400 14px/20px var(--font-sans); color: var(--ink-faint); }
 .masthead__map .mapview { border: 0; border-radius: 0; background: transparent; }
