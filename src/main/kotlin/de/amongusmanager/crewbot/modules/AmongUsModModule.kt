@@ -1,6 +1,7 @@
 /* Among-Us-Mod: Webhook einrichten, Accounts verknüpfen, Statistiken, automatische Auswertung und Rollenwünsche. */
 package de.amongusmanager.crewbot.modules
 
+import de.amongusmanager.crewbot.Channels
 import de.amongusmanager.crewbot.core.CommandError
 import de.amongusmanager.crewbot.core.CrewBot
 import de.amongusmanager.crewbot.core.CrewModule
@@ -328,6 +329,29 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "�
 
     override suspend fun onReady() {
         wishes.startExpiry()
+        moveWebhooksToLog()
+    }
+
+    /**
+     * Mod- und Auto-Join-Webhook, die noch im alten Log-Channel liegen, ziehen in [Channels.LOG] um
+     * (Kilian, 03.11.2026). Die URLs bleiben dabei gleich – in der Mod muss nichts geändert werden.
+     * Webhooks, die per /mod-setup bewusst in einen anderen Channel gelegt wurden, bleiben, wo sie sind.
+     */
+    private suspend fun moveWebhooksToLog() {
+        val target = bot.jda.getTextChannelById(Channels.LOG) ?: return
+        for ((name, id) in listOf("Mod" to bot.modSettings.webhookId, "Auto-Join" to bot.autoJoin.webhookId)) {
+            if (id == null) continue
+            try {
+                val webhook = bot.jda.retrieveWebhookById(id).await()
+                if (webhook.channel.idLong != Channels.OLD_LOG) continue
+                webhook.manager.setChannel(target).reason("Webhook in den neuen Log-Channel verschoben").await()
+                if (id == bot.modSettings.webhookId) bot.modSettings.set(id, target.idLong)
+                log.info("{}-Webhook nach #{} verschoben", name, target.name)
+            } catch (e: Exception) {
+                e.rethrowIfCancelled()
+                log.warn("{}-Webhook konnte nicht verschoben werden (Recht „Webhooks verwalten“?): {}", name, e.describe())
+            }
+        }
     }
 
     private fun sortName(guild: Guild, userId: Long): String =

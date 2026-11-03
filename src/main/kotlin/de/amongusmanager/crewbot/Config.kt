@@ -77,6 +77,8 @@ object Channels {
     const val AUTO_UNMUTE_VOICE = 1462514709612859706L // Wer hier beitritt, wird entmutet
     const val CODES = 1463921458249076959L // Lobby-Codes (/code) + automatische Lobby-Ankündigung
     const val LOG = 1463920288214548684L // Admin-/Host-Log (Admin-Panel, /mod-setup, ausgewertete Runden …)
+    // Alter Channel der Webhooks (Mod, Auto-Join): der Bot verschiebt sie beim Start nach LOG, die URLs bleiben gleich
+    const val OLD_LOG = 1462517523210834003L
 
     // Rohdaten des Minecraft-Plugins (Webhook, Bot löscht sie sofort). Der Bot verschiebt den
     // Webhook beim Start selbst hierher – die URL im Plugin bleibt dabei gleich.

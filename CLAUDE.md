@@ -50,6 +50,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - `Config.kt` – alle Discord-IDs, Spielregeln (`Rules`), Pfade (`BotPaths`), .env-Loader (`Env`).
   Channels: `CODES` (Lobby-Codes + automatische Lobby-Ankündigung), `LOG` (Admin-/Host-Log,
   Rollen-Log, Minecraft-Rohdaten = `MINECRAFT_INBOX`), `AMONG_US_VOICE`, `AUTO_UNMUTE_VOICE`.
+  Mod- und Auto-Join-Webhook lagen bis 03.11.2026 in `OLD_LOG` (1462517523210834003); der Bot verschiebt sie beim
+  Start nach `LOG` (URLs bleiben gleich, `mod.channel_id` wird mitgezogen), Webhooks in anderen Channels bleiben.
 - `Main.kt` – Start: `.env` laden, Datenbank öffnen, JSON-Import, Bot starten, Shutdown-Hook.
 - `core/CrewBot.kt` – erzeugt alle Services und Module, verbindet JDA, synchronisiert Slash-Commands,
   leitet Ereignisse weiter (`Router`) und verteilt Button-Klicks (feste custom_ids + `ViewRegistry`).
