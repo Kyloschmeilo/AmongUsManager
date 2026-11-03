@@ -621,11 +621,20 @@ button { font: inherit; color: inherit; }
 .profile-hero__main { display: flex; align-items: flex-start; gap: var(--space-6); flex-wrap: wrap; }
 .profile-hero--color .profile-hero__main > .avatar { box-shadow: 0 0 0 3px var(--surface-0), 0 0 0 6px var(--profile); }
 .profile-hero__edit { margin-left: auto; }
+/* Kosmetik im Profil: Crewmate aus dem Spiel + was er trägt */
+.profile-look { margin: 0 0 0 auto; display: flex; align-items: center; gap: var(--space-4); }
+.profile-look + .profile-hero__edit { margin-left: 0; }
+.profile-look__img { display: block; width: 168px; height: auto; margin: -24px -8px -12px; }
+.profile-look dl { display: grid; grid-template-columns: auto auto; gap: 2px 10px; margin: 0; font-size: 14px; }
+.profile-look dt { color: var(--ink-muted, #9aa0ad); }
+.profile-look dd { margin: 0; }
 .profile-bio { max-width: 640px; color: var(--ink); font-size: 16px; line-height: 24px; white-space: pre-line; overflow-wrap: anywhere; }
 @media (max-width: 600px) {
   .profile-hero__main { gap: var(--space-4); }
   .profile-hero__main > .avatar { width: 72px; height: 72px; }
   .profile-hero__edit { margin-left: 0; }
+  .profile-look { margin-left: 0; }
+  .profile-look__img { width: 132px; }
 }
 
 .editor { display: flex; flex-direction: column; gap: var(--space-6); border-top: 3px solid var(--accent); }
@@ -757,8 +766,11 @@ body { background: transparent; }
 .drift__mate { position: absolute; left: var(--x); z-index: 1; display: block; width: var(--size); color: var(--ink); }
 .drift__mate:hover { z-index: 3; color: var(--ink); }
 .drift__body { display: block; }
-.drift__body svg { display: block; width: var(--size); height: auto; transform: rotate(-12deg); filter: drop-shadow(0 0 0 transparent); }
-.drift__mate:hover .drift__body svg { transform: rotate(0) scale(1.18); }
+.drift__body > svg, .drift__body > .crewfig { display: block; width: var(--size); height: auto; transform: rotate(-12deg); filter: drop-shadow(0 0 0 transparent); }
+.drift__mate:hover .drift__body > svg, .drift__mate:hover .drift__body > .crewfig { transform: rotate(0) scale(1.18); }
+/* Crewmate aus den Spieldateien: Box = Körper, das Bild ragt mit Hut/Haustier darüber hinaus */
+.crewfig { position: relative; display: block; aspect-ratio: 164 / 209; }
+.crewfig img { position: absolute; left: calc(-131 / 164 * 100%); top: calc(-108 / 209 * 100%); width: calc(360 / 164 * 100%); max-width: none; height: auto; pointer-events: none; user-select: none; }
 .drift__tag {
   position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translate(-50%, 4px); opacity: 0; pointer-events: none;
   padding: 5px 9px; background: var(--ink); color: var(--surface-0); white-space: nowrap; border-radius: 2px;
@@ -771,9 +783,9 @@ body { background: transparent; }
 @media (prefers-reduced-motion: no-preference) {
   .drift__mate { left: 0; animation: drift var(--speed) linear infinite; animation-delay: var(--delay); }
   .drift__body { animation: bob 3.4s ease-in-out infinite alternate; animation-delay: var(--delay); }
-  .drift__body svg { animation: tumble var(--spin) linear infinite var(--dir); transition: transform .2s ease-out; }
-  .drift__mate:hover, .drift__mate:hover .drift__body, .drift__mate:hover .drift__body svg,
-  .drift__mate:focus-visible, .drift__mate:focus-visible .drift__body, .drift__mate:focus-visible .drift__body svg { animation-play-state: paused; }
+  .drift__body > svg, .drift__body > .crewfig { animation: tumble var(--spin) linear infinite var(--dir); transition: transform .2s ease-out; }
+  .drift__mate:hover, .drift__mate:hover .drift__body, .drift__mate:hover .drift__body > *,
+  .drift__mate:focus-visible, .drift__mate:focus-visible .drift__body, .drift__mate:focus-visible .drift__body > * { animation-play-state: paused; }
   .drift__stars { animation: twinkle 5s ease-in-out infinite alternate; }
   .drift__stars--near { animation-duration: 7s; animation-delay: -3s; }
 }

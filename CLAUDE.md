@@ -334,6 +334,13 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - Spielerfarbe (03.11.2026, Kilian: „alle immer ihre most used color“): Listen, Profile, Bestenliste, Crewmates usw. zeigen die
   meistgenutzte Farbe (`PlayerAcc.colorId`, Gleichstand = zuletzt getragene), eine einzelne Runde/Replay die Farbe dieser Runde.
   Farben gibt es erst ab CrewStats 1.5.0 (`round_raw`); ohne Farbdaten feste Ersatzfarbe aus dem Schlüssel (`playerColor`).
+- Kosmetik (03.11.2026, Kilian: „Cosmetics … bei ihren Profilen und den fliegenden Crewmates“): meistgetragener Hut/Visier/Skin/
+  Haustier je Art (wie die Farbe, „nichts“ zählt mit). Bilder aus den Spieldateien (Addressables-Bundles von Kilians Among Us
+  2026.9.29, `tools/cosmetics/catalog.py` + `extract.py` mit UnityPy) in `src/main/resources/web-cosmetics/` (nur im
+  Website-JAR). `web/Cosmetics.kt` setzt `/api/crewmate?c=&h=&v=&s=&p=` serverseitig zusammen (Körper umgefärbt wie der
+  Spieler-Shader: Rot = Farbe, Blau = Schatten, Grün = Visier; Hut/Visier 50 px über dem Ursprung, Haustier links; Rahmen
+  360×340, Körper bei 131/108, 164×209). Frontend: `CrewmateFigure` in `CrewDrift.tsx`, `LookFigure` im Profil. Neue
+  Kosmetik nach Spiel-Updates: Skripte erneut laufen lassen (unbekannte Ids werden einfach weggelassen).
 - Bestenliste (seit 01.11.2026, Kilian: „etwas übersichtlicher, alles in eine Liste geworfen“): Bereiche Allgemein/Crew/
   Impostor/Unterwegs (`GROUPS` in `metrics.ts`) → Kärtchen je Kennzahl mit Top 3 (Handy: zum Wischen) → Podest →
   Tabelle ab Platz 4 (Suche zeigt alle), „Du: Platz N“ für Angemeldete.

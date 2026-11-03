@@ -159,6 +159,16 @@ class StatsServer(
         respond(exchange, 200, image.contentType, image.bytes, cache = "public, max-age=604800", etag = etag)
     }
 
+    /** Crewmate in Spielerfarbe mit Kosmetik aus den Spieldateien (`Cosmetics`), z.B. `/api/crewmate?c=0&h=hat_pk05_Cheese`. */
+    private fun crewmate(exchange: HttpExchange, query: Map<String, String>) {
+        val color = query["c"]?.toIntOrNull()
+        val look = CrewLook(query["h"], query["v"], query["s"], query["p"])
+        val png = color?.let { Cosmetics.render(it, look) }
+            ?: return respond(exchange, 404, "text/plain; charset=utf-8", "Unbekannt".toByteArray(), cache = "no-cache")
+        // gleiche Adresse = gleiches Bild (die Bilder ändern sich nur mit einem neuen JAR)
+        respond(exchange, 200, "image/png", png, cache = "public, max-age=86400")
+    }
+
     // ---------- API ----------
 
     private fun api(exchange: HttpExchange, route: String) {
@@ -172,6 +182,7 @@ class StatsServer(
             return respond(exchange, 200, TYPE_JSON, body, cache = "no-store")
         }
         if (parts.size == 2 && parts[0] == "avatar") return avatar(exchange, parts[1])
+        if (parts == listOf("crewmate")) return crewmate(exchange, query)
         if (parts.size == 1 && parts[0] in WebGuides.ROUTES) return guidesApi(exchange, parts)
         if (exchange.requestHeaders.getFirst("If-None-Match") == etag) return notModified(exchange, etag)
 

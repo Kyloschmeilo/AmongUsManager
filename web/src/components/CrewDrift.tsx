@@ -24,6 +24,19 @@ export function CrewmateSvg({ color, className }: { color: string; className?: s
   );
 }
 
+/**
+ * Crewmate aus den Spieldateien (Farbe + Hut, Visier, Skin, Haustier), vom Server zusammengesetzt.
+ * Das Bild (360 × 340) ist größer als der Körper (164 × 209 ab 131/108): die Box hat die Größe des Körpers,
+ * Hut und Haustier ragen hinaus – so steht er genau da, wo sonst der gezeichnete Crewmate steht.
+ */
+export function CrewmateFigure({ src, className }: { src: string; className?: string }) {
+  return (
+    <span className={`crewfig${className ? ` ${className}` : ''}`} aria-hidden="true">
+      <img src={src} alt="" loading="lazy" decoding="async" draggable={false} />
+    </span>
+  );
+}
+
 /** Pseudo-Zufall aus dem Spieler-Schlüssel, damit jeder Crewmate bei jedem Besuch gleich schwebt. */
 function seed(key: string, salt: number): number {
   let h = 2166136261 ^ salt;
@@ -92,7 +105,7 @@ export function CrewDrift({ players }: { players: PlayerSummary[] }) {
           aria-label={`${p.name}: ${p.wins} Siege`}
         >
           <span className="drift__body">
-            <CrewmateSvg color={playerColor(p.colorId, p.key)} />
+            {p.crewmate ? <CrewmateFigure src={p.crewmate} /> : <CrewmateSvg color={playerColor(p.colorId, p.key)} />}
           </span>
           <span className="drift__tag">
             {p.name}

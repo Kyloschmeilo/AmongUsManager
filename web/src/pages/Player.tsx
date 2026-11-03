@@ -11,6 +11,33 @@ import { Async, Avatar, BarList, Form, PlayerLink, RoundList, Section, StatCard 
 import { Title } from '../components/motion';
 import { ProfileEditor } from '../components/ProfileEditor';
 
+const LOOK_LABEL = { hat: 'Hut', visor: 'Visier', skin: 'Skin', pet: 'Haustier' } as const;
+
+/** Der Crewmate so, wie der Spieler meistens aussieht (meistgetragene Farbe und Kosmetik). */
+function LookFigure({ src, look }: { src: string; look: NonNullable<Profile['look']> }) {
+  const parts = (Object.keys(LOOK_LABEL) as (keyof typeof LOOK_LABEL)[]).filter((k) => look[k]);
+  return (
+    <figure className="profile-look">
+      <img className="profile-look__img" src={src} alt="Crewmate mit meistgetragener Kosmetik" width={360} height={340} />
+      <figcaption>
+        <span className="eyebrow">Meistens unterwegs mit</span>
+        {parts.length ? (
+          <dl>
+            {parts.map((k) => (
+              <div key={k} style={{ display: 'contents' }}>
+                <dt>{LOOK_LABEL[k]}</dt>
+                <dd>{look[k]!.name}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p className="caption" style={{ margin: 0 }}>nichts außer der Farbe</p>
+        )}
+      </figcaption>
+    </figure>
+  );
+}
+
 const SHOWCASE_ICON: Record<Metric['group'], ReactNode> = {
   Allgemein: <Trophy className="icon" />,
   Crew: <ShieldCheck className="icon" />,
@@ -80,6 +107,7 @@ function ProfileView({ profile }: { profile: Profile }) {
             </div>
             {otherNames.length > 0 && <span className="caption">Auch gespielt als {otherNames.slice(0, 6).join(', ')}</span>}
           </div>
+          {p.crewmate && profile.look && <LookFigure src={p.crewmate} look={profile.look} />}
           {isMe && !editing && (
             <button type="button" className="btn profile-hero__edit" onClick={() => setEditing(true)}>
               <PenLine className="icon icon--sm" aria-hidden="true" />
