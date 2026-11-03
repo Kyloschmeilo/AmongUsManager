@@ -331,6 +331,9 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   der Navigation nur für Admins. Tests: `WebControlTest` (+ MariaDB). Discord-Seite des Bots nur kompiliert, nicht live
   getestet. JARs: `/mnt/project-files/bot-website-steuerung/crewbot-update.zip` + neues `StatsWebsite.zip` (Anleitung
   Schritt 7).
+- Spielerfarbe (03.11.2026, Kilian: „alle immer ihre most used color“): Listen, Profile, Bestenliste, Crewmates usw. zeigen die
+  meistgenutzte Farbe (`PlayerAcc.colorId`, Gleichstand = zuletzt getragene), eine einzelne Runde/Replay die Farbe dieser Runde.
+  Farben gibt es erst ab CrewStats 1.5.0 (`round_raw`); ohne Farbdaten feste Ersatzfarbe aus dem Schlüssel (`playerColor`).
 - Bestenliste (seit 01.11.2026, Kilian: „etwas übersichtlicher, alles in eine Liste geworfen“): Bereiche Allgemein/Crew/
   Impostor/Unterwegs (`GROUPS` in `metrics.ts`) → Kärtchen je Kennzahl mit Top 3 (Handy: zum Wischen) → Podest →
   Tabelle ab Platz 4 (Suche zeigt alle), „Du: Platz N“ für Angemeldete.

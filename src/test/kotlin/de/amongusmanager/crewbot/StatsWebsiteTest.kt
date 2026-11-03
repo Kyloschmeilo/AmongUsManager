@@ -10,6 +10,7 @@ import de.amongusmanager.crewbot.web.shortHash
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.int
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -178,6 +179,36 @@ open class StatsWebsiteTest {
         val expected = s.store.snapshot.views.map { it.round.gameId }
         assertEquals(expected, rounds.map { it.jsonObject.getValue("round").jsonObject.str("gameId") })
         assertNull(s.store.snapshot.playerJson("gibtsnicht"))
+    }
+
+    @Test
+    fun playersKeepTheirMostUsedColor() {
+        val s = setup()
+        val kilian = shortHash("crewstats-web:d:100")
+        fun play(gameId: String, endedAt: String, colorId: Int) {
+            val json = variant(gameId, endedAt = endedAt).replace("\"isHost\": true, \"colorId\": 0", "\"isHost\": true, \"colorId\": $colorId")
+            s.bot.modRounds.applyWithoutRoles(ModRound.parse(json), json)
+        }
+        fun summaryColor(): Int? {
+            s.store.refresh()
+            val players = json(s.store.snapshot.playersJson).getValue("players").jsonArray.map { it.jsonObject }
+            return players.first { it.str("key") == kilian }["colorId"]?.jsonPrimitive?.intOrNull
+        }
+        assertEquals(0, summaryColor()) // nur eine Runde mit Farbe (Rot), die alte Runde hat keine
+        // Gleichstand Rot : Pink → die zuletzt getragene Farbe
+        play("e0000000000000000000000000000006", "2026-11-01T20:06:40Z", 3)
+        assertEquals(3, summaryColor())
+        play("e0000000000000000000000000000007", "2026-11-01T21:06:40Z", 0)
+        assertEquals(0, summaryColor())
+        // überall dieselbe Farbe: Profil, Rekorde/Verweise und Runden ohne eigene Farbe
+        assertEquals(0, json(s.store.snapshot.playerJson(kilian)!!).getValue("player").jsonObject["colorId"]?.jsonPrimitive?.intOrNull)
+        assertEquals(0, s.store.snapshot.colorOf(kilian))
+        val legacy = json(assertNotNull(s.store.roundDetail(LEGACY_ID)))
+        val inLegacy = legacy.getValue("players").jsonArray.map { it.jsonObject }.first { it.str("key") == kilian }
+        assertEquals(0, inLegacy["colorId"]?.jsonPrimitive?.intOrNull)
+        // in einer Runde mit Farbe zählt die Farbe dieser Runde (wie im Replay)
+        val pink = json(assertNotNull(s.store.roundDetail("e0000000000000000000000000000006")))
+        assertEquals(3, pink.getValue("players").jsonArray.map { it.jsonObject }.first { it.str("key") == kilian }["colorId"]?.jsonPrimitive?.intOrNull)
     }
 
     @Test

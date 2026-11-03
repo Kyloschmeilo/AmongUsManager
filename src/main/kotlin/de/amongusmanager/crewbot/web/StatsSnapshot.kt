@@ -45,7 +45,7 @@ private class RoleAcc(val id: String) {
 private class PlayerAcc(val key: String) {
     var discordId: Long? = null
     val names = LinkedHashMap<String, Int>() // neuester Name zuerst
-    val colors = HashMap<Int, Int>()
+    val colors = LinkedHashMap<Int, Int>() // zuletzt getragene Farbe zuerst (Runden kommen neueste zuerst)
     var games = 0
     var wins = 0
     var crewGames = 0
@@ -93,6 +93,7 @@ private class PlayerAcc(val key: String) {
 
     /** Name auf der Website: selbst gewählter Anzeigename, sonst der neueste Ingame-Name. */
     val shownName: String get() = decoration?.displayName?.takeIf { it.isNotBlank() } ?: name
+    /** Meistgenutzte Spielfarbe; bei Gleichstand die zuletzt getragene. */
     val colorId: Int? get() = colors.maxByOrNull { it.value }?.key
 
     /** Discord-Profilbild (über die Website ausgeliefert), null = farbiger Crewmate. */
