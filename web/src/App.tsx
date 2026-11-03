@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { NavLink, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useSmoothScroll } from './components/motion';
 import { useApi, type Overview } from './lib/api';
@@ -93,6 +93,33 @@ function Footer() {
   );
 }
 
+/** Dünne Linie unter der Kopfzeile, die mit dem Scrollen wächst. */
+function ScrollProgress() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const el = ref.current;
+      if (!el) return;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      el.style.transform = `scaleX(${max > 0 ? Math.min(1, window.scrollY / max) : 0})`;
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(update); };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); cancelAnimationFrame(frame); };
+  }, []);
+  return <div className="progress" aria-hidden="true"><div ref={ref} className="progress__bar" /></div>;
+}
+
+/** Jede Seite blendet beim Wechsel kurz von unten ein (nur ohne reduzierte Bewegung, per CSS). */
+function RouteFade({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
+  return <div key={pathname} className="route">{children}</div>;
+}
+
 export function App() {
   useSmoothScroll();
   return (
@@ -108,8 +135,10 @@ export function App() {
           </div>
         </div>
       </header>
+      <ScrollProgress />
       <main id="inhalt" className="wrap">
         <LoginNotice />
+        <RouteFade>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/bestenliste" element={<Leaderboard />} />
@@ -126,6 +155,7 @@ export function App() {
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </RouteFade>
       </main>
       <Footer />
       </PermissionProvider>
