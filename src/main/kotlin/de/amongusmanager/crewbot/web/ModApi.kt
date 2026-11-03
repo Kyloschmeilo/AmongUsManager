@@ -32,6 +32,8 @@ import java.util.concurrent.ConcurrentHashMap
 class ModApi(
     db: Database,
     private val link: BotLink,
+    /** „Beitreten“ auf der Website (Live-Lobbys) – die nächste Auto-Join-Frage dieser Person bekommt genau diese Lobby. */
+    private val picks: JoinPicks? = null,
     private val clock: () -> Instant = Instant::now,
 ) {
     private val log = LoggerFactory.getLogger(ModApi::class.java)
@@ -69,7 +71,7 @@ class ModApi(
         if (!allow(client)) return json(429, """{"error":"busy"}""")
         val text = String(request.body, Charsets.UTF_8)
 
-        if (AutoJoinProtocol.isRequest(text)) return json(200, AutoJoinProtocol.reply(lobby.current(clock()), clock()))
+        if (AutoJoinProtocol.isRequest(text)) return json(200, joinReply(text))
         return when (val info = PlayerInfoProtocol.parse(text)) {
             is PlayerInfoRequest.Stats -> json(200, playerInfo.statsReply(info))
             is PlayerInfoRequest.Link ->
@@ -77,6 +79,20 @@ class ModApi(
                 else linkCode(info.friendCode)
             null -> json(400, """{"error":"request"}""")
         }
+    }
+
+    /** Neueste Lobby – oder die, bei der die Person auf der Website „Beitreten“ gedrückt hat. */
+    private fun joinReply(text: String): String {
+        val now = clock()
+        val pick = picks?.take(AutoJoinProtocol.friendCodeOf(text))
+        if (pick != null) {
+            val chosen = lobby.find(pick.code, now)
+            if (chosen != null) {
+                log.info("CrewStats: Beitreten zu {} von der Website an die Mod gegeben", pick.code)
+                return AutoJoinProtocol.reply(chosen, now, pick = pick.id)
+            }
+        }
+        return AutoJoinProtocol.reply(lobby.current(now), now)
     }
 
     private fun linkCode(friendCode: String): WebResponse {

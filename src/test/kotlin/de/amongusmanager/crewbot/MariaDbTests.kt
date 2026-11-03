@@ -50,6 +50,10 @@ class MariaDbModApiTest : ModApiTest() {
     override fun newDatabases(): Pair<Database, () -> Database> = TestMariaDb.newDatabaseWithWriter()
 }
 
+class MariaDbLiveLobbiesTest : LiveLobbiesTest() {
+    override fun newDatabases(): Pair<Database, () -> Database> = TestMariaDb.newDatabaseWithWriter()
+}
+
 class SqliteToMysqlTest {
     private val pipeline = Golden.section("pipeline")
     private val extra = pipeline["import_extra"]!!.obj

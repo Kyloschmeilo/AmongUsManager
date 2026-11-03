@@ -30,6 +30,8 @@ class StatsServer(
     private val control: ControlApi? = null,
     /** Spieler-Anfragen von CrewStats (Auto-Join, Stats, Verknüpfen) statt über einen Discord-Webhook, null = ohne. */
     private val modApi: ModApi? = null,
+    /** Live-Anzeige der Lobbys mit „Beitreten“ (/api/lobbies), null = ohne (dann leer). */
+    private val lobbies: LiveLobbies? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
@@ -57,6 +59,7 @@ class StatsServer(
             if (path == "/api/me" || path == "/api/me/profile" || path.startsWith("/auth/")) return account(exchange, method, path)
             if (path.startsWith(ControlApi.PREFIX)) return control(exchange, method, path)
             if (path.startsWith(ModApiSettings.PATH)) return mod(exchange, method, path)
+            if (path == LiveLobbies.PATH || path.startsWith(LiveLobbies.PATH + "/")) return lobbies(exchange, method, path)
             if (method != "GET" && method != "HEAD") {
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
@@ -121,6 +124,26 @@ class StatsServer(
         val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
         val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
         val response = handler.handle(WebRequest(method, path, emptyMap(), headers, body), client)
+        for ((name, value) in response.headers) {
+            if (name.equals("Cache-Control", ignoreCase = true)) continue
+            exchange.responseHeaders.add(name, value)
+        }
+        respond(exchange, response.status, response.type, response.body, cache = "no-store")
+    }
+
+    // ---------- Live-Lobbys ----------
+
+    private fun lobbies(exchange: HttpExchange, method: String, path: String) {
+        val handler = lobbies
+        if (handler == null || !handler.handles(path)) {
+            if (path == LiveLobbies.PATH && (method == "GET" || method == "HEAD")) {
+                return respond(exchange, 200, TYPE_JSON, bytes(obj("lobbies" to emptyList<Any>(), "me" to null)), cache = "no-store")
+            }
+            return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
+        }
+        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
+        val response = handler.handle(WebRequest(method, path, emptyMap(), headers, body))
         for ((name, value) in response.headers) {
             if (name.equals("Cache-Control", ignoreCase = true)) continue
             exchange.responseHeaders.add(name, value)

@@ -12,6 +12,10 @@
  *                     "region","server"}   (region/server nur, wenn der Host sie meldet – Codes gelten nur auf diesem Server)
  *   3. Mod liest sie (GET …/messages/<id>) und löscht sie; sonst räumt der Bot nach 30 s auf.
  *
+ * Über die Website (CrewStats ≥ 1.9.0) schickt die Mod ihren Friendcode mit (`"fc"`). Hat die Person auf der Website bei
+ * einer Lobby „Beitreten“ gedrückt, antwortet die Website mit genau dieser Lobby + `"pick":"<id>"` – die Mod tritt dann
+ * bei, auch wenn automatisches Beitreten aus ist oder sie schon einmal drin war (jede pick-id nur einmal).
+ *
  * Lobby-Codes stehen ohnehin im Codes-Channel, deshalb ohne Verschlüsselung.
  * JSON-Format = mod/CrewStats/AutoJoin.cs – beide Seiten gemeinsam ändern!
  */
@@ -35,8 +39,14 @@ object AutoJoinProtocol {
         return data.stringField("crewstats") == REQUEST
     }
 
-    /** Antwort auf eine Anfrage: die neueste Lobby (offen oder Runde läuft) oder „none“. */
-    fun reply(current: Pair<LobbyEvent, Instant>?, now: Instant = Instant.now()): String = buildJsonObject {
+    /** Friendcode der fragenden Mod (nur über die Website, ab CrewStats 1.9.0), sonst leer. */
+    fun friendCodeOf(text: String): String {
+        val data = parseJsonOrNull(text) as? JsonObject ?: return ""
+        return normalizeFriendCode(data.stringField("fc") ?: "")
+    }
+
+    /** Antwort auf eine Anfrage: die neueste Lobby (offen oder Runde läuft) oder „none“; mit [pick] = Wahl auf der Website. */
+    fun reply(current: Pair<LobbyEvent, Instant>?, now: Instant = Instant.now(), pick: String? = null): String = buildJsonObject {
         put("crewstats", REPLY)
         put("v", 1)
         if (current == null) {
@@ -53,6 +63,7 @@ object AutoJoinProtocol {
         put("age", Duration.between(at, now).seconds.coerceAtLeast(0))
         if (lobby.region.isNotEmpty()) put("region", lobby.region)
         if (lobby.server.isNotEmpty()) put("server", lobby.server)
+        if (pick != null) put("pick", pick)
     }.toString()
 }
 

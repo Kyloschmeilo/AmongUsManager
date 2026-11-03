@@ -17,10 +17,12 @@ import { MeProvider } from './lib/me';
 import { PermissionProvider, usePermissions } from './lib/control';
 import { EventsPage } from './pages/Events';
 import { AdminPage } from './pages/Admin';
+import { LobbiesPage } from './pages/Lobbies';
 import './control.css';
 
 const NAV = [
   { to: '/', label: 'Übersicht', end: true },
+  { to: '/lobbys', label: 'Live' },
   { to: '/events', label: 'Events' },
   { to: '/bestenliste', label: 'Bestenliste' },
   { to: '/runden', label: 'Runden' },
@@ -141,6 +143,7 @@ export function App() {
         <RouteFade>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/lobbys" element={<LobbiesPage />} />
           <Route path="/bestenliste" element={<Leaderboard />} />
           <Route path="/spieler/:key" element={<PlayerPage />} />
           <Route path="/runden" element={<RoundsPage />} />

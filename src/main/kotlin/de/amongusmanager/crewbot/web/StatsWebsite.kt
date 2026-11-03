@@ -15,6 +15,7 @@
  *   WEB_DOWNLOADS_DIR    – Ordner mit eigenen Downloads (Standard: downloads/ neben dem JAR, z.B. TheOtherRoles-Installer.bat)
  * Eigene Daten der Website (Anmeldungen, Profile, Profilbilder) liegen in data/website.db.
  * CrewStats-Spieleranfragen (Auto-Join, Stats, Verknüpfen): POST /api/mod/<Schlüssel>, siehe services/ModApi.kt.
+ * Live-Lobbys mit „Beitreten“: /api/lobbies, siehe LiveLobbies.kt.
  * Bot steuern (Event-Tab, Admin-Panel): die Website schreibt Aufträge in die Tabelle web_requests der Bot-Datenbank,
  * der Bot führt sie aus und prüft dabei die Discord-Rollen selbst.
  */
@@ -81,7 +82,10 @@ fun main() {
     val control = controlDb?.let { ControlApi(auth, BotLink(WebQueue(it)), store) }
     if (control == null) log.info("🎛️ Bot-Steuerung aus (keine Bot-Datenbank)")
     // CrewStats fragt (Auto-Join, Stats, Verknüpfen) hier statt über einen Discord-Webhook – /autojoin zeigt dann diese URL
-    val modApi = controlDb?.let { ModApi(it, BotLink(WebQueue(it), wait = Duration.ofSeconds(6))) }
+    val picks = JoinPicks()
+    val modApi = controlDb?.let { ModApi(it, BotLink(WebQueue(it), wait = Duration.ofSeconds(6)), picks = picks) }
+    // Live-Lobbys (wer ist gerade in welcher Lobby) + „Beitreten“ über Auto-Join der Mod
+    val lobbies = (controlDb ?: db)?.let { LiveLobbies(it, auth, store, picks) }
     val beat = {
         try {
             modApi?.heartbeat(authConfig.publicUrl)
@@ -102,6 +106,7 @@ fun main() {
             guides = WebGuides(downloads),
             control = control,
             modApi = modApi,
+            lobbies = lobbies,
         )
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)

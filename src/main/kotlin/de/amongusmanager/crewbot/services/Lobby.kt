@@ -13,6 +13,7 @@ package de.amongusmanager.crewbot.services
 import de.amongusmanager.crewbot.Rules
 import de.amongusmanager.crewbot.core.await
 import de.amongusmanager.crewbot.core.describe
+import de.amongusmanager.crewbot.core.intOrNull
 import de.amongusmanager.crewbot.core.isNotFound
 import de.amongusmanager.crewbot.core.parseJsonOrNull
 import de.amongusmanager.crewbot.core.pyInt
@@ -46,6 +47,8 @@ data class LobbyEvent(
     val sender: String, // Friendcode des Hosts
     val region: String = "", // Server-Region des Hosts (CrewStats ≥ 1.7.1), für Auto-Join
     val server: String = "", // Adresse des Servers dieser Region
+    /** Wer in der Lobby ist (CrewStats ≥ 1.9.0, sonst leer) – für die Live-Anzeige der Website. */
+    val list: List<LobbyPlayer> = emptyList(),
 ) {
     companion object {
         /** Liest die Nachricht der Mod; null, wenn es keine Lobby-Nachricht ist. */
@@ -65,16 +68,34 @@ data class LobbyEvent(
                     sender = data["sender"].orDefault(""),
                     region = data["region"].orDefault(""),
                     server = data["server"].orDefault(""),
+                    list = parsePlayers(data["list"]),
                 )
             } catch (e: Exception) {
                 null
             }
         }
 
+        /** Spielerliste der Lobby; Fehlerhaftes wird übersprungen, höchstens [MAX_LOBBY_PLAYERS]. */
+        fun parsePlayers(element: JsonElement?): List<LobbyPlayer> {
+            val array = element as? kotlinx.serialization.json.JsonArray ?: return emptyList()
+            return array.mapNotNull { entry ->
+                val obj = entry as? JsonObject ?: return@mapNotNull null
+                val name = obj["name"].orDefault("").trim().take(32)
+                if (name.isEmpty()) return@mapNotNull null
+                val color = runCatching { obj["color"].intOrNull() }.getOrNull() ?: -1
+                LobbyPlayer(name, normalizeFriendCode(obj["fc"].orDefault("")), color.takeIf { it in 0..63 } ?: -1)
+            }.take(MAX_LOBBY_PLAYERS)
+        }
+
         /** `str(data.get(key) or default)` */
         private fun JsonElement?.orDefault(default: String): String = if (pyTruthy()) pyStr() else default
     }
 }
+
+/** Ein Spieler in der Lobby: Ingame-Name, Friendcode (nur intern, nie an den Browser), Spielfarbe (-1 = unbekannt). */
+data class LobbyPlayer(val name: String, val friendCode: String, val colorId: Int)
+
+const val MAX_LOBBY_PLAYERS = 20
 
 typealias LobbyEmbedBuilder = (LobbyEvent, String) -> MessageEmbed
 
