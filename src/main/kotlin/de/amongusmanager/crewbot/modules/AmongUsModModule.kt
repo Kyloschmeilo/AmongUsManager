@@ -362,7 +362,14 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "ð
             return
         }
         LobbyEvent.parse(message.contentRaw)?.let { lobby ->
-            if (isFresh(message)) bot.lobby.apply(lobby)
+            if (isFresh(message)) {
+                bot.lobby.apply(lobby)
+                try {
+                    bot.lobbyStore.save(lobby) // Auto-Join Ã¼ber die Website
+                } catch (e: Exception) {
+                    log.warn("Lobby nicht in der Datenbank gespeichert: {}", e.message)
+                }
+            }
             delete(message)
             return
         }

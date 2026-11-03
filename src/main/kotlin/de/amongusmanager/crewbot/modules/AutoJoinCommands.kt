@@ -1,4 +1,8 @@
-/* Auto-Join: /autojoin gibt Spielern die Auto-Join-URL für CrewStats und beantwortet die Lobby-Anfragen der Mod. */
+/*
+ * Auto-Join: /autojoin gibt Spielern die Auto-Join-URL für CrewStats und beantwortet die Lobby-Anfragen der Mod.
+ * Läuft die Stats-Website, ist die URL eine Website-Adresse (services/ModApi.kt) – dort antwortet die Website selbst.
+ * Ältere Webhook-URLs funktionieren weiter (onMessage).
+ */
 package de.amongusmanager.crewbot.modules
 
 import de.amongusmanager.crewbot.core.CrewBot
@@ -50,11 +54,14 @@ class AutoJoinCommands(private val bot: CrewBot) {
             }
             event.deferReply(true).await()
 
-            var webhook = if (renew) null else existing(event.jda)
-            if (webhook == null) {
+            // Läuft die Stats-Website, fragt die Mod dort (eine Anfrage statt Webhook-Nachricht + Warten + Lesen)
+            if (renew) bot.modApi.renewKey()
+            val websiteUrl = bot.modApi.playerUrl()
+            var webhook = if (renew || websiteUrl != null) null else existing(event.jda)
+            if (webhook == null && (websiteUrl == null || renew)) {
                 val channelId = bot.modSettings.channelId
                 val channel = channelId?.let { event.jda.getChannelById(StandardGuildMessageChannel::class.java, it) }
-                if (channel == null) {
+                if (channel == null && websiteUrl == null) {
                     event.notify("❌ Auto-Join ist noch nicht eingerichtet – ein Admin muss zuerst `/mod-setup` ausführen.", Tone.ERROR)
                     return@SlashCommand
                 }
@@ -65,18 +72,26 @@ class AutoJoinCommands(private val bot: CrewBot) {
                         e.rethrowIfCancelled()
                     }
                 }
-                webhook = try {
-                    channel.createWebhook("CrewStats Auto-Join").reason("/autojoin von ${Actor.tagOf(event.user)}").await()
-                } catch (e: Exception) {
-                    e.rethrowIfCancelled()
-                    if (!e.isForbidden()) throw e
-                    event.notify("❌ Mir fehlt das Recht **Webhooks verwalten** in ${channel.asMention}.", Tone.ERROR)
-                    return@SlashCommand
+                if (channel != null) {
+                    webhook = try {
+                        channel.createWebhook("CrewStats Auto-Join").reason("/autojoin von ${Actor.tagOf(event.user)}").await()
+                    } catch (e: Exception) {
+                        e.rethrowIfCancelled()
+                        if (!e.isForbidden()) throw e
+                        if (websiteUrl == null) {
+                            event.notify("❌ Mir fehlt das Recht **Webhooks verwalten** in ${channel.asMention}.", Tone.ERROR)
+                            return@SlashCommand
+                        }
+                        null // geht auch ohne: die Mod fragt über die Website
+                    }
+                    webhook?.let { bot.autoJoin.set(it.idLong) }
                 }
-                bot.autoJoin.set(webhook.idLong)
-                bot.audit.log(Actor.of(event.author), "Auto-Join-URL ${if (renew) "erneuert" else "eingerichtet"}", "Webhook in ${channel.asMention}")
+                bot.audit.log(
+                    Actor.of(event.author), "Auto-Join-URL ${if (renew) "erneuert" else "eingerichtet"}",
+                    if (websiteUrl != null) "über die Stats-Website" else "Webhook in ${channel?.asMention}",
+                )
             }
-            val url = webhookUrlOf(webhook) ?: error("Discord hat keinen Webhook-Token geliefert")
+            val url = websiteUrl ?: webhook?.let(::webhookUrlOf) ?: error("Discord hat keinen Webhook-Token geliefert")
 
             val embed = EmbedBuilder()
                 .setTitle("Auto-Join für CrewStats")
@@ -96,6 +111,7 @@ class AutoJoinCommands(private val bot: CrewBot) {
                         "**AUSSERDEM** (ab CrewStats 1.7.0)\n" +
                         "Mit derselben URL zeigt die Mod in der Lobby deine Stats und wer verknüpft ist, nach der Runde" +
                         " deine XP – und **F7** → **Mit Discord verknüpfen** gibt dir einen Code für `/verknuepfen-code`.\n\n" +
+                        (if (websiteUrl != null) "Die URL läuft über unsere Stats-Website und braucht **CrewStats 1.8.0** (kommt per Auto-Update).\n\n" else "") +
                         "Die URL bitte nicht außerhalb des Servers teilen." +
                         " Server-Region im Spiel muss die der Lobby sein (bei uns **Modded NA**)."
                 )

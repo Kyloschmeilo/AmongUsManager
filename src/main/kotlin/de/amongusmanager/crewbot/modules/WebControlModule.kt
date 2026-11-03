@@ -38,6 +38,9 @@ import de.amongusmanager.crewbot.core.isNotFound
 import de.amongusmanager.crewbot.core.parseJson
 import de.amongusmanager.crewbot.core.rethrowIfCancelled
 import de.amongusmanager.crewbot.services.Actor
+import de.amongusmanager.crewbot.services.PlayerInfoProtocol
+import de.amongusmanager.crewbot.services.isValidFriendCode
+import de.amongusmanager.crewbot.services.normalizeFriendCode
 import de.amongusmanager.crewbot.services.QueuedRequest
 import de.amongusmanager.crewbot.services.RoleWishError
 import de.amongusmanager.crewbot.services.RoundService
@@ -176,6 +179,7 @@ class WebControlModule(private val bot: CrewBot) : CrewModule("Website", "🌐")
     // ==========================================
 
     private suspend fun dispatch(userId: Long, action: String, p: JsonObject): JsonObject {
+        if (action == MOD_LINK) return modLink(userId, p)
         val guild = guild() ?: throw WebActionError("Der Bot ist gerade mit keinem Server verbunden.")
         if (userId == GUEST && action == "events.list") return listEvents(guild, null) // nicht angemeldet: nur ansehen
         val member = guild.getMemberById(userId) ?: run {
@@ -204,6 +208,22 @@ class WebControlModule(private val bot: CrewBot) : CrewModule("Website", "🌐")
             "admin.modsetup" -> modSetup(member, p)
             else -> throw WebActionError("Unbekannte Aktion.")
         }
+    }
+
+    /**
+     * CrewStats „Mit Discord verknüpfen“ über die Website (services/ModApi.kt): Code erzeugen. Die Website schickt das
+     * ohne angemeldete Person (ID 0) – der Code verknüpft erst, wenn jemand ihn bei /verknuepfen-code eingibt.
+     */
+    private fun modLink(userId: Long, p: JsonObject): JsonObject {
+        if (userId != GUEST) throw WebActionError("Unbekannte Aktion.")
+        val friendCode = p.text("fc")?.let(::normalizeFriendCode)?.takeIf(::isValidFriendCode)
+        val text = if (friendCode == null) {
+            PlayerInfoProtocol.linkReply(null, linked = false, error = "friendcode")
+        } else {
+            PlayerInfoProtocol.linkReply(bot.linkCodes.create(friendCode), linked = bot.links.userFor(friendCode) != null)
+        }
+        log.info("CrewStats: Verknüpfungs-Code über die Website beantwortet")
+        return parseJson(text) as JsonObject
     }
 
     // ==========================================
@@ -735,6 +755,9 @@ class WebControlModule(private val bot: CrewBot) : CrewModule("Website", "🌐")
 
         /** Nicht angemeldet (nur events.list). */
         const val GUEST = 0L
+
+        /** Verknüpfungs-Code für CrewStats (nur von der Mod-API der Website, siehe services/ModApi.kt). */
+        const val MOD_LINK = "mod.link"
         private val EVENT_CACHE: Duration = Duration.ofSeconds(60)
         private val MENTION = Regex("<@!?(\\d+)>")
         private val DISCORD_EVENT = Regex("https://discord\\.com/events/\\d+/\\d+")

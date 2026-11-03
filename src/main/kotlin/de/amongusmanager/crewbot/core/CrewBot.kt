@@ -18,6 +18,8 @@ import de.amongusmanager.crewbot.modules.WebControlModule
 import de.amongusmanager.crewbot.services.AchievementService
 import de.amongusmanager.crewbot.services.AuditLog
 import de.amongusmanager.crewbot.services.AutoJoinSettings
+import de.amongusmanager.crewbot.services.LobbyStore
+import de.amongusmanager.crewbot.services.ModApiSettings
 import de.amongusmanager.crewbot.services.LinkCodes
 import de.amongusmanager.crewbot.services.PlayerInfoService
 import de.amongusmanager.crewbot.ui.views.playerRoleLabel
@@ -97,6 +99,8 @@ class CrewBot(val db: Database) {
     val gameStats = GameStatsService(db)
     val modSettings = ModSettings(db)
     val autoJoin = AutoJoinSettings(db)
+    val modApi = ModApiSettings(db) // Spieler-Anfragen der Mod über die Stats-Website
+    val lobbyStore = LobbyStore(db) // neueste Lobby für die Website (Auto-Join)
     val gameSettings = GameSettingsService(db)
     val roundHistory = RoundHistoryService(db)
     val achievements = AchievementService(db, levels)

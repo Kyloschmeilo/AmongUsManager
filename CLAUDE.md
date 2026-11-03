@@ -215,6 +215,19 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   sucht die Region (`AutoJoinRules.FindRegion`: Adresse, dann Name) und wechselt per `ServerManager.SetRegion`; fehlt sie
   (z.B. TOR-Kopie ohne offizielle Server), steht das im Status. Braucht Host-Mod 1.7.1 + neuen Bot.
   Bot-JAR (mit Spezial-Rollenwunsch-Befehlen) in `/mnt/project-files/bot-autojoin/crewbot-update.zip`, Deploy macht Kilian.
+- **Spieler-Anfragen über die Website** (03.11.2026, Kilian: „mehr die Website nutzen als Webhooks, außer wenn es per
+  Webhook schneller ist“; CrewStats 1.8.0): Auto-Join, Stats und Verknüpfungs-Code (Frage/Antwort) gehen an
+  `POST <WEB_PUBLIC_URL>/api/mod/<Schlüssel>` der Stats-Website (`web/ModApi.kt`, gemeinsam `services/ModApi.kt`) – eine
+  HTTP-Anfrage statt Webhook-Nachricht + Warten + Lesen + Löschen, ohne Discord-Rate-Limits. Website beantwortet join aus
+  `settings` `lobby.current` (`LobbyStore`, schreibt der Bot bei jeder Lobby-Meldung, ohne Friendcode) und stats selbst
+  (`PlayerInfoService` auf der beschreibbaren Website-Verbindung); den Link-Code erzeugt der Bot über `web_requests`
+  (Aktion `mod.link`, nur mit ID 0, nicht über `/api/bot/`). Schlüssel `modapi.key` (`/autojoin neu:True` erneuert ihn,
+  Website liest ihn alle 30 s), 40 Anfragen/min je IP. Website meldet `web.public_url` + `web.heartbeat` (jede Minute);
+  `/autojoin` zeigt die Website-URL nur, wenn das Lebenszeichen < 10 min alt ist, sonst wie bisher den Webhook. Alte
+  Webhook-URLs gehen weiter. **Bewusst Webhook bleiben**: Runden, Auto-Mute, Lobby, Rollenwünsche, Einstellungen (Host,
+  Discord stellt sie dem Bot sofort zu – über die Website käme alles erst per Datenbank-Polling 0,25–1 s an, und bei
+  Ausfall des Website-Servers gingen Runden verloren) und das Minecraft-Plugin. Reihenfolge beim Deploy: erst CrewStats
+  1.8.0 veröffentlichen, dann Bot + Website (sonst zeigt /autojoin URLs, die alte Mods ablehnen). Tests: `ModApiTest` (+ MariaDB).
 - **CrewStats-Komfort** (02.11.2026, Kilian: „pack die alle mal rein“ – Auto-Update-Hinweis, Lobby-Overlay mit eigenen
   Stats, Rundenzusammenfassung, Verknüpfen per Code, Lobby-Info, Einstellungsmenü, Verbindungsstatus, Offline-Puffer;
   CrewStats 1.7.0, alles einzeln abschaltbar unter `[Komfort]` bzw. im Spiel per **F7**). Bot: `services/ModPlayerInfo.kt`
