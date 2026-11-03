@@ -174,6 +174,7 @@ class StatsSnapshot private constructor(
     val overviewJson: ByteArray by lazy { bytes(overview()) }
     val playersJson: ByteArray by lazy { bytes(obj("players" to players.values.sortedByDescending { it.games }.map { playerSummary(it) })) }
     val rolesJson: ByteArray by lazy { bytes(rolesResponse()) }
+    val balanceJson: ByteArray by lazy { bytes(roleBalance(views)) }
     val mapsJson: ByteArray by lazy { bytes(obj("maps" to maps.values.sortedBy { it.mapId }.map { mapSummary(it) })) }
 
     fun playerJson(key: String): ByteArray? {
