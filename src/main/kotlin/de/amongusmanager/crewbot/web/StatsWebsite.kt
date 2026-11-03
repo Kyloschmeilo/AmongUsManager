@@ -14,6 +14,7 @@
  *   WEB_PUBLIC_URL       – Adresse der Website, z.B. http://45.81.233.92:25570 (für die Weiterleitung nach dem Login)
  *   WEB_DOWNLOADS_DIR    – Ordner mit eigenen Downloads (Standard: downloads/ neben dem JAR, z.B. TheOtherRoles-Installer.bat)
  * Eigene Daten der Website (Anmeldungen, Profile, Profilbilder) liegen in data/website.db.
+ * CrewStats-Spieleranfragen (Auto-Join, Stats, Verknüpfen): POST /api/mod/<Schlüssel>, siehe services/ModApi.kt.
  * Bot steuern (Event-Tab, Admin-Panel): die Website schreibt Aufträge in die Tabelle web_requests der Bot-Datenbank,
  * der Bot führt sie aus und prüft dabei die Discord-Rollen selbst.
  */
@@ -22,10 +23,12 @@ package de.amongusmanager.crewbot.web
 import de.amongusmanager.crewbot.BotPaths
 import de.amongusmanager.crewbot.Env
 import de.amongusmanager.crewbot.db.Database
+import de.amongusmanager.crewbot.services.ModApiSettings
 import de.amongusmanager.crewbot.services.WebQueue
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.system.exitProcess
@@ -77,6 +80,20 @@ fun main() {
     val controlDb = if (db != null) openControlDatabase() else null
     val control = controlDb?.let { ControlApi(auth, BotLink(WebQueue(it)), store) }
     if (control == null) log.info("🎛️ Bot-Steuerung aus (keine Bot-Datenbank)")
+    // CrewStats fragt (Auto-Join, Stats, Verknüpfen) hier statt über einen Discord-Webhook – /autojoin zeigt dann diese URL
+    val modApi = controlDb?.let { ModApi(it, BotLink(WebQueue(it), wait = Duration.ofSeconds(6))) }
+    val beat = {
+        try {
+            modApi?.heartbeat(authConfig.publicUrl)
+        } catch (e: Exception) {
+            log.warn("Mod-API: Lebenszeichen nicht gespeichert: {}", e.message)
+        }
+    }
+    when {
+        modApi == null -> {}
+        authConfig.publicUrl == null -> log.info("🎮 Mod-API aus Sicht von /autojoin unbekannt – dafür WEB_PUBLIC_URL in die .env")
+        else -> log.info("🎮 Mod-API an: CrewStats fragt Auto-Join/Stats über {}{}…", authConfig.publicUrl, ModApiSettings.PATH)
+    }
 
     val port = webPort()
     val server = try {
@@ -84,6 +101,7 @@ fun main() {
             store, port, Env.get("WEB_HOST").trim().ifEmpty { "0.0.0.0" }, auth, accounts,
             guides = WebGuides(downloads),
             control = control,
+            modApi = modApi,
         )
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)
@@ -105,8 +123,10 @@ fun main() {
             if (message != lastFailure) log.warn("Aktualisieren fehlgeschlagen: {}", message)
             lastFailure = message
         }
+        beat()
         syncDiscord(sync, store)
     }, refreshSeconds, refreshSeconds, TimeUnit.SECONDS)
+    scheduler.execute { beat() } // /autojoin kennt die Website-URL sofort
     scheduler.execute { syncDiscord(sync, store) } // Profilbilder gleich nach dem Start holen
     scheduler.execute { downloads.refreshNow() } // Versionen für die Download-Seite
 
