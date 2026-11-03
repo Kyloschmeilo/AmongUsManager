@@ -149,7 +149,16 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Discord, und die Stats-Website bietet ihn aus ihrem `downloads/`-Ordner an (siehe „Hilfe & Mods“). Er kopiert das Steam-Among-Us nach `Among Us - The Other Roles` (ohne BepInEx/Mods, Marker
   `.theotherroles-installer`), entpackt dort das neueste GMIA-Release-Zip (Fallback 1.4.1), übernimmt auf Wunsch CrewStats
   (+ Config) und legt eine Desktop-Verknüpfung an; Start der Kopie direkt per exe (Steam muss laufen). Testen mit
-  `TOR_GAME_DIR`, `TOR_COPY_DIR`, `TOR_ZIP` (portables pwsh, `Read-Host` per Funktion überschreiben). CRLF, ohne BOM;
+  `TOR_GAME_DIR`, `TOR_COPY_DIR`, `TOR_ZIP` (portables pwsh, `Read-Host` per Funktion überschreiben).
+  **Epic Games** (03.11.2026, Kilian: „bei den Installern Support für EpicGames einbauen“, auch im CrewStats-Installer):
+  Suche über die Manifeste `%ProgramData%\Epic\EpicGamesLauncher\Data\Manifests\*.item` (Steam + Epic → Auswahl, sonst
+  Ordner einfügen/Auswahlfenster; `.egstore` = Epic), Start per `com.epicgames.launcher://apps/<ns>%3A<item>%3A<app>?action=launch`.
+  Epic startet nur den eigenen Ordner → TOR kommt **direkt ins Epic-Among-Us** (keine Kopie), eigene Plugin-Dateien in
+  `BepInEx\theotherroles\dateien.txt`, Verknüpfungen „Among Us - The Other Roles“/„… - ohne The Other Roles“ rufen
+  `Umschalten.ps1 an|aus` (verschiebt die Plugins nach `BepInEx\theotherroles\aus`) und starten über Epic. Ohne
+  Schreibrechte (Epic unter „Programme“) startet sich der Installer als Admin neu (`INSTALLER_BAT`) und gibt Benutzern
+  Schreibrechte auf `BepInEx` (icacls). Test-Variablen zusätzlich `TOR_STEAM_DIR`/`TOR_EPIC_MANIFESTS` (bzw. `CREWSTATS_*`).
+  GMIA 1.4.1 hat nur ein Windows-Zip (gilt für Steam und Epic). **Mit echtem Epic-Among-Us ungetestet.** CRLF, ohne BOM;
   kein „ “/„ in doppelt quotierten PowerShell-Strings (zählen dort als Anführungszeichen).
   CrewStats mit TOR (Rollenwünsche/Selbst-Würfeln) ist ungetestet.
 - **The Other Roles in XP & Auto-Mute** (24.10.2026, Kilian: „Integriere die other Roles in die XP-Vergabe und füge
