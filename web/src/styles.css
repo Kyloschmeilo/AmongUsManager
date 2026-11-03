@@ -522,6 +522,9 @@ button { font: inherit; color: inherit; }
 .mapview .room-label { font-family: var(--font-display); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; fill: var(--ink-faint); pointer-events: none; }
 .mapview .vent { fill: none; stroke: var(--border-control); stroke-width: .12; }
 .mapview .kill { stroke: var(--ember); stroke-width: .22; stroke-linecap: round; }
+.mapview .kill-mark .kill { stroke-width: .12; stroke: var(--ink); opacity: .7; }
+.mapview .meeting-mark { fill: none; stroke: var(--ink); stroke-width: .08; opacity: .7; }
+.mapview .meeting-mark--report { stroke: var(--gold); opacity: .9; }
 .mapview .body { stroke: var(--ember); stroke-width: .28; stroke-linecap: round; }
 .mapview .dot-name { font-family: var(--font-mono); font-weight: 500; fill: var(--ink); paint-order: stroke; stroke: var(--surface-0); stroke-width: .18; stroke-linejoin: round; pointer-events: none; }
 .mapview__empty { padding: var(--space-12) var(--space-6); text-align: center; }

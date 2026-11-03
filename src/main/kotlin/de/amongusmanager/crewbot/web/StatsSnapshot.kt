@@ -112,6 +112,9 @@ private class MapAcc(val mapId: Int, val name: String) {
     val vents = HashMap<Int, DoubleArray>()
     val killPoints = ArrayList<WebKill>()
     val roomKills = HashMap<String, Int>()
+    var meetings = 0
+    val meetingPoints = ArrayList<WebMeeting>()
+    val roomMeetings = HashMap<String, Int>()
     val sabotages = HashMap<String, DoubleArray>() // Anzahl, Summe Dauer, Anzahl mit Dauer
 }
 
@@ -398,6 +401,7 @@ class StatsSnapshot private constructor(
         "neutralWins" to m.neutralWins,
         "avgDuration" to if (m.rounds == 0) 0.0 else m.durationSum / m.rounds,
         "kills" to m.kills,
+        "meetings" to m.meetings,
         "layout" to m.cells.isNotEmpty(),
     )
 
@@ -414,8 +418,13 @@ class StatsSnapshot private constructor(
                 obj("room" to room, "x" to sum[0] / sum[2], "y" to sum[1] / sum[2], "kills" to (m.roomKills[room] ?: 0))
             },
             "vents" to m.vents.entries.map { (id, sum) -> obj("id" to id, "x" to sum[0] / sum[2], "y" to sum[1] / sum[2]) },
-            "kills" to m.killPoints.takeLast(3000).map { obj("x" to it.x, "y" to it.y, "room" to it.room, "at" to it.atSeconds) },
+            // Runden sind neueste zuerst: bei sehr vielen Punkten zählen die neuesten
+            "kills" to m.killPoints.take(MAX_MAP_POINTS).map { obj("x" to it.x, "y" to it.y, "room" to it.room, "at" to it.atSeconds) },
             "roomKills" to m.roomKills.entries.sortedByDescending { it.value }.map { obj("room" to it.key, "count" to it.value) },
+            "meetingPoints" to m.meetingPoints.take(MAX_MAP_POINTS).map {
+                obj("x" to it.x, "y" to it.y, "room" to it.room, "report" to (it.body != null))
+            },
+            "roomMeetings" to m.roomMeetings.entries.sortedByDescending { it.value }.map { obj("room" to it.key, "count" to it.value) },
             "sabotages" to m.sabotages.entries.sortedByDescending { it.value[0] }.map { (system, v) ->
                 obj("system" to system, "count" to v[0].toInt(), "avgDuration" to if (v[2] > 0) v[1] / v[2] else null)
             },
@@ -480,6 +489,11 @@ class StatsSnapshot private constructor(
                 r.kills.forEach { kill ->
                     if (kill.x != null && kill.y != null) map.killPoints += kill
                     kill.room?.let { map.roomKills.merge(it, 1, Int::plus) }
+                }
+                map.meetings += r.meetings.size
+                r.meetings.forEach { meeting ->
+                    if (meeting.x != null && meeting.y != null) map.meetingPoints += meeting
+                    meeting.room?.let { map.roomMeetings.merge(it, 1, Int::plus) }
                 }
                 r.sabotages.forEach { s ->
                     val v = map.sabotages.getOrPut(s.system) { DoubleArray(3) }
@@ -610,6 +624,7 @@ class StatsSnapshot private constructor(
             )
         }
 
+        private const val MAX_MAP_POINTS = 3000
         private val RECORD_ORDER = listOf("mostKills", "fastestKill", "fastestTasks", "mostDistance", "longestRound", "shortestRound", "mostMeetings")
 
         private fun WebRound.mapIdStats(acc: PlayerAcc, p: WebPlayer) {

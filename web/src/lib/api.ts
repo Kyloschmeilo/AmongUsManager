@@ -83,6 +83,7 @@ export interface MapSummary {
   neutralWins: number;
   avgDuration: number;
   kills: number;
+  meetings: number;
   layout: boolean;
 }
 
@@ -169,6 +170,9 @@ export interface MapDetail {
   vents: { id: number; x: number; y: number }[];
   kills: { x: number; y: number; room: string | null; at: number }[];
   roomKills: { room: string; count: number }[];
+  /** Wo der Auslöser beim Meeting stand; report = Leiche gemeldet, sonst Notfall-Knopf. */
+  meetingPoints: { x: number; y: number; room: string | null; report: boolean }[];
+  roomMeetings: { room: string; count: number }[];
   sabotages: { system: string; count: number; avgDuration: number | null }[];
 }
 

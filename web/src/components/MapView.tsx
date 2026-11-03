@@ -98,6 +98,69 @@ const Cells = memo(function Cells({ layout, heat }: { layout: Layout; heat: bool
   return <g>{rects}</g>;
 });
 
+/**
+ * Dichte-Heatmap aus einzelnen Orten (Kills, Meetings): jeder Ort verteilt sich weich (Gauß, σ ≈ 1 Spieleinheit)
+ * auf ein Raster, das stärkste Feld ist voll gefärbt. So werden Brennpunkte sichtbar, auch wenn Kreuze sich stapeln.
+ */
+export const Density = memo(function Density({ points, color, cellSize = 0.5 }: { points: { x: number; y: number }[]; color: string; cellSize?: number }) {
+  const cells = useMemo(() => {
+    const sigma = 1.0;
+    const reach = Math.ceil((2.5 * sigma) / cellSize);
+    const grid = new Map<number, number>();
+    const pack = (cx: number, cy: number) => (cx + 2048) * 4096 + (cy + 2048);
+    for (const p of points) {
+      const px = Math.floor(p.x / cellSize);
+      const py = Math.floor(p.y / cellSize);
+      for (let dx = -reach; dx <= reach; dx++) {
+        for (let dy = -reach; dy <= reach; dy++) {
+          const ox = (px + dx + 0.5) * cellSize - p.x;
+          const oy = (py + dy + 0.5) * cellSize - p.y;
+          const w = Math.exp(-(ox * ox + oy * oy) / (2 * sigma * sigma));
+          if (w < 0.02) continue;
+          const key = pack(px + dx, py + dy);
+          grid.set(key, (grid.get(key) ?? 0) + w);
+        }
+      }
+    }
+    let max = 0;
+    grid.forEach((v) => (max = Math.max(max, v)));
+    const out: { x: number; y: number; v: number }[] = [];
+    grid.forEach((v, key) => {
+      const share = v / max;
+      if (share < 0.05) return;
+      out.push({ x: Math.floor(key / 4096) - 2048, y: (key % 4096) - 2048, v: share });
+    });
+    return out;
+  }, [points, cellSize]);
+  return (
+    <g className="density" aria-hidden="true">
+      {cells.map((c) => (
+        <rect
+          key={`${c.x},${c.y}`}
+          x={c.x * cellSize}
+          y={-(c.y + 1) * cellSize}
+          width={cellSize}
+          height={cellSize}
+          fill={color}
+          fillOpacity={0.12 + 0.83 * Math.pow(c.v, 0.75)}
+        />
+      ))}
+    </g>
+  );
+});
+
+export function DensityLegend({ color }: { color: string }) {
+  return (
+    <span className="heat-legend caption">
+      wenige
+      {[0.2, 0.45, 0.7, 0.95].map((o) => (
+        <i key={o} style={{ background: color, opacity: o }} />
+      ))}
+      viele
+    </span>
+  );
+}
+
 export function MapView({ layout, bounds, heat = false, showRooms = true, showVents = true, children, label }: { layout: Layout; bounds?: Bounds; heat?: boolean; showRooms?: boolean; showVents?: boolean; children?: ReactNode; label: string }) {
   const box = bounds ?? boundsOf(layout);
   const unit = Math.max(box.width, box.height) / 60; // Schriftgröße passend zur Map
