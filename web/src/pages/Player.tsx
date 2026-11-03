@@ -10,6 +10,7 @@ import { useMe } from '../lib/me';
 import { Async, Avatar, BarList, Form, PlayerLink, RoundList, Section, StatCard } from '../components/ui';
 import { Title } from '../components/motion';
 import { ProfileEditor } from '../components/ProfileEditor';
+import { BadgeSection } from '../components/Badges';
 
 const SHOWCASE_ICON: Record<Metric['group'], ReactNode> = {
   Allgemein: <Trophy className="icon" />,
@@ -107,6 +108,8 @@ function ProfileView({ profile }: { profile: Profile }) {
       )}
 
       <div className="grid grid--stats">{statCards(p, custom?.showcase ?? [])}</div>
+
+      {profile.badges && profile.badges.length > 0 && <BadgeSection badges={profile.badges} />}
 
       <Section title="Nach Team">
         <div className="grid grid--3">

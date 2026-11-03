@@ -336,6 +336,11 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - Bestenliste (seit 01.11.2026, Kilian: „etwas übersichtlicher, alles in eine Liste geworfen“): Bereiche Allgemein/Crew/
   Impostor/Unterwegs (`GROUPS` in `metrics.ts`) → Kärtchen je Kennzahl mit Top 3 (Handy: zum Wischen) → Podest →
   Tabelle ab Platz 4 (Suche zeigt alle), „Du: Platz N“ für Angemeldete.
+- **Abzeichen im Profil** (03.11.2026, Kilian: Erfolge/Abzeichen wie „5 Impostor-Siege in Folge“): `web/Badges.kt` berechnet
+  26 Abzeichen live aus den Runden (nichts gespeichert, gilt rückwirkend, auch für unverknüpfte Spieler) in vier Gruppen
+  (Serien, Momente, Laufbahn, Pech gehabt), je drei Stufen Bronze/Silber/Gold mit der Runde, in der sie erreicht wurden, und
+  Seltenheit (Anteil der Spieler mit mindestens Bronze). Unabhängig von den Bot-Erfolgen (`/erfolge`, XP). Neue Abzeichen in
+  `BADGES` anhängen, ids nie umbenennen, Symbol in `ICONS` (`web/src/components/Badges.tsx`, `BadgesTest` prüft beides).
 - **Hilfe & Mods** (02.11.2026, Kilian: „ein Teil auf der Website wo die Tutorials und Mod downloads sind“, „man soll auch alle
   Rollen nachgucken können“): `web/Guides.kt` + `web/Downloads.kt`, Seite `pages/Guides.tsx` (`/hilfe` Tutorials, `/hilfe/downloads`,
   `/downloads` leitet um), Stil in `web/src/guides.css`. **Tutorials** = `TUTORIALS` des Bots (ohne „Alle Special-Rollen erklärt“)

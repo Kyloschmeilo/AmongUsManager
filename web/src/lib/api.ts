@@ -143,11 +143,32 @@ export interface ProfileCustom {
   showcase: string[];
 }
 
+/** Abzeichen im Profil (web/Badges.kt): drei Stufen, live aus den Runden berechnet. */
+export interface Badge {
+  id: string;
+  group: string;
+  name: string;
+  description: string;
+  unit: string;
+  /** Bronze, Silber, Gold */
+  tiers: number[];
+  value: number;
+  /** laufende Serie (nur Serien) */
+  current: number | null;
+  /** 0 = noch nicht, 1 Bronze, 2 Silber, 3 Gold */
+  tier: number;
+  /** Runde, in der Stufe 1, 2, 3 erreicht wurde */
+  reached: { gameId: string; endedAt: string }[];
+  /** Anteil der Spieler mit mindestens Bronze */
+  rarity: number | null;
+}
+
 export interface Profile {
   player: PlayerSummary;
   ingameName: string;
   custom: ProfileCustom | null;
   names: string[];
+  badges?: Badge[];
   roles: RoleRow[];
   maps: { mapId: number; map: string; games: number; wins: number }[];
   victims: { player: PlayerRef; count: number }[];
