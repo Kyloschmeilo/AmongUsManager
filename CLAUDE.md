@@ -336,6 +336,12 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - Bestenliste (seit 01.11.2026, Kilian: „etwas übersichtlicher, alles in eine Liste geworfen“): Bereiche Allgemein/Crew/
   Impostor/Unterwegs (`GROUPS` in `metrics.ts`) → Kärtchen je Kennzahl mit Top 3 (Handy: zum Wischen) → Podest →
   Tabelle ab Platz 4 (Suche zeigt alle), „Du: Platz N“ für Angemeldete.
+- **Spieler-Vergleich** (03.11.2026, Kilian: Profile nebeneinander + Duell-Bilanz): `/vergleich?a=<Schlüssel>&b=<Schlüssel>`
+  (`pages/Compare.tsx`, `compare.css`), API `GET /api/compare/<a>/<b>` (`StatsSnapshot.compareJson`, Cache je Paar). Aus allen
+  gemeinsamen Runden: gegeneinander (Siege beider, aufgeteilt a-Impostor/b-Crew, umgekehrt, mit Neutralen; je Map; Verlauf),
+  im selben Team (zusammen gewonnen), Kills/Stimmen/Rauswählen untereinander, länger überlebt, letzte 12 gemeinsame Runden;
+  dazu alle Kennzahlen Kopf an Kopf. Farben = Spielfarben der beiden (bei gleicher Farbe rechts grau). Einstieg: Knopf
+  „Vergleichen“/„Mit mir vergleichen“ im Profil, Link in der Bestenliste. Test: `comparesTwoPlayersHeadToHead`.
 - **Hilfe & Mods** (02.11.2026, Kilian: „ein Teil auf der Website wo die Tutorials und Mod downloads sind“, „man soll auch alle
   Rollen nachgucken können“): `web/Guides.kt` + `web/Downloads.kt`, Seite `pages/Guides.tsx` (`/hilfe` Tutorials, `/hilfe/downloads`,
   `/downloads` leitet um), Stil in `web/src/guides.css`. **Tutorials** = `TUTORIALS` des Bots (ohne „Alle Special-Rollen erklärt“)

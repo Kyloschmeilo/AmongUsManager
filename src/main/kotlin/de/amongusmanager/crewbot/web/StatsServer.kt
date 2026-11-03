@@ -179,6 +179,7 @@ class StatsServer(
             parts == listOf("overview") -> snapshot.overviewJson
             parts == listOf("players") -> snapshot.playersJson
             parts.size == 2 && parts[0] == "players" -> snapshot.playerJson(parts[1])
+            parts.size == 3 && parts[0] == "compare" -> snapshot.compareJson(parts[1], parts[2])
             parts == listOf("rounds") -> snapshot.roundsJson(
                 offset = query["offset"]?.toIntOrNull() ?: 0,
                 limit = query["limit"]?.toIntOrNull() ?: 30,

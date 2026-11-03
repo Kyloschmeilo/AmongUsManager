@@ -181,6 +181,56 @@ open class StatsWebsiteTest {
     }
 
     @Test
+    fun comparesTwoPlayersHeadToHead() {
+        val s = setup()
+        s.store.refresh()
+        val snapshot = s.store.snapshot
+        val kilian = shortHash("crewstats-web:d:100")
+        val mia = shortHash("crewstats-web:d:101")
+        val tom = shortHash("crewstats-web:f:tom#9012")
+
+        // Kilian (Crew) gegen Mia (Impostor) – in beiden Runden gewinnt die Crew
+        val duel = json(assertNotNull(snapshot.compareJson(kilian, mia)))
+        assertEquals("Kilian", duel.getValue("a").jsonObject.str("name"))
+        assertEquals("Mia", duel.getValue("b").jsonObject.str("name"))
+        assertEquals(2, duel.int("shared"))
+        val against = duel.getValue("against").jsonObject
+        assertEquals(2, against.int("games"))
+        assertEquals(2, against.int("aWins"))
+        assertEquals(0, against.int("bWins"))
+        val bImpostor = against.getValue("bImpostor").jsonObject
+        assertEquals(2, bImpostor.int("games"))
+        assertEquals(0, bImpostor.int("bWins"))
+        assertEquals(0, against.getValue("aImpostor").jsonObject.int("games"))
+        assertEquals(0, duel.getValue("together").jsonObject.int("games"))
+        val votes = duel.getValue("votes").jsonObject
+        assertTrue(votes.int("aVotedB") >= 1)
+        assertEquals(votes.int("aVotedB"), votes.int("aVotedBImpostor"))
+        assertTrue(votes.int("aEjectedB") >= 1)
+        assertEquals(listOf("a", "a"), duel.getValue("form").jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(2, duel.getValue("rounds").jsonArray.size)
+
+        // umgedreht: Seiten tauschen
+        val reverse = json(assertNotNull(snapshot.compareJson(mia, kilian)))
+        assertEquals(2, reverse.getValue("against").jsonObject.int("bWins"))
+        assertEquals(2, reverse.getValue("against").jsonObject.getValue("aImpostor").jsonObject.int("games"))
+
+        // Kilian und Tom immer zusammen in der Crew, beide gewinnen
+        val team = json(assertNotNull(snapshot.compareJson(kilian, tom))).getValue("together").jsonObject
+        assertEquals(2, team.int("games"))
+        assertEquals(2, team.int("wins"))
+
+        // Mia hat Tom getötet
+        assertTrue(json(snapshot.compareJson(mia, tom)!!).getValue("kills").jsonObject.int("aKilledB") >= 1)
+
+        assertNull(snapshot.compareJson(kilian, kilian))
+        assertNull(snapshot.compareJson(kilian, "gibtsnicht"))
+        for (code in listOf("kilian#1234", "mia#5678", "tom#9012")) {
+            assertFalse(code in String(snapshot.compareJson(kilian, tom)!!, Charsets.UTF_8), "Friendcode im Vergleich")
+        }
+    }
+
+    @Test
     fun readOnlyDatabaseIsNotChanged() {
         val s = setup()
         assertFailsWith<Exception> { s.reader.update("DELETE FROM round_raw") }
@@ -229,6 +279,8 @@ open class StatsWebsiteTest {
         assertEquals(404, get("/api/rounds/$UNDONE_ID").statusCode())
         assertEquals(404, get("/api/gibtsnicht").statusCode())
         assertEquals(200, get("/api/players/${shortHash("crewstats-web:d:100")}").statusCode())
+        assertEquals(200, get("/api/compare/${shortHash("crewstats-web:d:100")}/${shortHash("crewstats-web:d:101")}").statusCode())
+        assertEquals(404, get("/api/compare/${shortHash("crewstats-web:d:100")}/gibtsnicht").statusCode())
         assertEquals(405, get("/api/overview", method = "POST").statusCode())
 
         // Seiten: index.html für jede App-Adresse, fehlende Dateien 404, nichts außerhalb von web/
