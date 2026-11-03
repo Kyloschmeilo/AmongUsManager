@@ -63,6 +63,13 @@ export interface PlayerSummary {
   skips: number;
   crewVotes: number;
   correctVotes: number;
+  crewSkips: number;
+  rightEjections: number;
+  wrongEjections: number;
+  impostorVotes: number;
+  deceptions: number;
+  suspectedAsCrew: number;
+  suspectedAsImpostor: number;
   distance: number;
   detailGames: number;
   ventUses: number;
@@ -152,6 +159,9 @@ export interface Profile {
   maps: { mapId: number; map: string; games: number; wins: number }[];
   victims: { player: PlayerRef; count: number }[];
   killers: { player: PlayerRef; count: number }[];
+  wrongSuspects: { player: PlayerRef; count: number }[];
+  suspectedBy: { player: PlayerRef; count: number }[];
+  caughtBy: { player: PlayerRef; count: number }[];
   partners: { player: PlayerRef; games: number; wins: number }[];
   deathCauses: { cause: string; count: number }[];
   form: boolean[];

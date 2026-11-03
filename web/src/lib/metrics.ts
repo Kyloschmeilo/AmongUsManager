@@ -43,6 +43,11 @@ export const METRICS: Metric[] = [
     value: (p) => ratio(p.correctVotes, p.crewVotes), format: (p) => pct(p.correctVotes, p.crewVotes), detail: (p) => `${num(p.correctVotes)} von ${num(p.crewVotes)} Stimmen`, eligible: (p) => p.crewVotes >= 8
   },
   {
+    id: 'ejections', label: 'Richtige Rauswürfe', group: 'Crew', description: 'Rauswürfe, bei denen man als Crewmate mitgestimmt hat: wie oft flog dabei ein Impostor raus statt eines Crewmates.', minLabel: 'ab 5 Rauswürfen',
+    value: (p) => ratio(p.rightEjections, p.rightEjections + p.wrongEjections), format: (p) => pct(p.rightEjections, p.rightEjections + p.wrongEjections),
+    detail: (p) => `${num(p.rightEjections)} Impostor, ${num(p.wrongEjections)} Crewmates`, eligible: (p) => p.rightEjections + p.wrongEjections >= 5
+  },
+  {
     id: 'tasks', label: 'Aufgaben', group: 'Crew', description: 'Erledigte Aufgaben als Crewmate.',
     value: (p) => p.tasksDone, format: (p) => num(p.tasksDone), detail: (p) => `${pct(p.tasksDone, p.tasksTotal)} erledigt`, eligible: (p) => p.tasksTotal > 0
   },
@@ -61,6 +66,10 @@ export const METRICS: Metric[] = [
   {
     id: 'imprate', label: 'Impostor-Siegquote', group: 'Impostor', description: 'Siege als Impostor.', minLabel: 'ab 3 Impostor-Runden',
     value: (p) => ratio(p.impostorWins, p.impostorGames), format: (p) => pct(p.impostorWins, p.impostorGames), detail: (p) => `${num(p.impostorWins)} von ${num(p.impostorGames)}`, eligible: (p) => p.impostorGames >= 3
+  },
+  {
+    id: 'deceptions', label: 'Crew getäuscht', group: 'Impostor', description: 'Als Impostor für einen Crewmate gestimmt, der dann rausgewählt wurde.',
+    value: (p) => p.deceptions, format: (p) => num(p.deceptions), detail: (p) => `${num(p.impostorVotes)} Stimmen auf Crewmates`, eligible: (p) => p.deceptions > 0
   },
   {
     id: 'sabotages', label: 'Sabotagen', group: 'Impostor', description: 'Gestartete Sabotagen (seit CrewStats 1.5.0).',
@@ -82,7 +91,7 @@ export const metric = (id: string): Metric => METRICS.find((m) => m.id === id) ?
 export const GROUPS: { id: Metric['group']; label: string; caption: string }[] = [
   { id: 'Allgemein', label: 'Allgemein', caption: 'Siege, Runden, Überleben' },
   { id: 'Crew', label: 'Crew', caption: 'Aufgaben, Stimmen, Meldungen' },
-  { id: 'Impostor', label: 'Impostor', caption: 'Kills und Sabotagen' },
+  { id: 'Impostor', label: 'Impostor', caption: 'Kills, Täuschung, Sabotagen' },
   { id: 'Details', label: 'Unterwegs', caption: 'Strecke und Reparaturen' }
 ];
 

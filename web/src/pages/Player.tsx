@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { Clock, Crosshair, Footprints, HeartPulse, PenLine, ShieldCheck, Skull, Swords, Trophy, Vote, Wind, Wrench } from 'lucide-react';
+import { Clock, Crosshair, Eye, EyeOff, Footprints, HeartPulse, PenLine, ShieldCheck, Skull, Swords, Trophy, UserX, Vote, Wind, Wrench } from 'lucide-react';
 import { useApi, type PlayerSummary, type Profile, type PlayerRef } from '../lib/api';
 import { ago, date, distance, duration, num, pct } from '../lib/format';
 import { TEAM_COLOR, TEAM_LABEL, deathCause, teamPillClass } from '../lib/labels';
@@ -158,6 +158,8 @@ function ProfileView({ profile }: { profile: Profile }) {
         </div>
       </Section>
 
+      <VoteSection profile={profile} />
+
       <div className="grid grid--2">
         <Section title="Maps">
           <div className="panel panel--pad">
@@ -220,5 +222,45 @@ function RivalList({ icon, title, rows, empty }: { icon: React.ReactNode; title:
         </ol>
       )}
     </div>
+  );
+}
+
+/** Verdachts-Statistik: wie oft man zu Recht oder zu Unrecht gestimmt hat und wer wen verdächtigt. */
+function VoteSection({ profile }: { profile: Profile }) {
+  const p = profile.player;
+  const wrong = p.crewVotes - p.correctVotes;
+  const crewTotal = p.crewVotes + p.crewSkips;
+  const ejections = p.rightEjections + p.wrongEjections;
+  if (crewTotal === 0 && p.impostorVotes === 0 && p.suspectedAsCrew + p.suspectedAsImpostor === 0) return null;
+  const share = (n: number) => `${crewTotal ? (n / crewTotal) * 100 : 0}%`;
+  return (
+    <Section title="Abstimmungen" eyebrow="zu Recht oder zu Unrecht verdächtigt">
+      {crewTotal > 0 && (
+        <div className="panel panel--pad stack" style={{ gap: 12 }}>
+          <div className="vote-legend">
+            <span><i style={{ background: TEAM_COLOR.IMPOSTOR }} />Impostor getroffen <b className="mono">{num(p.correctVotes)}</b></span>
+            <span><i style={{ background: TEAM_COLOR.CREW }} />Crewmate verdächtigt <b className="mono">{num(wrong)}</b></span>
+            <span><i className="vote-skip" />Übersprungen <b className="mono">{num(p.crewSkips)}</b></span>
+          </div>
+          <div className="split" aria-label={`Als Crew: ${p.correctVotes} richtig, ${wrong} falsch, ${p.crewSkips} übersprungen`}>
+            {p.correctVotes > 0 && <div style={{ width: share(p.correctVotes), background: TEAM_COLOR.IMPOSTOR }} />}
+            {wrong > 0 && <div style={{ width: share(wrong), background: TEAM_COLOR.CREW }} />}
+            {p.crewSkips > 0 && <div className="vote-skip" style={{ width: share(p.crewSkips) }} />}
+          </div>
+          <span className="caption">Alle Stimmen als Crewmate. Stimmen gegen Neutrale zählen weder richtig noch falsch.</span>
+        </div>
+      )}
+      <div className="grid grid--stats">
+        <StatCard icon={<Vote className="icon" />} label="Richtige Stimmen" value={0} raw={pct(p.correctVotes, p.crewVotes)} chip="als Crew" caption={`${num(p.correctVotes)} von ${num(p.crewVotes)} Stimmen auf Spieler`} />
+        <StatCard icon={<UserX className="icon" />} label="Richtige Rauswürfe" value={0} raw={pct(p.rightEjections, ejections)} chip="mitgestimmt" caption={`${num(p.rightEjections)} × Impostor, ${num(p.wrongEjections)} × Crewmate rausgewählt`} />
+        <StatCard icon={<EyeOff className="icon" />} label="Zu Unrecht verdächtigt" value={p.suspectedAsCrew} chip="als Crew" caption={`Stimmen von Crewmates in ${num(p.crewGames)} Crew-Runden`} />
+        <StatCard icon={<Eye className="icon" />} label="Durchschaut" value={p.suspectedAsImpostor} chip="als Impostor" caption={`Stimmen von Crewmates · ${num(p.deceptions)} × selbst einen Crewmate mit rausgewählt`} />
+      </div>
+      <div className="grid grid--3">
+        <RivalList icon={<EyeOff className="icon" />} title="Verdächtigst du zu Unrecht" empty="Noch nie einen Crewmate verdächtigt." rows={profile.wrongSuspects.map((v) => ({ player: v.player, text: `${num(v.count)} ×` }))} />
+        <RivalList icon={<Vote className="icon" />} title="Verdächtigt dich zu Unrecht" empty="Noch nie zu Unrecht verdächtigt." rows={profile.suspectedBy.map((v) => ({ player: v.player, text: `${num(v.count)} ×` }))} />
+        <RivalList icon={<Eye className="icon" />} title="Durchschaut dich als Impostor" empty="Als Impostor noch nie erwischt." rows={profile.caughtBy.map((v) => ({ player: v.player, text: `${num(v.count)} ×` }))} />
+      </div>
+    </Section>
   );
 }
