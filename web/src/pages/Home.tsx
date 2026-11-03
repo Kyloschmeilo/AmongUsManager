@@ -8,6 +8,7 @@ import { metric, rank } from '../lib/metrics';
 import { Async, Avatar, BarList, Empty, Leaderboard, RoundList, Section, StatCard } from '../components/ui';
 import { Count, reducedMotion, useGrow } from '../components/motion';
 import { MapView } from '../components/MapView';
+import { CrewDrift } from '../components/CrewDrift';
 
 export function Home() {
   const overview = useApi<Overview>('overview');
@@ -25,7 +26,8 @@ export function Home() {
               />
             ) : (
               <>
-                <div className="grid grid--stats">
+                {players.data && players.data.players.length > 0 && <CrewDrift players={players.data.players} />}
+                <div className="grid grid--stats grid--tally">
                   <StatCard icon={<Trophy className="icon" />} label="Runden" value={o.rounds} caption={`${num(o.replays)} mit Replay`} />
                   <StatCard icon={<Users className="icon" />} label="Spieler" value={o.players} caption={`Runde dauert im Schnitt ${duration(o.totals.avgDuration)}`} />
                   <StatCard icon={<Skull className="icon" />} label="Kills" value={o.totals.kills} caption={`dazu ${num(o.totals.ejections)}× rausgewählt`} />

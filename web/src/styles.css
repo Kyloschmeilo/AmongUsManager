@@ -706,3 +706,108 @@ button { font: inherit; color: inherit; }
   .mapcard .split { transition: gap .2s ease-out; }
   .mapcard:hover .split { gap: 5px; }
 }
+
+/* ---------- Mehr Leben: Crew im All, Sternenhimmel, Farbakzente ---------- */
+/* Sternenhimmel hinter der ganzen Seite: winzige Punkte, keine Unschärfe, kaum sichtbar */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .5;
+  background-image:
+    radial-gradient(circle at 23px 41px, #eeebe3 0 .8px, transparent 1.3px),
+    radial-gradient(circle at 141px 97px, #7cc6e4 0 .9px, transparent 1.4px),
+    radial-gradient(circle at 87px 163px, #eeebe3 0 .6px, transparent 1.1px),
+    radial-gradient(circle at 211px 12px, #eeebe3 0 .7px, transparent 1.2px),
+    radial-gradient(circle at 263px 139px, #f2584c 0 .7px, transparent 1.2px);
+  background-size: 290px 210px;
+}
+body { background: transparent; }
+#root { position: relative; z-index: 0; }
+
+/* Band mit allen Spielern als treibende Crewmates */
+.drift {
+  position: relative; width: 100vw; margin: 0 calc(50% - 50vw); height: 230px; overflow: hidden;
+  background: linear-gradient(180deg, #090b10, #0c1018 60%, #090b10);
+  border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+}
+.drift__stars {
+  position: absolute; inset: -30px; pointer-events: none;
+  background-image:
+    radial-gradient(circle at 17px 23px, #eeebe3 0 .9px, transparent 1.4px),
+    radial-gradient(circle at 93px 71px, #eeebe3 0 .6px, transparent 1.1px),
+    radial-gradient(circle at 151px 19px, #7cc6e4 0 .9px, transparent 1.4px),
+    radial-gradient(circle at 57px 121px, #eeebe3 0 .7px, transparent 1.2px),
+    radial-gradient(circle at 181px 131px, #f2b52c 0 .8px, transparent 1.3px);
+  background-size: 200px 150px; opacity: .55;
+  transform: translate(calc(var(--px, 0) * -14px), calc(var(--py, 0) * -8px));
+  transition: transform .4s ease-out;
+}
+.drift__stars--near {
+  background-image:
+    radial-gradient(circle at 40px 60px, #fff 0 1.3px, transparent 1.9px),
+    radial-gradient(circle at 230px 150px, #cfe9f3 0 1.1px, transparent 1.7px),
+    radial-gradient(circle at 330px 40px, #fff 0 1px, transparent 1.6px);
+  background-size: 380px 230px; opacity: .7;
+  transform: translate(calc(var(--px, 0) * -34px), calc(var(--py, 0) * -18px));
+}
+.drift__label {
+  position: absolute; left: max(var(--gutter), calc(50vw - var(--content) / 2)); bottom: 14px; z-index: 4; pointer-events: none; padding: 6px 12px 6px 10px; background: #090b10e6; border-left: 3px solid var(--accent);
+  display: flex; align-items: baseline; gap: 10px; font: 600 22px/26px var(--font-display); color: var(--ink); text-transform: uppercase; letter-spacing: .02em;
+}
+.drift__label b { font-size: 40px; line-height: 40px; color: var(--accent); }
+.drift__label span { font: 400 14px/18px var(--font-sans); text-transform: none; letter-spacing: 0; color: var(--ink-faint); }
+.drift__mate { position: absolute; left: var(--x); z-index: 1; display: block; width: var(--size); color: var(--ink); }
+.drift__mate:hover { z-index: 3; color: var(--ink); }
+.drift__body { display: block; }
+.drift__body svg { display: block; width: var(--size); height: auto; transform: rotate(-12deg); filter: drop-shadow(0 0 0 transparent); }
+.drift__mate:hover .drift__body svg { transform: rotate(0) scale(1.18); }
+.drift__tag {
+  position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translate(-50%, 4px); opacity: 0; pointer-events: none;
+  padding: 5px 9px; background: var(--ink); color: var(--surface-0); white-space: nowrap; border-radius: 2px;
+  font: 600 16px/18px var(--font-display); transition: opacity .12s ease-out, transform .12s ease-out;
+}
+.drift__tag small { display: block; font: 500 12px/15px var(--font-sans); color: #4a4f5c; }
+.drift__mate:hover .drift__tag, .drift__mate:focus-visible .drift__tag { opacity: 1; transform: translate(-50%, 0); }
+@media (max-width: 720px) { .drift { height: 190px; } .drift__label b { font-size: 32px; } .drift__label span { display: none; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .drift__mate { left: 0; animation: drift var(--speed) linear infinite; animation-delay: var(--delay); }
+  .drift__body { animation: bob 3.4s ease-in-out infinite alternate; animation-delay: var(--delay); }
+  .drift__body svg { animation: tumble var(--spin) linear infinite var(--dir); transition: transform .2s ease-out; }
+  .drift__mate:hover, .drift__mate:hover .drift__body, .drift__mate:hover .drift__body svg,
+  .drift__mate:focus-visible, .drift__mate:focus-visible .drift__body, .drift__mate:focus-visible .drift__body svg { animation-play-state: paused; }
+  .drift__stars { animation: twinkle 5s ease-in-out infinite alternate; }
+  .drift__stars--near { animation-duration: 7s; animation-delay: -3s; }
+}
+@keyframes drift { from { transform: translateX(-90px); } to { transform: translateX(calc(100vw + 90px)); } }
+@keyframes bob { from { transform: translateY(calc(var(--bob) * -1)); } to { transform: translateY(var(--bob)); } }
+@keyframes tumble { from { rotate: 0deg; } to { rotate: 360deg; } }
+@keyframes twinkle { from { opacity: .35; } to { opacity: .75; } }
+
+/* Kennzahlen der Startseite: jede mit ihrer Farbe oben */
+.grid--tally > .stat { position: relative; border-top: 3px solid var(--tone, var(--rule)); }
+.grid--tally > .stat:nth-child(1) { --tone: var(--ink); }
+.grid--tally > .stat:nth-child(2) { --tone: var(--accent); }
+.grid--tally > .stat:nth-child(3) { --tone: var(--ember); }
+.grid--tally > .stat:nth-child(3) .stat__value { color: var(--ember); }
+.grid--tally > .stat:nth-child(4) { --tone: var(--gold); }
+
+/* Platz 1–3 in Listen: Streifen in Gold/Silber/Bronze */
+.board li:nth-child(-n+3), .lb-card li:nth-child(-n+3) { box-shadow: inset 3px 0 0 var(--medal); padding-left: 8px; }
+.board li:nth-child(1), .lb-card li:nth-child(1) { --medal: var(--gold); background: linear-gradient(90deg, #f2b52c14, transparent 60%); }
+.board li:nth-child(2), .lb-card li:nth-child(2) { --medal: #c9ccd3; }
+.board li:nth-child(3), .lb-card li:nth-child(3) { --medal: #c98a52; }
+.board li:nth-child(2) .rank, .lb-card li:nth-child(2) .rank { color: #c9ccd3; }
+.board li:nth-child(3) .rank, .lb-card li:nth-child(3) .rank { color: #c98a52; }
+
+/* Rundenzeilen: Streifen in der Farbe des Siegerteams */
+.round-row { box-shadow: inset 3px 0 0 var(--team, transparent); padding-left: 12px; }
+.round-row--crew { --team: var(--accent); }
+.round-row--impostor { --team: var(--ember); }
+.round-row--neutral { --team: var(--neutral); }
+.round-row--crew:hover { background: linear-gradient(90deg, #7cc6e41a, var(--surface-1) 40%); }
+.round-row--impostor:hover { background: linear-gradient(90deg, #f2584c1a, var(--surface-1) 40%); }
+.round-row--neutral:hover { background: linear-gradient(90deg, #c493ec1a, var(--surface-1) 40%); }
+
+/* Abschnittsköpfe: kurzes Farbstück auf der Linie */
+.section__head { position: relative; }
+.section__head::before { content: ''; position: absolute; left: 0; top: -3px; width: 56px; height: 3px; background: var(--ember); }
+.grid.grid--tally > .stat.stat { border-top: 3px solid var(--tone, var(--rule)); }

@@ -170,7 +170,7 @@ export function Roster({ roster }: { roster: RoundItem['roster'] }) {
 
 export function RoundRow({ round, extra }: { round: RoundItem; extra?: ReactNode }) {
   return (
-    <Link className="round-row" to={`/runden/${round.gameId}`}>
+    <Link className={`round-row round-row--${(round.winningTeam ?? "").toLowerCase()}`} to={`/runden/${round.gameId}`}>
       <span className="round-row__when">
         <b>{day(round.endedAt)} {dayMonth(round.endedAt)}</b>
         <span className="caption">{time(round.endedAt)} Uhr</span>

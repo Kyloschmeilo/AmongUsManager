@@ -273,7 +273,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Lila-Verläufe/Glas/Blur/Emojis/Floskeln/gleiche Hover überall): Sichtfeld um den Zeiger über der Karte im Kopf (`Vision`
   in `Home.tsx`, wie Licht-Sabotage), Spielstand hebt beim Hover den Team-Anteil im Balken hervor, Nav-Strich rutscht zum
   aktiven Punkt, in der Rundenliste springen die Impostor hoch, Ranglisten-Crewmates hüpfen, Podest wackelt, Rekordwert
-  rückt nach rechts – jede Stelle anders, alles unter `prefers-reduced-motion: no-preference` (Ende von `styles.css`). Seiten: Übersicht, Bestenliste, Spielerprofil, Runden, Runde mit
+  rückt nach rechts, Band „N an Bord“ auf der Startseite mit allen Spielern als im All treibenden Crewmates (`CrewDrift.tsx`, Hover hält an + Name/Siege, Klick = Profil, Sterne folgen dem Zeiger), feiner Sternenhimmel hinter der Seite, Platz 1–3 mit Gold/Silber/Bronze-Streifen, Rundenzeilen mit Streifen in Siegerteam-Farbe (02.11.2026, Kilian: „etwas mehr leben“) – jede Stelle anders, alles unter `prefers-reduced-motion: no-preference` (Ende von `styles.css`). Seiten: Übersicht, Bestenliste, Spielerprofil, Runden, Runde mit
   **Replay** (GSAP-Zeitleiste über die Laufwege, Kills/Meetings/Sabotagen), Maps (Laufwege-Heatmap, Kill-Orte), Rollen.
   **Bauen:** `cd web && npm install && npm run build` → schreibt nach `src/main/resources/web/` (wird **mit committet**,
   damit Gradle/Windows ohne Node bauen kann), danach `gradlew statsWebsiteJar`. Entwickeln: Website-JAR auf 8080
