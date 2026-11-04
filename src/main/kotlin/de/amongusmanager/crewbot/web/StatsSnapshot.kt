@@ -160,6 +160,17 @@ class StatsSnapshot private constructor(
     private val profileCache = ConcurrentHashMap<String, ByteArray>()
     private val mapCache = ConcurrentHashMap<Int, ByteArray>()
 
+    /** Abzeichen aller Spieler (einmal je Snapshot, für Profile und Seltenheit). */
+    private val badges: Map<String, List<BadgeResult>> by lazy {
+        players.mapValues { (_, p) -> Badges.evaluate(p.rounds.asReversed().map { (view, index) -> BadgeRound(view.round, view.round.players[index]) }) }
+    }
+
+    /** Anteil der Spieler mit mindestens Bronze je Abzeichen. */
+    private val badgeRarity: Map<String, Double> by lazy {
+        val total = badges.size.coerceAtLeast(1).toDouble()
+        BADGES.associate { def -> def.id to badges.values.count { list -> list.any { it.def.id == def.id && it.tier > 0 } } / total }
+    }
+
     val roundCount: Int get() = views.size
 
     fun view(gameId: String): RoundView? = byGameId[gameId]
@@ -378,6 +389,7 @@ class StatsSnapshot private constructor(
                 )
             },
             "names" to p.names.keys.toList(),
+            "badges" to Badges.json(badges[p.key] ?: emptyList(), badgeRarity),
             "roles" to p.roles.values.sortedByDescending { it.games }.map { roleRow(it) },
             "maps" to p.maps.entries.sortedByDescending { it.value[0] }
                 .map { (mapId, v) -> obj("mapId" to mapId, "map" to (maps[mapId]?.name ?: "?"), "games" to v[0], "wins" to v[1]) },

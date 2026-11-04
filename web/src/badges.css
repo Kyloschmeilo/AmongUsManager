@@ -1,0 +1,66 @@
+/* Abzeichen im Profil (components/Badges.tsx). Plakette = schräg gestellte Raute in der Farbe der Stufe,
+   offene Abzeichen nur als Umriss. Farben nur mit Bedeutung: Bronze/Silber/Gold wie Platz 1–3 der Listen. */
+
+.badges { display: flex; flex-direction: column; gap: var(--space-6); }
+.badges__label {
+  margin: 0 0 var(--space-2); font: 600 13px/16px var(--font-display); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.badges__list {
+  list-style: none; margin: 0; padding: 0; display: grid; gap: 0 var(--space-6);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); border-top: 1px solid var(--rule);
+}
+
+.badge { --tier: var(--border-control); display: flex; gap: var(--space-4); padding: var(--space-4) 0; border-bottom: 1px solid var(--border); min-width: 0; }
+.badge--t1 { --tier: #c98a52; }
+.badge--t2 { --tier: #c9ccd3; }
+.badge--t3 { --tier: var(--gold); }
+
+.badge__plate {
+  flex: none; position: relative; width: 44px; height: 44px; margin: 4px 4px 0;
+  display: grid; place-items: center; color: var(--tier);
+}
+.badge__plate::before {
+  content: ''; position: absolute; inset: 4px; transform: rotate(45deg); border-radius: var(--radius-md);
+  border: 2px solid var(--tier); background: color-mix(in srgb, var(--tier) 14%, transparent);
+}
+.badge__plate .icon { position: relative; width: 20px; height: 20px; }
+.badge--t0 .badge__plate { color: var(--ink-faint); }
+.badge--t0 .badge__plate::before { border-style: dashed; border-width: 1px; background: none; }
+.badge--t3 .badge__plate::before { background: var(--gold); }
+.badge--t3 .badge__plate { color: var(--on-gold); }
+
+.badge__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.badge__head { display: flex; align-items: baseline; gap: var(--space-2); }
+.badge__name { font: 600 19px/22px var(--font-display); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge__tier { margin-left: auto; flex: none; font: 600 12px/16px var(--font-display); letter-spacing: .06em; text-transform: uppercase; color: var(--tier); }
+.badge--t0 .badge__tier, .badge--t0 .badge__name { color: var(--ink-faint); }
+.badge__desc { margin: 0; font: 400 14px/19px var(--font-sans); color: var(--ink-muted); }
+
+/* Drei Kerben mit den Zielwerten, erreichte gefüllt */
+.badge__steps { display: flex; gap: 4px; }
+.badge__steps span {
+  min-width: 34px; padding: 1px 6px; border: 1px solid var(--border-control); border-radius: var(--radius-sm);
+  font: 600 12px/16px var(--font-display); text-align: center; color: var(--ink-faint); font-variant-numeric: tabular-nums;
+}
+.badge__steps span.on { border-color: var(--tier); color: var(--tier); }
+
+.badge__progress { display: flex; align-items: center; gap: var(--space-3); }
+.badge__track { flex: 1; height: 3px; background: var(--border); }
+.badge__fill { height: 100%; background: var(--tier); }
+.badge--t0 .badge__fill { background: var(--ink-faint); }
+.badge__value { flex: none; font: 500 13px/16px var(--font-sans); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.badge__meta a { color: var(--accent); }
+
+/* Reaktiv: beim Darüberfahren dreht sich die Plakette wie eine Münze einmal um, der Balken füllt sich nach */
+@media (prefers-reduced-motion: no-preference) {
+  .badge__plate { transition: transform .5s cubic-bezier(.3, .7, .2, 1); }
+  .badge:hover .badge__plate { transform: rotateY(180deg); }
+  .badge:hover .badge__plate .icon { transform: scaleX(-1); }
+  .badge__fill { transform-origin: left; animation: badge-fill .8s cubic-bezier(.2, .7, .2, 1) both .1s; }
+}
+@keyframes badge-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (max-width: 720px) {
+  .badges__list { grid-template-columns: 1fr; }
+}
