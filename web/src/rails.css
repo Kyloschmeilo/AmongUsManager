@@ -1,0 +1,88 @@
+/* Breite Bildschirme (03.11.2026, Kilian: „am PC sieht die Seite links und rechts sehr leer aus“).
+   1. Der Inhalt wächst mit: 1200 px → bis 1600 px.
+   2. Ab 1600 px stehen links und rechts feste Leisten im freien Rand (components/SideRails.tsx):
+      links das Inhaltsverzeichnis der Seite an einem HUD-Lineal, rechts die letzten Runden als Funkprotokoll
+      mit einem treibenden Crewmate. Linien statt Kästen, Farben nur mit Bedeutung (Team-Farbe des Siegers). */
+
+@media (min-width: 1760px) { :root { --content: 1320px; } }
+@media (min-width: 2000px) { :root { --content: 1440px; } }
+@media (min-width: 2400px) { :root { --content: 1600px; } }
+
+.rail {
+  --rail-w: clamp(130px, calc((100vw - var(--content)) / 2 - 72px), 220px);
+  position: fixed; top: 108px; bottom: 40px; z-index: 5; width: var(--rail-w);
+  display: flex; flex-direction: column; gap: var(--space-5); min-height: 0;
+}
+/* Abstand zum Inhalt: 40 px vom Textrand */
+.rail--left { right: calc(50% + var(--content) / 2 + 40px); }
+.rail--right { left: calc(50% + var(--content) / 2 + 40px); }
+
+.rail__head { display: flex; flex-direction: column; gap: 2px; padding-top: var(--space-2); border-top: 3px solid var(--rule-strong); position: relative; }
+.rail__head::before { content: ''; position: absolute; left: 0; top: -3px; width: 24px; height: 3px; background: var(--ember); }
+.rail--right .rail__head::before { background: var(--accent); }
+.rail__eyebrow { font: 600 12px/16px var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+.rail__title { font: 600 22px/26px var(--font-display); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Links: Inhaltsverzeichnis an einem Lineal (Striche wie im HUD, alle 8 px, jeder fünfte länger) */
+.rail__index, .rail__ruler { position: relative; }
+.rail__index { list-style: none; margin: 0; padding: 0 0 0 22px; display: flex; flex-direction: column; overflow-y: auto; scrollbar-width: none; }
+.rail__index::-webkit-scrollbar { display: none; }
+.rail__index::before, .rail__ruler::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 10px; pointer-events: none; opacity: .55;
+  background:
+    repeating-linear-gradient(180deg, var(--rule) 0 1px, transparent 1px 8px) left top / 6px 100% no-repeat,
+    repeating-linear-gradient(180deg, var(--ink-faint) 0 1px, transparent 1px 40px) left top / 10px 100% no-repeat;
+}
+.rail__ruler { flex: 1; max-height: 420px; }
+.rail__index li { position: relative; }
+.rail__index button {
+  display: flex; align-items: baseline; gap: 10px; width: 100%; padding: 7px 0; border: 0; background: none; cursor: pointer;
+  text-align: left; color: var(--ink-faint); font: 500 15px/19px var(--font-sans);
+}
+.rail__index button:hover { color: var(--ink); }
+.rail__num { flex: none; width: 18px; font: 600 12px/19px var(--font-display); letter-spacing: .04em; color: var(--ink-faint); }
+.rail__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Marker am Lineal: kurzer Strich, beim aktiven Abschnitt lang und rot */
+.rail__index li::before {
+  content: ''; position: absolute; left: -22px; top: 16px; width: 10px; height: 2px; background: var(--rule);
+  transition: width .2s ease-out, background .2s ease-out;
+}
+.rail__index li.is-past::before { background: var(--ink-faint); }
+.rail__index li.is-active::before { width: 16px; background: var(--ember); }
+.rail__index li.is-active button { color: var(--ink); }
+.rail__index li.is-active .rail__num { color: var(--ember); }
+
+/* Rechts: Funkprotokoll der letzten Runden */
+.rail__log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.rail__log a {
+  display: flex; flex-direction: column; gap: 1px; padding: 8px 0 8px 12px; border-bottom: 1px solid var(--border);
+  box-shadow: inset 2px 0 0 var(--team); color: var(--ink);
+  transition: box-shadow .15s ease-out, background .15s ease-out;
+}
+.rail__log li:first-child a { border-top: 1px solid var(--border); }
+.rail__map { font: 600 17px/20px var(--font-display); }
+.rail__meta { font: 400 13px/17px var(--font-sans); color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rail__meta b { font-weight: 500; color: var(--team); }
+.rail__log a:hover { color: var(--ink); box-shadow: inset 4px 0 0 var(--team); background: linear-gradient(90deg, #ffffff08, transparent 80%); }
+.rail__more { align-self: flex-start; font: 500 14px/18px var(--font-sans); }
+.rail__more::after { content: ' →'; }
+
+/* Ein Crewmate aus der letzten Runde treibt unten im Rand */
+.rail__drifter { position: relative; flex: 1; min-height: 90px; pointer-events: none; }
+.rail__drifter svg { position: absolute; left: 30%; bottom: 10%; width: 38px; height: auto; transform: rotate(-18deg); opacity: .9; }
+
+@media (max-height: 760px) { .rail__drifter { display: none; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .rail { animation: rail-in .5s cubic-bezier(.2, .7, .2, 1) both .15s; }
+  .rail__drifter svg { animation: rail-float 26s ease-in-out infinite alternate, tumble 40s linear infinite; }
+}
+@keyframes rail-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rail-float {
+  0% { left: 4%; bottom: 8%; }
+  50% { left: 58%; bottom: 46%; }
+  100% { left: 22%; bottom: 72%; }
+}
+
+/* Das Band mit den treibenden Crewmates (Startseite) zieht beim Scrollen VOR den Leisten vorbei. */
+.drift { z-index: 6; }

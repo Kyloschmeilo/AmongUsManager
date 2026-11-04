@@ -102,3 +102,9 @@ export function useStagger(ref: RefObject<HTMLElement | null>, deps: unknown[] =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 }
+
+/** Weich zu einem Element scrollen (mit Lenis, sonst normal); `offset` = Platz für die Kopfzeile. */
+export function scrollToElement(el: HTMLElement, offset = 84): void {
+  if (lenis) lenis.scrollTo(el, { offset: -offset });
+  else window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - offset, behavior: reducedMotion() ? 'auto' : 'smooth' });
+}

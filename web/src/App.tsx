@@ -18,7 +18,9 @@ import { MeProvider } from './lib/me';
 import { PermissionProvider, usePermissions } from './lib/control';
 import { EventsPage } from './pages/Events';
 import { AdminPage } from './pages/Admin';
+import { SideRails } from './components/SideRails';
 import './control.css';
+import './rails.css';
 
 const NAV = [
   { to: '/', label: 'Übersicht', end: true },
@@ -137,6 +139,7 @@ export function App() {
         </div>
       </header>
       <ScrollProgress />
+      <SideRails />
       <main id="inhalt" className="wrap">
         <LoginNotice />
         <RouteFade>
