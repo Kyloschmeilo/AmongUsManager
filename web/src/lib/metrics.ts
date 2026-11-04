@@ -1,4 +1,5 @@
 // Kennzahlen der Bestenliste: Wert, Anzeige, Mindestanzahl Runden (damit 1 Glücksrunde nicht Platz 1 ist).
+// Siegquoten zählen erst ab der ersten Niederlage (Kilian, 04.11.2026), sonst stehen 100-%-Spieler immer oben.
 import type { PlayerSummary } from './api';
 import { dec, distance, duration, num, pct, ratio } from './format';
 
@@ -23,8 +24,8 @@ export const METRICS: Metric[] = [
     value: (p) => p.wins, format: (p) => num(p.wins), detail: (p) => `${pct(p.wins, p.games)} von ${games(p)}`, eligible: (p) => p.games > 0
   },
   {
-    id: 'winrate', label: 'Siegquote', group: 'Allgemein', description: 'Anteil gewonnener Runden.', minLabel: 'ab 5 Runden',
-    value: (p) => ratio(p.wins, p.games), format: (p) => pct(p.wins, p.games), detail: (p) => `${num(p.wins)} von ${games(p)}`, eligible: (p) => p.games >= 5
+    id: 'winrate', label: 'Siegquote', group: 'Allgemein', description: 'Anteil gewonnener Runden.', minLabel: 'ab 5 Runden und 1 Niederlage',
+    value: (p) => ratio(p.wins, p.games), format: (p) => pct(p.wins, p.games), detail: (p) => `${num(p.wins)} von ${games(p)}`, eligible: (p) => p.games >= 5 && p.wins < p.games
   },
   {
     id: 'games', label: 'Runden', group: 'Allgemein', description: 'Gespielte Runden.',
@@ -35,8 +36,8 @@ export const METRICS: Metric[] = [
     value: (p) => ratio(p.survived, p.games), format: (p) => pct(p.survived, p.games), detail: (p) => `${num(p.survived)} von ${games(p)}`, eligible: (p) => p.games >= 5
   },
   {
-    id: 'crewrate', label: 'Crew-Siegquote', group: 'Crew', description: 'Siege als Crewmate.', minLabel: 'ab 5 Crew-Runden',
-    value: (p) => ratio(p.crewWins, p.crewGames), format: (p) => pct(p.crewWins, p.crewGames), detail: (p) => `${num(p.crewWins)} von ${num(p.crewGames)}`, eligible: (p) => p.crewGames >= 5
+    id: 'crewrate', label: 'Crew-Siegquote', group: 'Crew', description: 'Siege als Crewmate.', minLabel: 'ab 5 Crew-Runden und 1 Niederlage',
+    value: (p) => ratio(p.crewWins, p.crewGames), format: (p) => pct(p.crewWins, p.crewGames), detail: (p) => `${num(p.crewWins)} von ${num(p.crewGames)}`, eligible: (p) => p.crewGames >= 5 && p.crewWins < p.crewGames
   },
   {
     id: 'votes', label: 'Richtige Stimmen', group: 'Crew', description: 'Stimmen als Crewmate gegen einen Impostor, im Verhältnis zu allen Stimmen auf Spieler.', minLabel: 'ab 8 Stimmen',
@@ -64,8 +65,8 @@ export const METRICS: Metric[] = [
     value: (p) => ratio(p.impostorKills, p.impostorGames), format: (p) => dec(ratio(p.impostorKills, p.impostorGames)), detail: (p) => `${num(p.impostorKills)} Kills in ${num(p.impostorGames)} Runden`, eligible: (p) => p.impostorGames >= 3
   },
   {
-    id: 'imprate', label: 'Impostor-Siegquote', group: 'Impostor', description: 'Siege als Impostor.', minLabel: 'ab 3 Impostor-Runden',
-    value: (p) => ratio(p.impostorWins, p.impostorGames), format: (p) => pct(p.impostorWins, p.impostorGames), detail: (p) => `${num(p.impostorWins)} von ${num(p.impostorGames)}`, eligible: (p) => p.impostorGames >= 3
+    id: 'imprate', label: 'Impostor-Siegquote', group: 'Impostor', description: 'Siege als Impostor.', minLabel: 'ab 3 Impostor-Runden und 1 Niederlage',
+    value: (p) => ratio(p.impostorWins, p.impostorGames), format: (p) => pct(p.impostorWins, p.impostorGames), detail: (p) => `${num(p.impostorWins)} von ${num(p.impostorGames)}`, eligible: (p) => p.impostorGames >= 3 && p.impostorWins < p.impostorGames
   },
   {
     id: 'deceptions', label: 'Crew getäuscht', group: 'Impostor', description: 'Als Impostor für einen Crewmate gestimmt, der dann rausgewählt wurde.',
