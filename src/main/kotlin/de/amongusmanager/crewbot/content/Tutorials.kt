@@ -142,10 +142,13 @@ val TUTORIALS: List<Tutorial> = listOf(
                     "1. Lade die Datei `TheOtherRoles-Installer.bat` herunter – sie ist im Discord gepostet und liegt" +
                         " auf der Stats-Website unter Downloads",
                     "2. Doppelklicken. Warnt Windows, klick **Weitere Informationen → Trotzdem ausführen**",
-                    "3. Enter drücken – der Installer findet Among Us, legt daneben eine eigene Kopie für die Mod an" +
-                        " und installiert dort alles. Dein normales Among Us bleibt unverändert",
+                    "3. Enter drücken – der Installer findet Among Us (Steam oder Epic Games). Bei Steam legt er" +
+                        " daneben eine eigene Kopie für die Mod an, dein normales Among Us bleibt unverändert",
                     "4. Starte die Mod über die neue Desktop-Verknüpfung **Among Us - The Other Roles** (Steam muss" +
                         " laufen). Über Steam startest du weiter das normale Among Us",
+                    "Epic Games: Die Mod kommt direkt in dein Among Us (Epic startet nur diesen Ordner). Mit Mod" +
+                        " spielen: Verknüpfung **Among Us - The Other Roles**, ohne Mod: **Among Us - ohne The Other" +
+                        " Roles** – beide starten das Spiel über Epic. Fragt Windows nach Administratorrechten, erlauben",
                     "Der erste Start dauert 1–2 Minuten. Neue Version oder Among-Us-Update? Installer nochmal" +
                         " starten. Deinstallieren: Installer starten und `2` wählen",
                 ),
@@ -158,7 +161,7 @@ val TUTORIALS: List<Tutorial> = listOf(
                         " Auf den normalen Among-Us-Servern geht die Mod nicht",
                     "Hosts: Lass CrewStats an (der Installer übernimmt es, wenn du es hast) – es verhindert Kicks," +
                         " wenn jemand deiner Lobby beitritt",
-                    "Nur für Among Us auf Steam (Windows, 64-Bit). Die Mod selbst: [GitHub]($TOR_GITHUB)",
+                    "Für Among Us auf Steam oder Epic Games (Windows, 64-Bit). Die Mod selbst: [GitHub]($TOR_GITHUB)",
                 ),
             ),
             TutorialSection(

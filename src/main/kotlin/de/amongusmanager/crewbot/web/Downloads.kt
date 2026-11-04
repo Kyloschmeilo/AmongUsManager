@@ -186,8 +186,8 @@ class Downloads(
             "title" to "The Other Roles",
             "game" to "Among Us",
             "audience" to "Für alle Spieler",
-            "summary" to "Über 90 neue Rollen für Among Us. Der Installer legt eine eigene Kopie von Among Us mit der Mod an – " +
-                "dein normales Among Us bleibt unverändert.",
+            "summary" to "Über 90 neue Rollen für Among Us (Steam oder Epic Games). Bei Steam legt der Installer eine eigene " +
+                "Kopie von Among Us mit der Mod an – dein normales Among Us bleibt unverändert.",
             "version" to tor?.tag,
             "versionNote" to tor?.let { "Der Installer lädt immer die neueste Version der Mod (gerade ${it.tag})." },
             "publishedAt" to tor?.publishedAt,
@@ -195,11 +195,13 @@ class Downloads(
             "missing" to if (torInstaller == null) "Den Installer gibt es gerade nur im Discord – frag einen Admin." else null,
             "steps" to listOf(
                 "Installer herunterladen und doppelklicken. Warnt Windows, auf **Weitere Informationen → Trotzdem ausführen** klicken",
-                "Enter drücken – der Installer findet Among Us über Steam und installiert alles in die Kopie **Among Us - The Other Roles**",
-                "Spielen über die neue Desktop-Verknüpfung (Steam muss laufen). Der erste Start dauert 1–2 Minuten",
+                "Enter drücken – der Installer findet Among Us über Steam oder Epic Games und installiert alles",
+                "Spielen über die neue Desktop-Verknüpfung **Among Us - The Other Roles** (Steam: Steam muss laufen). Der erste Start dauert 1–2 Minuten",
             ),
             "points" to listOf(
                 "Gespielt wird auf **Modded NA** – der Installer stellt den Server schon ein",
+                "Epic Games: Die Mod kommt direkt in dein Among Us. Ohne Mod spielen: Verknüpfung **Among Us - ohne The Other Roles**. " +
+                    "Fragt Windows nach Administratorrechten, erlauben",
                 "**Alle in der Lobby** brauchen die Mod in derselben Version",
                 "Hosts und alle mit Auto-Join: erst CrewStats installieren, dann diesen Installer – er übernimmt CrewStats " +
                     "samt URLs. Hosts: lass es an, es verhindert Kicks, wenn jemand der Lobby beitritt",
@@ -243,7 +245,7 @@ class Downloads(
             "missing" to null,
             "steps" to listOf(
                 "Installer herunterladen und doppelklicken (Warnung: **Weitere Informationen → Trotzdem ausführen**)",
-                "Enter drücken – er installiert BepInEx (64-Bit) und die Mod in dein normales Among Us",
+                "Enter drücken – er findet Among Us (Steam oder Epic Games) und installiert BepInEx (64-Bit) und die Mod",
                 "Nur Hosts: Die **Webhook-URL** bekommst du von einem Admin. Sie ist geheim – nicht weitergeben. " +
                     "Alle anderen drücken Enter",
                 "Für Auto-Join bei **Auto-Join-URL** die URL einfügen, die dir /autojoin im Discord zeigt",
