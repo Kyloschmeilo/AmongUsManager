@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { Clock, Crosshair, Eye, EyeOff, Footprints, HeartPulse, PenLine, ShieldCheck, Skull, Swords, Trophy, UserX, Vote, Wind, Wrench } from 'lucide-react';
+import { ArrowLeftRight, Clock, Crosshair, Eye, EyeOff, Footprints, HeartPulse, PenLine, ShieldCheck, Skull, Swords, Trophy, UserX, Vote, Wind, Wrench } from 'lucide-react';
 import { useApi, type PlayerSummary, type Profile, type PlayerRef } from '../lib/api';
 import { ago, date, distance, duration, num, pct } from '../lib/format';
 import { TEAM_COLOR, TEAM_LABEL, deathCause, teamPillClass } from '../lib/labels';
@@ -109,12 +109,20 @@ function ProfileView({ profile }: { profile: Profile }) {
             {otherNames.length > 0 && <span className="caption">Auch gespielt als {otherNames.slice(0, 6).join(', ')}</span>}
           </div>
           {p.crewmate && profile.look && <LookFigure src={p.crewmate} look={profile.look} />}
-          {isMe && !editing && (
-            <button type="button" className="btn profile-hero__edit" onClick={() => setEditing(true)}>
-              <PenLine className="icon icon--sm" aria-hidden="true" />
-              Profil bearbeiten
-            </button>
-          )}
+          <div className="row profile-hero__edit" style={{ gap: 8 }}>
+            {!editing && (
+              <Link className="btn" to={`/vergleich?a=${p.key}${me?.player && !isMe ? `&b=${me.player.key}` : ''}`}>
+                <ArrowLeftRight className="icon icon--sm" aria-hidden="true" />
+                {me?.player && !isMe ? 'Mit mir vergleichen' : 'Vergleichen'}
+              </Link>
+            )}
+            {isMe && !editing && (
+              <button type="button" className="btn" onClick={() => setEditing(true)}>
+                <PenLine className="icon icon--sm" aria-hidden="true" />
+                Profil bearbeiten
+              </button>
+            )}
+          </div>
         </div>
         {profile.form.length > 0 && (
           <div className="row" style={{ gap: 12 }}>

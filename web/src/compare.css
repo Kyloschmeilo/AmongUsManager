@@ -1,0 +1,80 @@
+/* Spieler-Vergleich (/vergleich): zwei Seiten in den Spielfarben der Spieler (--ca links, --cb rechts). */
+
+.vs-pick { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; gap: var(--space-4); }
+.vs-pick__swap { align-self: center; }
+.vs-pick__player { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) 0; border-top: 3px solid var(--pc); min-width: 0; }
+.vs-pick__player--b { flex-direction: row-reverse; text-align: right; }
+.vs-pick__player--b .stack { align-items: flex-end; }
+.vs-pick__name { font: 700 34px/36px var(--font-display); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.vs-pick__name:hover { color: var(--accent-hover); }
+.vs-pick__change { margin-left: auto; color: var(--ink-faint); }
+.vs-pick__player--b .vs-pick__change { margin-left: 0; margin-right: auto; }
+.vs-pick__search { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.vs-pick__search .search { min-width: 0; }
+.vs-pick__list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.vs-pick__list li { border-bottom: 1px solid var(--border); }
+.vs-pick__list li.caption { padding: var(--space-2) 0; }
+.vs-pick__list button {
+  display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); width: 100%;
+  padding: 6px var(--space-2); border: 0; background: transparent; color: var(--ink); font: 500 15px/20px var(--font-sans); text-align: left; cursor: pointer;
+}
+.vs-pick__list button:hover, .vs-pick__list button:focus-visible { background: var(--surface-1); outline: 0; }
+.vs-pick__list .player__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.compare { display: flex; flex-direction: column; gap: var(--space-20); }
+
+.duel-a { color: var(--ca); }
+.duel-b { color: var(--cb); }
+.duel__a { background: var(--ca); }
+.duel__b { background: var(--cb); }
+.duel__none { background: var(--surface-2); }
+.duel__line { grid-template-columns: minmax(0, auto) auto minmax(0, auto); }
+.duel__side .score__team { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.duel__side--a .score__num { color: var(--ca); }
+.duel__side--b .score__num { color: var(--cb); }
+.duel__side--a .score__team { box-shadow: inset 0 -2px 0 var(--ca); align-self: flex-start; }
+.duel__side--b .score__team { box-shadow: inset 0 -2px 0 var(--cb); align-self: flex-start; }
+.duel__split > div { min-width: 4px; }
+.form i.duel__f { background: var(--surface-2); box-shadow: none; }
+.form i.duel__f--a { background: var(--ca); }
+.form i.duel__f--b { background: var(--cb); }
+.form i.duel__f--both { background: linear-gradient(var(--ca) 50%, var(--cb) 50%); }
+.duel-big { font: 700 40px/40px var(--font-display); color: var(--ink); }
+.duel-round { display: block; font-size: 14px; white-space: normal; }
+
+.vs-table { padding-top: var(--space-2); }
+.vs-row { display: grid; grid-template-columns: 96px minmax(0, 1fr) 96px; align-items: center; gap: var(--space-4); padding: 8px 0; border-bottom: 1px solid var(--border); }
+.vs-row:last-child { border-bottom: 0; }
+.vs-row--head { padding: 0 0 var(--space-2); font: 600 15px/20px var(--font-display); letter-spacing: .05em; text-transform: uppercase; }
+.vs-row--head span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vs-row__a, .vs-row__b { font: 600 22px/24px var(--font-display); color: var(--ink-muted); white-space: nowrap; }
+.vs-row__b { text-align: right; }
+.vs-row__a.is-lead { color: var(--ink); box-shadow: inset 3px 0 0 var(--ca); padding-left: 8px; }
+.vs-row__b.is-lead { color: var(--ink); box-shadow: inset -3px 0 0 var(--cb); padding-right: 8px; }
+.vs-row__mid { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; text-align: center; }
+.vs-row__label { font: 500 15px/20px var(--font-sans); color: var(--ink); }
+.vs-row__bar { position: relative; display: block; width: 100%; height: 4px; background: var(--surface-2); }
+.vs-row__bar i { position: absolute; top: 0; bottom: 0; }
+.vs-row__bar i.duel__a { right: 50%; }
+.vs-row__bar i.duel__b { left: 50%; }
+
+@media (max-width: 720px) {
+  .vs-pick { grid-template-columns: 1fr; }
+  .vs-pick__swap { justify-self: center; }
+  .vs-pick__player--b { flex-direction: row; text-align: left; }
+  .vs-pick__player--b .stack { align-items: flex-start; }
+  .vs-pick__player--b .vs-pick__change { margin-left: auto; margin-right: 0; }
+  .vs-pick__name { font-size: 28px; line-height: 30px; }
+  .vs-row { grid-template-columns: 64px minmax(0, 1fr) 64px; gap: var(--space-2); }
+  .vs-row__a, .vs-row__b { font-size: 18px; }
+  /* Rundenliste: zweite Spalte nicht breiter werden lassen, sonst rutscht der Sieger-Pill unter die Dauer */
+  .duel-round { max-width: 190px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .vs-row__bar i { transition: width .5s cubic-bezier(.2, .8, .2, 1); }
+  .vs-row:hover .vs-row__bar { height: 8px; }
+  .vs-row__bar { transition: height .2s ease-out; }
+  .vs-pick__swap .icon { transition: transform .3s cubic-bezier(.3, 1.6, .5, 1); }
+  .vs-pick__swap:hover:not([disabled]) .icon { transform: rotate(180deg); }
+}

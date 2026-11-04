@@ -28,6 +28,7 @@ export function Leaderboard() {
       <div className="page-head">
         <Title text="Bestenliste" className="page-title" />
         <p className="lead">Erst einen Bereich wählen, dann eine Kennzahl. Quoten zählen erst ab ein paar Runden, damit eine Glücksrunde nicht reicht.</p>
+        <Link className="board__more" to="/vergleich">Zwei Spieler direkt vergleichen</Link>
       </div>
       <Async state={players}>
         {(data) => (

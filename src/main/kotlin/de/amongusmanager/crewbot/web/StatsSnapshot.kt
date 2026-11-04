@@ -159,6 +159,7 @@ class StatsSnapshot private constructor(
     private val byGameId = views.associateBy { it.round.gameId }
     private val profileCache = ConcurrentHashMap<String, ByteArray>()
     private val mapCache = ConcurrentHashMap<Int, ByteArray>()
+    private val compareCache = ConcurrentHashMap<String, ByteArray>()
 
     /** Abzeichen aller Spieler (einmal je Snapshot, für Profile und Seltenheit). */
     private val badges: Map<String, List<BadgeResult>> by lazy {
@@ -217,6 +218,18 @@ class StatsSnapshot private constructor(
     fun playerJson(key: String): ByteArray? {
         val player = players[key] ?: return null
         return profileCache.getOrPut(key) { bytes(profile(player)) }
+    }
+
+    /** Zwei Spieler im Vergleich inkl. Duell-Bilanz, null = einer unbekannt oder beide gleich. */
+    fun compareJson(a: String, b: String): ByteArray? {
+        if (a == b) return null
+        val first = players[a] ?: return null
+        val second = players[b] ?: return null
+        val cacheKey = "$a|$b"
+        compareCache[cacheKey]?.let { return it }
+        val body = bytes(compare(first, second))
+        if (compareCache.size < 2000) compareCache[cacheKey] = body
+        return body
     }
 
     fun mapJson(mapId: Int): ByteArray? {
@@ -419,6 +432,143 @@ class StatsSnapshot private constructor(
                     ),
                 )
             },
+        )
+    }
+
+    /**
+     * Vergleich zweier Spieler: beide Kurzfassungen, dazu alle gemeinsamen Runden – im selben Team (zusammen
+     * gewonnen?) oder gegeneinander (wer gewann, aufgeteilt nach Impostor gegen Crew), Kills und Stimmen
+     * untereinander und die letzten gemeinsamen Runden.
+     */
+    private fun compare(a: PlayerAcc, b: PlayerAcc): JsonObject {
+        class Side { var games = 0; var aWins = 0; var bWins = 0 }
+        var shared = 0
+        var togetherGames = 0
+        var togetherWins = 0
+        val togetherTeams = linkedMapOf(CREW to IntArray(2), IMPOSTOR to IntArray(2), NEUTRAL to IntArray(2))
+        val against = Side()
+        val aImpostor = Side() // a Impostor, b Crew
+        val bImpostor = Side() // b Impostor, a Crew
+        val neutral = Side() // mindestens einer neutral
+        var aKilledB = 0
+        var bKilledA = 0
+        var aVotedB = 0
+        var aVotedBImpostor = 0
+        var bVotedA = 0
+        var bVotedAImpostor = 0
+        var aEjectedB = 0
+        var bEjectedA = 0
+        var aSurvivedLonger = 0
+        var bSurvivedLonger = 0
+        var lastAWin: Instant? = null
+        var lastBWin: Instant? = null
+        val sharedRounds = ArrayList<JsonObject>()
+        val form = ArrayList<String>() // nur gegeneinander, neueste zuerst: "a", "b", "both" (Sondersieg o.ä.), "none"
+        val maps = HashMap<Int, IntArray>() // gegeneinander: games, aWins, bWins
+
+        for ((view, ai) in a.rounds) {
+            val bi = view.keys.indexOf(b.key)
+            if (bi < 0 || bi == ai) continue
+            val r = view.round
+            val pa = r.players[ai]
+            val pb = r.players[bi]
+            shared++
+            val sameTeam = pa.team == pb.team && !pa.isNeutral
+            if (sameTeam) {
+                togetherGames++
+                val both = pa.won && pb.won
+                if (both) togetherWins++
+                togetherTeams[pa.team]?.let { it[0]++; if (both) it[1]++ }
+            } else {
+                against.games++
+                if (pa.won) against.aWins++
+                if (pb.won) against.bWins++
+                val side = when {
+                    pa.isImpostor && pb.isCrew -> aImpostor
+                    pb.isImpostor && pa.isCrew -> bImpostor
+                    else -> neutral
+                }
+                side.games++
+                if (pa.won) side.aWins++
+                if (pb.won) side.bWins++
+                maps.getOrPut(r.mapId) { IntArray(3) }.let { it[0]++; if (pa.won) it[1]++; if (pb.won) it[2]++ }
+                form += when {
+                    pa.won && !pb.won -> "a"
+                    pb.won && !pa.won -> "b"
+                    pa.won -> "both"
+                    else -> "none"
+                }
+                if (pa.won && !pb.won && lastAWin == null) lastAWin = r.endedAt
+                if (pb.won && !pa.won && lastBWin == null) lastBWin = r.endedAt
+            }
+            for (kill in r.kills) {
+                if (kill.killer == pa.playerId && kill.victim == pb.playerId) aKilledB++
+                if (kill.killer == pb.playerId && kill.victim == pa.playerId) bKilledA++
+            }
+            for (meeting in r.meetings) {
+                for (vote in meeting.votes) {
+                    if (vote.voter == pa.playerId && vote.target == pb.playerId) { aVotedB++; if (pb.isImpostor) aVotedBImpostor++ }
+                    if (vote.voter == pb.playerId && vote.target == pa.playerId) { bVotedA++; if (pa.isImpostor) bVotedAImpostor++ }
+                }
+                if (meeting.exiled == pb.playerId && meeting.votes.any { it.voter == pa.playerId && it.target == pb.playerId }) aEjectedB++
+                if (meeting.exiled == pa.playerId && meeting.votes.any { it.voter == pb.playerId && it.target == pa.playerId }) bEjectedA++
+            }
+            val aEnd = if (pa.died) pa.diedAt else null
+            val bEnd = if (pb.died) pb.diedAt else null
+            when {
+                pa.died && !pb.died && !pb.disconnected -> bSurvivedLonger++
+                pb.died && !pa.died && !pa.disconnected -> aSurvivedLonger++
+                aEnd != null && bEnd != null && aEnd > bEnd -> aSurvivedLonger++
+                aEnd != null && bEnd != null && bEnd > aEnd -> bSurvivedLonger++
+            }
+            if (sharedRounds.size < PROFILE_ROUNDS) {
+                fun me(p: WebPlayer) = obj(
+                    "role" to roleName(roleIdOf(p)),
+                    "team" to p.team,
+                    "won" to p.won,
+                    "kills" to p.kills,
+                    "dead" to p.isDead,
+                    "deathCause" to p.deathCause,
+                )
+                sharedRounds += obj("round" to roundItem(view), "together" to sameTeam, "a" to me(pa), "b" to me(pb))
+            }
+        }
+
+        fun side(s: Side) = obj("games" to s.games, "aWins" to s.aWins, "bWins" to s.bWins)
+        return obj(
+            "a" to playerSummary(a),
+            "b" to playerSummary(b),
+            "shared" to shared,
+            "together" to obj(
+                "games" to togetherGames,
+                "wins" to togetherWins,
+                "teams" to togetherTeams.map { (team, v) -> obj("team" to team, "games" to v[0], "wins" to v[1]) },
+            ),
+            "against" to obj(
+                "games" to against.games,
+                "aWins" to against.aWins,
+                "bWins" to against.bWins,
+                "aImpostor" to side(aImpostor),
+                "bImpostor" to side(bImpostor),
+                "neutral" to side(neutral),
+                "lastAWin" to lastAWin,
+                "lastBWin" to lastBWin,
+                "maps" to maps.entries.sortedByDescending { it.value[0] }.map { (mapId, v) ->
+                    obj("mapId" to mapId, "map" to (this.maps[mapId]?.name ?: MAP_NAMES[mapId] ?: "?"), "games" to v[0], "aWins" to v[1], "bWins" to v[2])
+                },
+            ),
+            "kills" to obj("aKilledB" to aKilledB, "bKilledA" to bKilledA),
+            "votes" to obj(
+                "aVotedB" to aVotedB,
+                "aVotedBImpostor" to aVotedBImpostor,
+                "bVotedA" to bVotedA,
+                "bVotedAImpostor" to bVotedAImpostor,
+                "aEjectedB" to aEjectedB,
+                "bEjectedA" to bEjectedA,
+            ),
+            "survival" to obj("aLonger" to aSurvivedLonger, "bLonger" to bSurvivedLonger),
+            "form" to form.take(20),
+            "rounds" to sharedRounds,
         )
     }
 

@@ -453,3 +453,45 @@ export function useApi<T>(path: string | null): Loadable<T> {
   }, [path, generation]);
   return state;
 }
+
+// ---------- Vergleich zweier Spieler (/api/compare/<a>/<b>) ----------
+
+export interface DuelSide {
+  games: number;
+  aWins: number;
+  bWins: number;
+}
+
+export interface CompareRoundSide {
+  role: string;
+  team: Team;
+  won: boolean;
+  kills: number;
+  dead: boolean;
+  deathCause: string | null;
+}
+
+export interface Compare {
+  a: PlayerSummary;
+  b: PlayerSummary;
+  /** Runden, in denen beide mitgespielt haben. */
+  shared: number;
+  together: { games: number; wins: number; teams: { team: Team; games: number; wins: number }[] };
+  against: DuelSide & {
+    /** a Impostor, b Crew */
+    aImpostor: DuelSide;
+    /** b Impostor, a Crew */
+    bImpostor: DuelSide;
+    /** mindestens einer neutral */
+    neutral: DuelSide;
+    lastAWin: string | null;
+    lastBWin: string | null;
+    maps: { mapId: number; map: string; games: number; aWins: number; bWins: number }[];
+  };
+  kills: { aKilledB: number; bKilledA: number };
+  votes: { aVotedB: number; aVotedBImpostor: number; bVotedA: number; bVotedAImpostor: number; aEjectedB: number; bEjectedA: number };
+  survival: { aLonger: number; bLonger: number };
+  /** Nur Runden gegeneinander, neueste zuerst. */
+  form: ('a' | 'b' | 'both' | 'none')[];
+  rounds: { round: RoundItem; together: boolean; a: CompareRoundSide; b: CompareRoundSide }[];
+}

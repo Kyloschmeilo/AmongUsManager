@@ -383,6 +383,12 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   (Serien, Momente, Laufbahn, Pech gehabt), je drei Stufen Bronze/Silber/Gold mit der Runde, in der sie erreicht wurden, und
   Seltenheit (Anteil der Spieler mit mindestens Bronze). Unabhängig von den Bot-Erfolgen (`/erfolge`, XP). Neue Abzeichen in
   `BADGES` anhängen, ids nie umbenennen, Symbol in `ICONS` (`web/src/components/Badges.tsx`, `BadgesTest` prüft beides).
+- **Spieler-Vergleich** (03.11.2026, Kilian: Profile nebeneinander + Duell-Bilanz): `/vergleich?a=<Schlüssel>&b=<Schlüssel>`
+  (`pages/Compare.tsx`, `compare.css`), API `GET /api/compare/<a>/<b>` (`StatsSnapshot.compareJson`, Cache je Paar). Aus allen
+  gemeinsamen Runden: gegeneinander (Siege beider, aufgeteilt a-Impostor/b-Crew, umgekehrt, mit Neutralen; je Map; Verlauf),
+  im selben Team (zusammen gewonnen), Kills/Stimmen/Rauswählen untereinander, länger überlebt, letzte 12 gemeinsame Runden;
+  dazu alle Kennzahlen Kopf an Kopf. Farben = Spielfarben der beiden (bei gleicher Farbe rechts grau). Einstieg: Knopf
+  „Vergleichen“/„Mit mir vergleichen“ im Profil, Link in der Bestenliste. Test: `comparesTwoPlayersHeadToHead`.
 - **Hilfe & Mods** (02.11.2026, Kilian: „ein Teil auf der Website wo die Tutorials und Mod downloads sind“, „man soll auch alle
   Rollen nachgucken können“): `web/Guides.kt` + `web/Downloads.kt`, Seite `pages/Guides.tsx` (`/hilfe` Tutorials, `/hilfe/downloads`,
   `/downloads` leitet um), Stil in `web/src/guides.css`. **Tutorials** = `TUTORIALS` des Bots (ohne „Alle Special-Rollen erklärt“)

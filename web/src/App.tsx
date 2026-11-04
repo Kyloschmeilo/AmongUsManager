@@ -6,6 +6,7 @@ import { ago } from './lib/format';
 import { Home } from './pages/Home';
 import { Leaderboard } from './pages/Leaderboard';
 import { PlayerPage } from './pages/Player';
+import { ComparePage } from './pages/Compare';
 import { RoundsPage } from './pages/Rounds';
 import { RoundPage } from './pages/Round';
 import { MapsPage, MapPage } from './pages/Maps';
@@ -150,6 +151,7 @@ export function App() {
           <Route path="/lobbys" element={<LobbiesPage />} />
           <Route path="/bestenliste" element={<Leaderboard />} />
           <Route path="/spieler/:key" element={<PlayerPage />} />
+          <Route path="/vergleich" element={<ComparePage />} />
           <Route path="/runden" element={<RoundsPage />} />
           <Route path="/runden/:gameId" element={<RoundPage />} />
           <Route path="/maps" element={<MapsPage />} />
