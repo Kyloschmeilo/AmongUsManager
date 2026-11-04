@@ -83,6 +83,10 @@ data class WebMeeting(
     val exiled: Int?,
     val tie: Boolean,
     val votes: List<WebVote>,
+    /** Wo der Auslöser stand (Rundenformat 2), sonst null. */
+    val x: Double? = null,
+    val y: Double? = null,
+    val room: String? = null,
 )
 
 data class WebSabotage(val system: String, val atSeconds: Double, val durationSeconds: Double?, val endReason: String?)
@@ -233,6 +237,9 @@ object WebRounds {
                     // Format 1 kennt kein `skipped`: ohne Ziel zählte die Stimme dort als „übersprungen“
                     WebVote(v.int("voter") ?: -1, target, target == null && (v.bool("skipped") ?: true))
                 },
+                x = m.num("callerX"),
+                y = m.num("callerY"),
+                room = m.str("callerRoom"),
             )
         }.sortedBy { it.atSeconds }
 

@@ -123,6 +123,23 @@ open class StatsWebsiteTest {
     }
 
     @Test
+    fun mapHasKillAndMeetingPositions() {
+        val s = setup()
+        s.store.refresh()
+        val map = json(s.store.snapshot.mapJson(0)!!)
+        // nur die Archiv-Runde hat Orte (Verlauf ohne Rohdaten zählt nur mit)
+        val meetings = map.getValue("meetingPoints").jsonArray.map { it.jsonObject }
+        assertEquals(2, meetings.size)
+        assertEquals(listOf("Electrical", "Cafeteria"), meetings.map { it.str("room") })
+        assertEquals(listOf("true", "false"), meetings.map { it.getValue("report").jsonPrimitive.content })
+        assertEquals(-7.9, meetings[0].getValue("x").jsonPrimitive.content.toDouble(), 1e-6)
+        val rooms = map.getValue("roomMeetings").jsonArray.map { it.jsonObject.str("room") }.toSet()
+        assertEquals(setOf("Electrical", "Cafeteria"), rooms)
+        assertTrue(map.getValue("kills").jsonArray.isNotEmpty())
+        assertTrue(map.getValue("map").jsonObject.int("meetings") >= 2)
+    }
+
+    @Test
     fun followsNewRoundsUndoAndLinks() {
         val s = setup()
         s.store.refresh()
