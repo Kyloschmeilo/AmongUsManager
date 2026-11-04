@@ -2,14 +2,18 @@ package de.amongusmanager.crewbot
 
 import de.amongusmanager.crewbot.db.Database
 import de.amongusmanager.crewbot.services.ModRound
+import de.amongusmanager.crewbot.web.CrewLook
+import de.amongusmanager.crewbot.web.Cosmetics
 import de.amongusmanager.crewbot.web.DatabaseSource
 import de.amongusmanager.crewbot.web.PROFILE_ROUNDS
 import de.amongusmanager.crewbot.web.StatsServer
 import de.amongusmanager.crewbot.web.StatsStore
 import de.amongusmanager.crewbot.web.shortHash
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.int
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -178,6 +182,75 @@ open class StatsWebsiteTest {
         val expected = s.store.snapshot.views.map { it.round.gameId }
         assertEquals(expected, rounds.map { it.jsonObject.getValue("round").jsonObject.str("gameId") })
         assertNull(s.store.snapshot.playerJson("gibtsnicht"))
+    }
+
+    @Test
+    fun playersKeepTheirMostUsedColor() {
+        val s = setup()
+        val kilian = shortHash("crewstats-web:d:100")
+        fun play(gameId: String, endedAt: String, colorId: Int) {
+            val json = variant(gameId, endedAt = endedAt).replace("\"isHost\": true, \"colorId\": 0", "\"isHost\": true, \"colorId\": $colorId")
+            s.bot.modRounds.applyWithoutRoles(ModRound.parse(json), json)
+        }
+        fun summaryColor(): Int? {
+            s.store.refresh()
+            val players = json(s.store.snapshot.playersJson).getValue("players").jsonArray.map { it.jsonObject }
+            return players.first { it.str("key") == kilian }["colorId"]?.jsonPrimitive?.intOrNull
+        }
+        assertEquals(0, summaryColor()) // nur eine Runde mit Farbe (Rot), die alte Runde hat keine
+        // Gleichstand Rot : Pink → die zuletzt getragene Farbe
+        play("e0000000000000000000000000000006", "2026-11-01T20:06:40Z", 3)
+        assertEquals(3, summaryColor())
+        play("e0000000000000000000000000000007", "2026-11-01T21:06:40Z", 0)
+        assertEquals(0, summaryColor())
+        // überall dieselbe Farbe: Profil, Rekorde/Verweise und Runden ohne eigene Farbe
+        assertEquals(0, json(s.store.snapshot.playerJson(kilian)!!).getValue("player").jsonObject["colorId"]?.jsonPrimitive?.intOrNull)
+        assertEquals(0, s.store.snapshot.colorOf(kilian))
+        val legacy = json(assertNotNull(s.store.roundDetail(LEGACY_ID)))
+        val inLegacy = legacy.getValue("players").jsonArray.map { it.jsonObject }.first { it.str("key") == kilian }
+        assertEquals(0, inLegacy["colorId"]?.jsonPrimitive?.intOrNull)
+        // in einer Runde mit Farbe zählt die Farbe dieser Runde (wie im Replay)
+        val pink = json(assertNotNull(s.store.roundDetail("e0000000000000000000000000000006")))
+        assertEquals(3, pink.getValue("players").jsonArray.map { it.jsonObject }.first { it.str("key") == kilian }["colorId"]?.jsonPrimitive?.intOrNull)
+    }
+
+    @Test
+    fun playersShowTheirMostWornCosmetics() {
+        val s = setup()
+        val kilian = shortHash("crewstats-web:d:100")
+        fun play(gameId: String, endedAt: String, hat: String, pet: String?) {
+            val json = variant(gameId, endedAt = endedAt)
+                .replace("\"hat\": \"hat_pk05_Cheese\", \"skin\": null, \"visor\": null,", "\"hat\": \"$hat\", \"skin\": null, \"visor\": \"visor_pk01_Security1Visor\",")
+                .replace(Regex("(\"isHost\": true.*?\"pet\": )null", RegexOption.DOT_MATCHES_ALL), "$1" + (pet?.let { "\"$it\"" } ?: "null"))
+            s.bot.modRounds.applyWithoutRoles(ModRound.parse(json), json)
+        }
+        play("e0000000000000000000000000000006", "2026-11-01T20:06:40Z", "hat_paperhat", "pet_HamPet")
+        play("e0000000000000000000000000000007", "2026-11-01T21:06:40Z", "hat_paperhat", null)
+        s.store.refresh()
+        val player = json(s.store.snapshot.playersJson).getValue("players").jsonArray.map { it.jsonObject }.first { it.str("key") == kilian }
+        // Hut 2× Papierhut gegen 1× Käse, Haustier 1× Schinken gegen 2× keins, Visier 2× gegen 1× keins
+        val url = assertNotNull(player.str("crewmate"))
+        assertEquals("/api/crewmate?c=0&h=hat_paperhat&v=visor_pk01_Security1Visor", url)
+        val look = json(s.store.snapshot.playerJson(kilian)!!).getValue("look").jsonObject
+        assertEquals("Paperhat", look.getValue("hat").jsonObject.str("name"))
+        assertEquals(JsonNull, look["pet"])
+        // Spieler nur mit alten Runden (ohne Kosmetik-Daten) bekommen kein Bild
+        val legacyOnly = s.store.snapshot.views.first { it.round.fromHistory }.keys.toSet() - s.store.snapshot.views.filterNot { it.round.fromHistory }.flatMap { it.keys }.toSet()
+        for (key in legacyOnly) assertNull(json(s.store.snapshot.playerJson(key)!!).getValue("player").jsonObject.str("crewmate"))
+
+        // Bild: PNG im festen Rahmen, unbekannte Teile/Farben → nichts
+        val png = assertNotNull(Cosmetics.render(0, CrewLook("hat_paperhat", "visor_pk01_Security1Visor", "skin_D2Titan", "pet_HamPet")))
+        val image = javax.imageio.ImageIO.read(png.inputStream())
+        assertEquals(Cosmetics.FRAME_WIDTH, image.width)
+        assertEquals(Cosmetics.FRAME_HEIGHT, image.height)
+        assertNull(Cosmetics.render(0, CrewLook("hat_gibtsnicht", null, null, null)))
+        assertNull(Cosmetics.render(0, CrewLook(null, null, null, "hat_paperhat"))) // falsche Art
+        assertNull(Cosmetics.render(18, CrewLook(null, null, null, null)))
+        assertNotNull(Cosmetics.render(17, CrewLook("hat_NoHat", "visor_EmptyVisor", "skin_None", "pet_EmptyPet")))
+        assertEquals("Cheese", Cosmetics.displayName("hat_pk05_Cheese"))
+        assertEquals("Security1", Cosmetics.displayName("visor_pk01_Security1Visor").replace(" ", ""))
+        // jede Kosmetik im Bestand lässt sich zeichnen
+        assertTrue(Cosmetics.known("hat", "hat_pk05_Cheese"))
     }
 
     @Test

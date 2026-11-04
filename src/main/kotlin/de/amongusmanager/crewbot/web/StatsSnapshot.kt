@@ -45,7 +45,9 @@ private class RoleAcc(val id: String) {
 private class PlayerAcc(val key: String) {
     var discordId: Long? = null
     val names = LinkedHashMap<String, Int>() // neuester Name zuerst
-    val colors = HashMap<Int, Int>()
+    val colors = LinkedHashMap<Int, Int>() // zuletzt getragene Farbe zuerst (Runden kommen neueste zuerst)
+    /** Hut, Visier, Skin, Haustier: Id → Runden ("" = nichts), zuletzt getragenes zuerst. */
+    val looks = Array(4) { LinkedHashMap<String, Int>() }
     var games = 0
     var wins = 0
     var crewGames = 0
@@ -93,7 +95,18 @@ private class PlayerAcc(val key: String) {
 
     /** Name auf der Website: selbst gewählter Anzeigename, sonst der neueste Ingame-Name. */
     val shownName: String get() = decoration?.displayName?.takeIf { it.isNotBlank() } ?: name
+    /** Meistgenutzte Spielfarbe; bei Gleichstand die zuletzt getragene. */
     val colorId: Int? get() = colors.maxByOrNull { it.value }?.key
+
+    /** Meistgetragene Kosmetik je Art (wie die Farbe), null = keine Runde mit Kosmetik-Daten. */
+    val look: CrewLook? get() {
+        if (looks[0].isEmpty()) return null
+        fun most(i: Int) = looks[i].maxByOrNull { it.value }?.key?.takeIf { it.isNotEmpty() }
+        return CrewLook(most(0), most(1), most(2), most(3))
+    }
+
+    /** Zusammengesetztes Crewmate-Bild (Farbe + Kosmetik), null = Farbe oder Kosmetik unbekannt. */
+    val crewmate: String? get() { val c = colorId ?: return null; val l = look ?: return null; return Cosmetics.url(c, l) }
 
     /** Discord-Profilbild (über die Website ausgeliefert), null = farbiger Crewmate. */
     val avatar: String? get() = decoration?.avatarVersion?.let { "/api/avatar/$key?v=$it" }
@@ -245,7 +258,7 @@ class StatsSnapshot private constructor(
 
     private fun ref(key: String): JsonObject? {
         val player = players[key] ?: return null
-        return obj("key" to key, "name" to player.shownName, "colorId" to player.colorId, "avatar" to player.avatar)
+        return obj("key" to key, "name" to player.shownName, "colorId" to player.colorId, "avatar" to player.avatar, "crewmate" to player.crewmate)
     }
 
     private fun roundRef(view: RoundView): JsonObject = obj(
@@ -284,6 +297,7 @@ class StatsSnapshot private constructor(
             "name" to p.shownName,
             "colorId" to p.colorId,
             "avatar" to p.avatar,
+            "crewmate" to p.crewmate,
             "linked" to (p.discordId != null),
             "level" to level?.level,
             "games" to p.games,
@@ -330,6 +344,10 @@ class StatsSnapshot private constructor(
         return obj(
             "player" to playerSummary(p),
             "ingameName" to p.name,
+            "look" to p.look?.let { look ->
+                fun part(id: String?) = id?.let { obj("id" to it, "name" to Cosmetics.displayName(it)) }
+                obj("hat" to part(look.hat), "visor" to part(look.visor), "skin" to part(look.skin), "pet" to part(look.pet))
+            },
             "custom" to custom?.let { c ->
                 obj(
                     "bio" to c.bio.takeIf { it.isNotBlank() },
@@ -507,6 +525,9 @@ class StatsSnapshot private constructor(
                     acc.rounds += view to index
                     acc.names.merge(p.name, 1, Int::plus)
                     p.colorId?.let { acc.colors.merge(it, 1, Int::plus) }
+                    p.look?.normalized()?.let { look ->
+                        listOf(look.hat, look.visor, look.skin, look.pet).forEachIndexed { i, id -> acc.looks[i].merge(id ?: "", 1, Int::plus) }
+                    }
                     acc.games++
                     if (p.won) acc.wins++
                     when {

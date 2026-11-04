@@ -7,6 +7,8 @@ export interface PlayerRef {
   key: string;
   name: string;
   colorId: number | null;
+  /** Crewmate-Bild mit meistgetragener Kosmetik (Hut, Visier, Skin, Haustier), null = unbekannt. */
+  crewmate?: string | null;
   /** Discord-Profilbild (von der Website ausgeliefert), sonst farbiger Crewmate. */
   avatar?: string | null;
 }
@@ -36,6 +38,8 @@ export interface PlayerSummary {
   key: string;
   name: string;
   colorId: number | null;
+  /** Crewmate-Bild mit meistgetragener Kosmetik (Hut, Visier, Skin, Haustier), null = unbekannt. */
+  crewmate?: string | null;
   avatar?: string | null;
   linked: boolean;
   level: number | null;
@@ -146,6 +150,8 @@ export interface ProfileCustom {
 export interface Profile {
   player: PlayerSummary;
   ingameName: string;
+  /** Meistgetragene Kosmetik, null = keine Runde mit Kosmetik-Daten (vor CrewStats 1.5.0). */
+  look: Record<'hat' | 'visor' | 'skin' | 'pet', { id: string; name: string } | null> | null;
   custom: ProfileCustom | null;
   names: string[];
   roles: RoleRow[];

@@ -54,6 +54,8 @@ data class WebPlayer(
     val tasksCompleted: Int,
     val isHost: Boolean,
     val summary: WebSummary?,
+    /** Kosmetik der Runde (ab Rundenformat 2), null = unbekannt (alte Runden). */
+    val look: CrewLook? = null,
 ) {
     val isCrew: Boolean get() = team == CREW
     val isImpostor: Boolean get() = team == IMPOSTOR
@@ -193,6 +195,7 @@ object WebRounds {
                 tasksTotal = p.int("tasksTotal") ?: 0,
                 tasksCompleted = p.int("tasksCompleted") ?: 0,
                 isHost = p.bool("isHost") ?: false,
+                look = if ("hat" in p || "skin" in p || "visor" in p || "pet" in p) CrewLook(p.str("hat"), p.str("visor"), p.str("skin"), p.str("pet")) else null,
                 summary = summary?.let {
                     WebSummary(
                         distance = it.num("distance") ?: 0.0,
