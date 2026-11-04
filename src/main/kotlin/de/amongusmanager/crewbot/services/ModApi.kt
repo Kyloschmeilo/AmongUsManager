@@ -21,6 +21,7 @@ package de.amongusmanager.crewbot.services
 
 import de.amongusmanager.crewbot.core.parseJsonOrNull
 import de.amongusmanager.crewbot.db.Database
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -79,8 +80,11 @@ class ModApiSettings(private val db: Database) {
 }
 
 /**
- * Neueste Lobby-Meldung des Hosts in der Datenbank (`settings` → `lobby.current`), damit die Website Auto-Join-Fragen
- * selbst beantworten kann. Der Bot schreibt sie bei jeder Lobby-Meldung der Mod (höchstens alle paar Sekunden).
+ * Lobby-Meldungen der Hosts in der Datenbank, damit die Website sie selbst zeigen bzw. Auto-Join-Fragen beantworten kann.
+ * Der Bot schreibt bei jeder Lobby-Meldung der Mod (höchstens alle paar Sekunden):
+ *   `lobby.current` – die neueste Meldung (Auto-Join), ohne Friendcodes
+ *   `lobby.live`    – alle offenen/laufenden Lobbys (eine je Host, neueste zuerst) mit Spielerliste für die Live-Anzeige.
+ *                     Enthält Friendcodes (nur in der Datenbank – die Website macht daraus Spieler-Schlüssel).
  */
 class LobbyStore(private val db: Database) {
     fun save(event: LobbyEvent, at: Instant = Instant.now()) {
@@ -96,20 +100,76 @@ class LobbyStore(private val db: Database) {
             put("server", event.server)
             put("at", at.toEpochMilli())
         }.toString()) // ohne Friendcode des Hosts (sender) – braucht niemand
+        saveLive(event, at)
     }
 
-    /** Wie [LobbyAnnouncer.current]: neueste offene/laufende Lobby, null wenn keine (oder seit 1 h nichts gemeldet). */
+    /**
+     * Neueste offene/laufende Lobby, null wenn keine (oder seit 1 h nichts gemeldet). Schließt ein Host seine Lobby,
+     * bleibt die eines anderen Hosts erhalten (Live-Liste); ohne Live-Liste (Bot vor 2.6) wie [LobbyAnnouncer.current].
+     */
     fun current(now: Instant = Instant.now()): Pair<LobbyEvent, Instant>? {
+        if (db.getSetting(LIVE_KEY) != null) return live(now).firstOrNull()
         val text = db.getSetting(KEY) ?: return null
         val event = LobbyEvent.parse(text) ?: return null
         val millis = ((parseJsonOrNull(text) as? JsonObject)?.get("at") as? JsonPrimitive)?.longOrNull ?: return null
         val at = Instant.ofEpochMilli(millis)
-        if (event.state == "closed" || event.code.isEmpty()) return null
-        if (Duration.between(at, now) > LOBBY_STALE_AFTER) return null
+        if (!isLive(event, at, now)) return null
         return event to at
     }
 
+    /** Alle offenen/laufenden Lobbys, neueste Meldung zuerst. */
+    fun live(now: Instant = Instant.now()): List<Pair<LobbyEvent, Instant>> {
+        val array = parseJsonOrNull(db.getSetting(LIVE_KEY) ?: return emptyList()) as? JsonArray ?: return emptyList()
+        return array.mapNotNull { entry ->
+            val obj = entry as? JsonObject ?: return@mapNotNull null
+            val event = LobbyEvent.parse(obj.toString()) ?: return@mapNotNull null
+            val at = Instant.ofEpochMilli((obj["at"] as? JsonPrimitive)?.longOrNull ?: return@mapNotNull null)
+            if (isLive(event, at, now)) event to at else null
+        }
+    }
+
+    /** Eine Lobby der Live-Liste nach Code. */
+    fun find(code: String, now: Instant = Instant.now()): Pair<LobbyEvent, Instant>? =
+        live(now).firstOrNull { it.first.code.equals(code.trim(), ignoreCase = true) }
+
+    private fun saveLive(event: LobbyEvent, at: Instant) {
+        val owner = ownerOf(event)
+        val others = live(at).filter { (other, _) -> ownerOf(other) != owner && !other.code.equals(event.code, ignoreCase = true) }
+        val all = (if (isLive(event, at, at)) listOf(event to at) else emptyList()) + others
+        db.setSetting(LIVE_KEY, JsonArray(all.take(MAX_LIVE).map { (e, t) -> liveJson(e, t) }).toString())
+    }
+
+    private fun liveJson(event: LobbyEvent, at: Instant): JsonObject = buildJsonObject {
+        put("crewstats", "lobby")
+        put("state", event.state)
+        put("code", event.code)
+        put("map", event.map)
+        put("players", event.players)
+        put("max", event.maxPlayers)
+        put("host", event.host)
+        put("sender", event.sender)
+        put("region", event.region)
+        put("server", event.server)
+        put("list", JsonArray(event.list.map { p ->
+            buildJsonObject {
+                put("name", p.name)
+                put("fc", p.friendCode)
+                put("color", p.colorId)
+            }
+        }))
+        put("at", at.toEpochMilli())
+    }
+
+    /** Ein Host hat höchstens eine Lobby (Friendcode, bei alten Mods ohne den der Ingame-Name). */
+    private fun ownerOf(event: LobbyEvent): String =
+        event.sender.ifEmpty { "n:" + event.host }.lowercase()
+
+    private fun isLive(event: LobbyEvent, at: Instant, now: Instant): Boolean =
+        event.state != "closed" && event.code.isNotEmpty() && Duration.between(at, now) <= LOBBY_STALE_AFTER
+
     companion object {
         private const val KEY = "lobby.current"
+        private const val LIVE_KEY = "lobby.live"
+        private const val MAX_LIVE = 10
     }
 }

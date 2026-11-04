@@ -9,6 +9,7 @@ import { Async, Avatar, BarList, Empty, Leaderboard, RoundList, Section, StatCar
 import { Count, reducedMotion, useGrow } from '../components/motion';
 import { MapView } from '../components/MapView';
 import { CrewDrift } from '../components/CrewDrift';
+import { LiveLobbyStrip } from './Lobbies';
 
 export function Home() {
   const overview = useApi<Overview>('overview');
@@ -19,6 +20,7 @@ export function Home() {
         {(o) => (
           <>
             <Masthead overview={o} />
+            <LiveLobbyStrip />
             {o.rounds === 0 ? (
               <Empty
                 text="Noch keine Runden aufgezeichnet."

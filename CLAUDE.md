@@ -239,6 +239,14 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Discord stellt sie dem Bot sofort zu – über die Website käme alles erst per Datenbank-Polling 0,25–1 s an, und bei
   Ausfall des Website-Servers gingen Runden verloren) und das Minecraft-Plugin. Reihenfolge beim Deploy: erst CrewStats
   1.8.0 veröffentlichen, dann Bot + Website (sonst zeigt /autojoin URLs, die alte Mods ablehnen). Tests: `ModApiTest` (+ MariaDB).
+- **Live-Lobbys auf der Website** (03.11.2026, Kilian: wer gerade in welcher Lobby ist + Beitreten-Button; CrewStats 1.9.0):
+  Host-Mod schickt in der Lobby-JSON `list` ([{name, fc, color}], ≤ 20). Bot speichert neben `lobby.current` die Liste
+  `lobby.live` (eine Lobby je Host, neueste zuerst, ≤ 10, verfällt wie `LOBBY_STALE_AFTER`); `current()` nimmt dann die neueste
+  der Live-Liste. Website `web/LiveLobbies.kt`: `GET /api/lobbies` (Spieler mit Profil-Link/Level, nie Friendcodes; Code nur für
+  angemeldete + verknüpfte Spieler), `POST /api/lobbies/join` → `JoinPicks` (nur im Speicher, 3 min). Die Mod schickt mit der
+  Website-URL ihren Friendcode in `{"crewstats":"join","fc":…}` und fragt im Hauptmenü alle ~6 s (auch mit Auto-Join aus);
+  Antwort mit `pick` = auf der Website gewählt → beitreten, jede pick-id einmal. Seite `/lobbys` („Live“ in der Navigation,
+  `pages/Lobbies.tsx`, `lobbies.css`), Hinweis-Streifen auf der Startseite. Tests: `LiveLobbiesTest` (+ MariaDB). Im echten Spiel ungetestet.
 - **CrewStats-Komfort** (02.11.2026, Kilian: „pack die alle mal rein“ – Auto-Update-Hinweis, Lobby-Overlay mit eigenen
   Stats, Rundenzusammenfassung, Verknüpfen per Code, Lobby-Info, Einstellungsmenü, Verbindungsstatus, Offline-Puffer;
   CrewStats 1.7.0, alles einzeln abschaltbar unter `[Komfort]` bzw. im Spiel per **F7**). Bot: `services/ModPlayerInfo.kt`

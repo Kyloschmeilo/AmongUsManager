@@ -19,11 +19,13 @@ import { PermissionProvider, usePermissions } from './lib/control';
 import { EventsPage } from './pages/Events';
 import { AdminPage } from './pages/Admin';
 import { SideRails } from './components/SideRails';
+import { LobbiesPage } from './pages/Lobbies';
 import './control.css';
 import './rails.css';
 
 const NAV = [
   { to: '/', label: 'Übersicht', end: true },
+  { to: '/lobbys', label: 'Live' },
   { to: '/events', label: 'Events' },
   { to: '/bestenliste', label: 'Bestenliste' },
   { to: '/runden', label: 'Runden' },
@@ -145,6 +147,7 @@ export function App() {
         <RouteFade>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/lobbys" element={<LobbiesPage />} />
           <Route path="/bestenliste" element={<Leaderboard />} />
           <Route path="/spieler/:key" element={<PlayerPage />} />
           <Route path="/runden" element={<RoundsPage />} />

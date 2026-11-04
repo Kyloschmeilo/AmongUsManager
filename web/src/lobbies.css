@@ -1,0 +1,89 @@
+/* Live-Lobbys (pages/Lobbies.tsx) – im Stil der Website: Linien, Anzeigetafel-Zahlen, Farben nur mit Bedeutung.
+   Die Spieler stehen wie in der Lobby des Spiels als Crewmates in ihrer Spielfarbe nebeneinander; freie Plätze sind
+   nur als Umriss da. Live-Punkt = Visier-Blau (offen) bzw. Rot (Runde läuft). */
+
+.lobby-list { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.lobby { display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-5) var(--space-6); border-top: 3px solid var(--accent); }
+.lobby--running { border-top-color: var(--ember); }
+.lobby--mine { background: var(--accent-soft); }
+
+.lobby__head { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--space-5); flex-wrap: wrap; }
+.lobby__title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lobby__map { font: 600 34px/36px var(--font-display); color: var(--ink); }
+
+.lobby__state {
+  display: inline-flex; align-items: center; gap: 8px; font: 600 13px/18px var(--font-display); letter-spacing: .08em;
+  text-transform: uppercase; color: var(--accent);
+}
+.lobby__state--running { color: var(--ember); }
+.lobby__pulse { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+
+.lobby__count { display: grid; grid-template-columns: auto auto; align-items: baseline; justify-content: end; column-gap: 2px; min-width: 120px; }
+.lobby__num { font: 700 44px/44px var(--font-display); color: var(--ink); }
+.lobby__max { font: 500 20px/24px var(--font-display); color: var(--ink-faint); }
+.lobby__bar { grid-column: 1 / -1; height: 3px; margin-top: 6px; background: var(--border); position: relative; overflow: hidden; }
+.lobby__bar span { position: absolute; inset: 0 auto 0 0; background: var(--ink); transition: width .4s ease; }
+.lobby--running .lobby__bar span { background: var(--ember); }
+
+.lobby__crew {
+  list-style: none; margin: 0; padding: var(--space-3) 0 0; display: grid; gap: var(--space-4) var(--space-2);
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); border-top: 1px solid var(--border);
+}
+.seat { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; text-align: center; color: var(--ink); }
+a.seat:hover .seat__name { color: var(--accent-hover); }
+.seat__body { width: 40px; height: 46px; }
+.seat__name { font: 500 14px/18px var(--font-sans); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seat__meta { display: flex; gap: 6px; font-size: 12px; line-height: 16px; color: var(--ink-faint); min-height: 16px; }
+.seat__meta b { font: 600 11px/16px var(--font-display); letter-spacing: .06em; text-transform: uppercase; color: var(--gold); }
+.seat__meta .seat__you { color: var(--accent); }
+.seat--me .seat__name { color: var(--accent); }
+.seat--free .seat__body path, .seat--free .seat__body rect { stroke: var(--border-control); stroke-dasharray: 3 3; fill: transparent; opacity: 1; }
+.lobby__free { opacity: .55; }
+.lobby__nolist { padding-top: var(--space-3); border-top: 1px solid var(--border); }
+
+.lobby__foot { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; padding-top: var(--space-4); border-top: 1px solid var(--border); }
+.lobby__code {
+  display: inline-flex; align-items: center; gap: var(--space-2); height: 40px; padding: 0 var(--space-3);
+  border: 1px solid var(--border-control); border-radius: var(--radius-md); background: var(--surface-0); color: var(--ink); cursor: pointer;
+}
+.lobby__code:hover { border-color: var(--ink-muted); }
+.lobby__code:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+.lobby__code-text { font: 700 22px/24px var(--font-code); letter-spacing: .18em; }
+.lobby__code--hidden { cursor: default; color: var(--ink-faint); font: 700 18px/24px var(--font-code); letter-spacing: .18em; }
+.lobby__action { display: flex; align-items: center; gap: var(--space-3); margin-left: auto; flex-wrap: wrap; }
+.lobby__wait { font-size: 15px; color: var(--accent); }
+.lobby__notice { flex-basis: 100%; font-size: 14px; color: var(--ink-muted); }
+
+/* Hinweis auf der Startseite */
+.live-strip {
+  display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); color: var(--ink);
+  border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: var(--surface-1);
+}
+.live-strip .lobby__pulse { color: var(--accent); }
+.live-strip__label { font: 600 13px/18px var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.live-strip__text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.live-strip__go { font: 600 14px/18px var(--font-display); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted); }
+.live-strip:hover .live-strip__go { color: var(--accent-hover); }
+
+@media (max-width: 720px) {
+  .lobby { padding: var(--space-4); }
+  .lobby__map { font-size: 28px; line-height: 30px; }
+  .lobby__crew { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+  .lobby__count { justify-content: start; }
+  .lobby__free { display: none; }
+  .lobby__action { margin-left: 0; width: 100%; }
+  .lobby__action .btn { flex: 1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Live-Punkt pulsiert langsam (nur Deckkraft) */
+  .lobby__pulse { animation: lobby-pulse 2s ease-in-out infinite; }
+  @keyframes lobby-pulse { 50% { opacity: .35; } }
+  /* Wer neu in die Lobby kommt, hüpft kurz herein */
+  .lobby__crew li:not(.lobby__free) { animation: seat-in .35s ease-out both; animation-delay: calc(var(--i, 0) * 30ms); }
+  @keyframes seat-in { from { transform: translateY(6px); opacity: 0; } }
+  a.seat:hover .seat__body { transform: translateY(-3px); }
+  .seat__body { transition: transform .15s ease-out; }
+}
