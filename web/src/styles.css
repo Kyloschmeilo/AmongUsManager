@@ -425,6 +425,11 @@ button { font: inherit; color: inherit; }
 
 .split { display: flex; height: 10px; border-radius: 0; overflow: hidden; gap: 2px; }
 .split > div { height: 100%; }
+.vote-legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); color: var(--ink-muted); font-size: 15px; }
+.vote-legend span { display: inline-flex; align-items: center; gap: var(--space-2); }
+.vote-legend i { display: inline-block; width: 10px; height: 10px; }
+.vote-legend b { color: var(--ink); font-weight: 500; }
+.vote-skip { background: var(--ink-faint); }
 .legend { display: flex; flex-wrap: wrap; gap: var(--space-4); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink-muted); }
 .legend i { width: 12px; height: 4px; border-radius: 0; }

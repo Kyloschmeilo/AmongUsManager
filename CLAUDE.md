@@ -364,6 +364,12 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - Bestenliste (seit 01.11.2026, Kilian: „etwas übersichtlicher, alles in eine Liste geworfen“): Bereiche Allgemein/Crew/
   Impostor/Unterwegs (`GROUPS` in `metrics.ts`) → Kärtchen je Kennzahl mit Top 3 (Handy: zum Wischen) → Podest →
   Tabelle ab Platz 4 (Suche zeigt alle), „Du: Platz N“ für Angemeldete.
+- **Abstimmungen / Verdachts-Statistik** (03.11.2026, Kilian: wie oft jemand zu Recht oder zu Unrecht gevotet hat): aus den
+  Meeting-Stimmen (`StatsSnapshot`): als Crew Impostor getroffen / Crewmate verdächtigt / übersprungen, Rauswürfe mit eigener
+  Stimme richtig/falsch (`rightEjections`/`wrongEjections`), als Impostor `deceptions` (Crewmate mit rausgewählt), erhaltene
+  Crew-Stimmen `suspectedAsCrew` (zu Unrecht) / `suspectedAsImpostor` (durchschaut) + Listen `wrongSuspects`/`suspectedBy`/
+  `caughtBy` im Profil (Abschnitt „Abstimmungen“). Neutrale zählen weder richtig noch falsch, Selbst-Stimmen nicht. Bestenliste:
+  `ejections` (Crew, ab 5 Rauswürfen) und `deceptions` (Impostor). Test `voteStatsTellRightFromWrongSuspicion`.
 - **Hilfe & Mods** (02.11.2026, Kilian: „ein Teil auf der Website wo die Tutorials und Mod downloads sind“, „man soll auch alle
   Rollen nachgucken können“): `web/Guides.kt` + `web/Downloads.kt`, Seite `pages/Guides.tsx` (`/hilfe` Tutorials, `/hilfe/downloads`,
   `/downloads` leitet um), Stil in `web/src/guides.css`. **Tutorials** = `TUTORIALS` des Bots (ohne „Alle Special-Rollen erklärt“)

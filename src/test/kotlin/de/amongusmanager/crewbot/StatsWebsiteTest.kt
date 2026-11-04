@@ -333,6 +333,49 @@ open class StatsWebsiteTest {
     }
 
     @Test
+    fun voteStatsTellRightFromWrongSuspicion() {
+        val (db, reader) = newDatabases()
+        opened += db
+        val bot = TestServices(db)
+        bot.links.link("kilian#1234", 100)
+        // Beispielrunde + ein drittes Meeting: Tom (Crew) und Mia (Impostor) wählen Kilian (Crew) raus, Kilian stimmt für Mia.
+        val extra = """{"atSeconds": 270.0, "caller": 2, "body": null, "exiled": 0, "tie": false, "alive": [0, 1, 2], "votes": [
+            {"voter": 2, "target": 0, "skipped": null}, {"voter": 1, "target": 0, "skipped": null}, {"voter": 0, "target": 1, "skipped": null}]}"""
+        val marker = "\"meetings\": ["
+        assertTrue(marker in example)
+        val round = example.replace(marker, marker + extra + ",")
+        bot.modRounds.applyWithoutRoles(ModRound.parse(round), round)
+        val store = StatsStore(DatabaseSource(reader().also { opened += it }))
+        store.refresh()
+        val players = json(store.snapshot.playersJson).getValue("players").jsonArray.map { it.jsonObject }.associateBy { it.str("name") }
+        val kilian = players.getValue("Kilian")
+        assertEquals(2, kilian.int("crewVotes"))
+        assertEquals(2, kilian.int("correctVotes"))
+        assertEquals(1, kilian.int("crewSkips"))
+        assertEquals(1, kilian.int("rightEjections"))
+        assertEquals(0, kilian.int("wrongEjections"))
+        assertEquals(1, kilian.int("suspectedAsCrew"))
+        val tom = players.getValue("Tom")
+        assertEquals(1, tom.int("crewVotes"))
+        assertEquals(0, tom.int("correctVotes"))
+        assertEquals(1, tom.int("wrongEjections"))
+        val mia = players.getValue("Mia")
+        assertEquals(0, mia.int("crewVotes"))
+        assertEquals(2, mia.int("impostorVotes"))
+        assertEquals(1, mia.int("deceptions"))
+        assertEquals(2, mia.int("suspectedAsImpostor"))
+
+        fun names(profile: JsonObject, list: String) = profile.getValue(list).jsonArray.map {
+            it.jsonObject.getValue("player").jsonObject.str("name") to it.jsonObject.int("count")
+        }
+        val kilianProfile = json(store.snapshot.playerJson(kilian.str("key")!!)!!)
+        assertEquals(listOf("Tom" to 1), names(kilianProfile, "suspectedBy"))
+        assertEquals(emptyList(), names(kilianProfile, "wrongSuspects"))
+        assertEquals(listOf("Kilian" to 1), names(json(store.snapshot.playerJson(tom.str("key")!!)!!), "wrongSuspects"))
+        assertEquals(listOf("Kilian" to 2), names(json(store.snapshot.playerJson(mia.str("key")!!)!!), "caughtBy"))
+    }
+
+    @Test
     fun websiteIsBuilt() {
         // Die gebaute Seite liegt im Repo (src/main/resources/web), damit das JAR ohne Node gebaut werden kann
         val index = assertNotNull(javaClass.classLoader.getResource("web/index.html"), "erst in web/: npm install && npm run build").readText()

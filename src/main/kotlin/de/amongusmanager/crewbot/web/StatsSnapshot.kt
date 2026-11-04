@@ -72,6 +72,13 @@ private class PlayerAcc(val key: String) {
     var skips = 0
     var crewVotes = 0
     var correctVotes = 0
+    var crewSkips = 0 // Skips als Crewmate
+    var rightEjections = 0 // als Crew für einen Impostor gestimmt, der rausflog
+    var wrongEjections = 0 // als Crew für einen Crewmate gestimmt, der rausflog
+    var impostorVotes = 0 // als Impostor für einen Crewmate gestimmt
+    var deceptions = 0 // davon flog der Crewmate raus
+    var suspectedAsCrew = 0 // Stimmen von Crewmates, während man selbst Crew war (zu Unrecht)
+    var suspectedAsImpostor = 0 // Stimmen von Crewmates, während man Impostor war (zu Recht)
     var distance = 0.0
     var detailGames = 0 // Runden mit Kennzahlen (Format 2)
     var ventUses = 0
@@ -86,6 +93,9 @@ private class PlayerAcc(val key: String) {
     val killers = HashMap<String, Int>()
     val partners = HashMap<String, IntArray>() // Impostor-Partner: games, wins
     val deathCauses = HashMap<String, Int>()
+    val wrongSuspects = HashMap<String, Int>() // wen man als Crew zu Unrecht verdächtigt hat
+    val suspectedBy = HashMap<String, Int>() // wer einen als Crew zu Unrecht verdächtigt hat
+    val caughtBy = HashMap<String, Int>() // wer einen als Impostor durchschaut hat
     val rounds = ArrayList<Pair<RoundView, Int>>() // neueste zuerst, Index des Spielers
 
     var decoration: PlayerDecoration? = null
@@ -327,6 +337,13 @@ class StatsSnapshot private constructor(
             "skips" to p.skips,
             "crewVotes" to p.crewVotes,
             "correctVotes" to p.correctVotes,
+            "crewSkips" to p.crewSkips,
+            "rightEjections" to p.rightEjections,
+            "wrongEjections" to p.wrongEjections,
+            "impostorVotes" to p.impostorVotes,
+            "deceptions" to p.deceptions,
+            "suspectedAsCrew" to p.suspectedAsCrew,
+            "suspectedAsImpostor" to p.suspectedAsImpostor,
             "distance" to p.distance,
             "detailGames" to p.detailGames,
             "ventUses" to p.ventUses,
@@ -366,6 +383,9 @@ class StatsSnapshot private constructor(
                 .map { (mapId, v) -> obj("mapId" to mapId, "map" to (maps[mapId]?.name ?: "?"), "games" to v[0], "wins" to v[1]) },
             "victims" to top(p.victims),
             "killers" to top(p.killers),
+            "wrongSuspects" to top(p.wrongSuspects),
+            "suspectedBy" to top(p.suspectedBy),
+            "caughtBy" to top(p.caughtBy),
             "partners" to p.partners.entries.sortedByDescending { it.value[0] }.take(5).mapNotNull { (key, v) ->
                 ref(key)?.let { obj("player" to it, "games" to v[0], "wins" to v[1]) }
             },
@@ -620,14 +640,38 @@ class StatsSnapshot private constructor(
                         val acc = players.getValue(voterKey)
                         val voter = r.player(vote.voter) ?: continue
                         if (vote.target == null) {
-                            if (vote.skipped) acc.skips++
+                            if (vote.skipped) {
+                                acc.skips++
+                                if (voter.isCrew) acc.crewSkips++
+                            }
                             continue
                         }
                         acc.votes++
                         val target = r.player(vote.target) ?: continue
+                        if (vote.target == vote.voter) continue
+                        val targetKey = view.keyOf(vote.target)
+                        val exiled = !meeting.tie && meeting.exiled == vote.target
+                        // Neutrale (Narr & Co.) zählen weder als richtig noch als falsch.
                         if (voter.isCrew && !target.isNeutral) {
                             acc.crewVotes++
-                            if (target.isImpostor) acc.correctVotes++
+                            if (target.isImpostor) {
+                                acc.correctVotes++
+                                if (exiled) acc.rightEjections++
+                                targetKey?.let { players.getValue(it) }?.let { t ->
+                                    t.suspectedAsImpostor++
+                                    t.caughtBy.merge(voterKey, 1, Int::plus)
+                                }
+                            } else {
+                                if (exiled) acc.wrongEjections++
+                                targetKey?.let { players.getValue(it) }?.let { t ->
+                                    t.suspectedAsCrew++
+                                    t.suspectedBy.merge(voterKey, 1, Int::plus)
+                                }
+                                if (targetKey != null) acc.wrongSuspects.merge(targetKey, 1, Int::plus)
+                            }
+                        } else if (voter.isImpostor && target.isCrew) {
+                            acc.impostorVotes++
+                            if (exiled) acc.deceptions++
                         }
                     }
                 }
