@@ -1,0 +1,69 @@
+/* Balancing-Seite (/rollen/balancing): Punktdiagramm je Rolle. Farben nur mit Bedeutung (Team), Text in Textfarben. */
+.balance-split { height: 12px; }
+.balance-callouts .grid--2 > .panel { display: flex; flex-direction: column; gap: var(--space-3); }
+.balance-callout { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.balance-callout li { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; padding: var(--space-2) 0; border-top: 1px solid var(--border); }
+.balance-callout li:first-child { border-top: 0; }
+.balance-callout__num { font: 600 22px/24px var(--font-display); color: var(--ink); }
+.balance-callout .caption { flex-basis: 100%; text-align: right; }
+
+.balance-legend { gap: var(--space-5); }
+.balance-legend span { display: inline-flex; align-items: center; gap: var(--space-2); }
+.balance-legend i { display: inline-block; }
+.balance-legend__dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ink-muted); }
+.balance-legend__ci { width: 28px; height: 4px; border-radius: 2px; background: var(--ink-muted); opacity: .45; }
+.balance-legend__base { width: 2px; height: 14px; background: var(--rule-strong); }
+
+.balance-team { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-4); }
+.balance-team__title { display: flex; align-items: center; gap: var(--space-3); margin: 0; font: inherit; }
+.balance-rows { display: flex; flex-direction: column; border-top: 1px solid var(--rule); }
+.balance-row {
+  display: grid; grid-template-columns: minmax(150px, 1.2fr) minmax(110px, .6fr) minmax(200px, 2fr) minmax(120px, .7fr);
+  align-items: center; gap: var(--space-4); padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.balance-row--head { padding: 6px 0; font: 600 13px/16px var(--font-display); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-faint); }
+.balance-row--few .balance-plot__dot, .balance-row--few .balance-plot__ci { opacity: .45; }
+.balance-row__name { display: flex; flex-direction: column; min-width: 0; }
+.balance-row__name b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.balance-row__verdict { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+
+.balance-axis { position: relative; height: 16px; }
+.balance-axis i { position: absolute; font-style: normal; transform: translateX(-50%); }
+.balance-axis i:nth-child(1) { left: 0; transform: none; }
+.balance-axis i:nth-child(2) { left: 50%; }
+.balance-axis i:nth-child(3) { right: 0; transform: none; }
+
+.balance-share { display: flex; align-items: center; gap: var(--space-2); }
+.balance-share__bar { flex: 1; height: 6px; background: var(--surface-2); border-radius: 0 3px 3px 0; overflow: hidden; }
+.balance-share__bar i { display: block; height: 100%; background: var(--ink-faint); border-radius: 0 3px 3px 0; }
+.balance-share__num { min-width: 38px; text-align: right; font-size: 14px; color: var(--ink-muted); }
+
+/* 0–100 %-Spur: Strich = 95-%-Bereich, Punkt = Siegquote, senkrechte Marke = restliches Team */
+.balance-plot { position: relative; height: 26px; margin-right: 46px; }
+.balance-plot::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--border-control); }
+.balance-plot i { position: absolute; display: block; }
+.balance-plot__mid { left: 50%; top: 6px; bottom: 6px; width: 1px; background: var(--border); }
+.balance-plot__base { top: 2px; bottom: 2px; width: 2px; margin-left: -1px; background: var(--rule-strong); }
+.balance-plot__ci { top: 50%; height: 4px; margin-top: -2px; border-radius: 2px; opacity: .45; }
+.balance-plot__dot { top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; box-shadow: 0 0 0 2px var(--surface-0); }
+.balance-plot__num { position: absolute; right: -46px; top: 50%; transform: translateY(-50%); width: 40px; text-align: right; font: 600 16px/20px var(--font-display); color: var(--ink); }
+
+.verdict--up { color: var(--ink); border-color: var(--gold); }
+.verdict--down { color: var(--ink); border-color: var(--sky); }
+.verdict--few { color: var(--ink-faint); }
+.balance-note { max-width: 760px; margin-top: var(--space-3); }
+
+@media (max-width: 760px) {
+  .balance-row { grid-template-columns: 1fr auto; gap: var(--space-2) var(--space-3); }
+  .balance-row--head { display: none; }
+  .balance-share { grid-column: 1 / -1; order: 3; }
+  .balance-share::before { content: 'Häufigkeit'; min-width: 78px; font: 600 12px/16px var(--font-display); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-faint); }
+  .balance-plot { grid-column: 1 / -1; order: 4; }
+  .balance-row__verdict { align-items: flex-end; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .balance-plot__dot { transition: transform .2s ease-out; }
+  .balance-row:hover .balance-plot__dot { transform: scale(1.35); }
+  .balance-row:hover .balance-plot__ci { opacity: .8; }
+}

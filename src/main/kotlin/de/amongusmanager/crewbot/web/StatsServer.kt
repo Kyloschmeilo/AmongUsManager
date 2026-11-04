@@ -213,6 +213,7 @@ class StatsServer(
             parts == listOf("maps") -> snapshot.mapsJson
             parts.size == 2 && parts[0] == "maps" -> parts[1].toIntOrNull()?.let { snapshot.mapJson(it) }
             parts == listOf("roles") -> snapshot.rolesJson
+            parts == listOf("balance") -> snapshot.balanceJson
             else -> null
         }
         if (body == null) return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-cache")

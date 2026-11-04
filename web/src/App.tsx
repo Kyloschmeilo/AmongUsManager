@@ -10,6 +10,7 @@ import { RoundsPage } from './pages/Rounds';
 import { RoundPage } from './pages/Round';
 import { MapsPage, MapPage } from './pages/Maps';
 import { RolesPage } from './pages/Roles';
+import { BalancePage } from './pages/Balance';
 import { DownloadsPage, TutorialsPage } from './pages/Guides';
 import { NotFound } from './pages/NotFound';
 import { AccountButton, LoginNotice } from './components/Account';
@@ -151,6 +152,7 @@ export function App() {
           <Route path="/maps" element={<MapsPage />} />
           <Route path="/maps/:mapId" element={<MapPage />} />
           <Route path="/rollen" element={<RolesPage />} />
+          <Route path="/rollen/balancing" element={<BalancePage />} />
           <Route path="/hilfe" element={<TutorialsPage />} />
           <Route path="/hilfe/downloads" element={<DownloadsPage />} />
           <Route path="/downloads" element={<Navigate to="/hilfe/downloads" replace />} />

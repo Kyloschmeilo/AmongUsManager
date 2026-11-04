@@ -341,6 +341,13 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   der Navigation nur für Admins. Tests: `WebControlTest` (+ MariaDB). Discord-Seite des Bots nur kompiliert, nicht live
   getestet. JARs: `/mnt/project-files/bot-website-steuerung/crewbot-update.zip` + neues `StatsWebsite.zip` (Anleitung
   Schritt 7).
+- **Balancing** (03.11.2026, Kilian: Rollen-Statistik für The Other Roles, „Siegquote und Häufigkeit pro Rolle“):
+  `/rollen/balancing` (`pages/Balance.tsx`, `balance.css`, Link auf der Rollen-Seite), `/api/balance` aus `web/RoleBalance.kt`
+  (reine Rechnung auf `snapshot.views`). Nur Runden mit TOR (`isTorRound`), Rolle zu Rundenbeginn (`roleIdOf`). Je Rolle:
+  Häufigkeit (Anteil der TOR-Runden), Siegquote mit 95-%-Wilson-Bereich, Vergleich = restliche Spieler desselben Teams,
+  Einschätzung (`balanceVerdict`: zu stark/schwach wenn der Bereich ganz über/unter dem Team liegt, eher stark/schwach ab
+  15 Pkt., unter 8 Runden keine), Kills/Überlebt/Rausgewählt/Geraten, Anzahl verschiedener Spieler; Modifikatoren gegen alle
+  ohne ihn; Teams + Sondersiege. Zeitraum alle bzw. letzte 50 TOR-Runden. Tests: `RoleBalanceTest`.
 - Bestenliste (seit 01.11.2026, Kilian: „etwas übersichtlicher, alles in eine Liste geworfen“): Bereiche Allgemein/Crew/
   Impostor/Unterwegs (`GROUPS` in `metrics.ts`) → Kärtchen je Kennzahl mit Top 3 (Handy: zum Wischen) → Podest →
   Tabelle ab Platz 4 (Suche zeigt alle), „Du: Platz N“ für Angemeldete.

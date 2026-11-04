@@ -110,6 +110,10 @@ export function RolesPage() {
           <div className="row">
             <span className="pill pill--mono">{num(entries.length)} Rollen</span>
             <span className="pill pill--plain">{num(played)} schon gespielt</span>
+            <Link className="text-link" to="/rollen/balancing">
+              Balancing: Siegquoten der Rollen
+              <ArrowRight className="icon icon--sm" aria-hidden="true" />
+            </Link>
             <Link className="text-link" to="/hilfe?t=special-rollen">
               The Other Roles installieren
               <ArrowRight className="icon icon--sm" aria-hidden="true" />
