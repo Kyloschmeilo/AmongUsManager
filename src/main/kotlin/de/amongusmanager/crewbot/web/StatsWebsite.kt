@@ -13,6 +13,7 @@
  *                          (oder DISCORD_CLIENT_ID)
  *   WEB_PUBLIC_URL       – Adresse der Website, z.B. http://45.81.233.92:25570 (für die Weiterleitung nach dem Login)
  *   WEB_DOWNLOADS_DIR    – Ordner mit eigenen Downloads (Standard: downloads/ neben dem JAR, z.B. TheOtherRoles-Installer.bat)
+ *   CoreHoldWebsite.jar daneben legen = CoreHold-Website unter /corehold im selben Server (siehe CoreHoldBridge.kt)
  * Eigene Daten der Website (Anmeldungen, Profile, Profilbilder) liegen in data/website.db.
  * CrewStats-Spieleranfragen (Auto-Join, Stats, Verknüpfen): POST /api/mod/<Schlüssel>, siehe services/ModApi.kt.
  * Live-Lobbys mit „Beitreten“: /api/lobbies, siehe LiveLobbies.kt.
@@ -99,6 +100,7 @@ fun main() {
         else -> log.info("🎮 Mod-API an: CrewStats fragt Auto-Join/Stats über {}{}…", authConfig.publicUrl, ModApiSettings.PATH)
     }
 
+    val coreHold = CoreHoldBridge.fromEnv({ Env.get(it) }, BotPaths.projectDir)
     val port = webPort()
     val server = try {
         StatsServer(
@@ -107,12 +109,17 @@ fun main() {
             control = control,
             modApi = modApi,
             lobbies = lobbies,
+            coreHold = coreHold,
         )
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)
         exitProcess(1)
     }
     server.start()
+    if (coreHold != null) {
+        coreHold.start()
+        log.info("🧱 CoreHold-Website: {} wird mitgestartet, erreichbar unter /corehold", Env.get("COREHOLD_JAR").trim().ifEmpty { CoreHoldBridge.DEFAULT_JAR })
+    }
     log.info("🌐 Stats-Website läuft auf Port {} – {} Runden", server.port, store.snapshot.roundCount)
 
     val refreshSeconds = Env.get("WEB_REFRESH_SECONDS").trim().toLongOrNull()?.coerceAtLeast(5) ?: 60
