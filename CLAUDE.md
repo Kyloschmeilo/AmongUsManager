@@ -400,6 +400,14 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   ausgeliefert, wenn die Dateien noch im Ordner liegen. CrewStats + TOR-Version: GitHub-API `releases/latest` alle 30 min
   im Hintergrund (ohne Token; Fehler → alte Infos, Links `…/releases/latest/download/<Datei>` gehen immer). CrewStats-Dateien
   lädt der Browser direkt von GitHub. `StatsWebsite.zip` enthält deshalb `downloads/` mit dem Installer.
+- **CoreHold-Website im selben Server** (05.11.2026, Kilian: „ich kann keinen neuen [Pelican-Server] machen, wie geht es das wir es auf dem selben machen“):
+  Eigenes Programm (nicht im Repo, Quelltext in /mnt/project-files/corehold-website/): Teams, PvP-Tierliste, Special Items mit
+  Rezepten des Minecraft-Servers CoreHold unter `/corehold`, Admin-Login per Passwort (`ADMIN_PASSWORD`). Ein Java-Egg startet nur
+  eine JAR und hat nur einen Port → `web/CoreHoldBridge.kt`: liegt `CoreHoldWebsite.jar` (oder `COREHOLD_JAR`) neben der
+  StatsWebsite.jar, startet die Stats-Website sie als Kindprozess auf `127.0.0.1:COREHOLD_PORT` (18091, `COREHOLD_JAVA_OPTS`,
+  Neustart bei Absturz, Ende mit dem Elternprozess) und reicht alles unter `/corehold` durch (Cookies, Origin, X-Forwarded-*).
+  X-Forwarded-For/-Host/-Proto eines Reverse-Proxys zählt nur mit `WEB_TRUST_PROXY=true` (sonst Fälschung möglich). Ohne die JAR
+  ändert sich nichts. Gleiche `.env` (ADMIN_PASSWORD …), Daten in `data/corehold/`. Test: `CoreHoldBridgeTest`.
 
 ## Minecraft-Kopplung (CoreSMP-Plugin `CoreHold`, Projekt `C:\Users\petra\Desktop\CoreSMP`)
 - Plugin → Bot ebenfalls per **Webhook**, der im Log-Channel (`Channels.MINECRAFT_INBOX` =
