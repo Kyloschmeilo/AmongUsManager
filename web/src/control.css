@@ -49,6 +49,7 @@
 .admin-list thead th { position: sticky; top: 0; background: var(--surface-1); z-index: 1; }
 .admin-row-button { all: unset; display: block; cursor: pointer; border-radius: var(--radius-sm); }
 .admin-row-button:focus-visible { box-shadow: var(--shadow-focus); }
+.admin-list tr.is-muted .player { opacity: 0.5; }
 .admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: var(--space-3); }
 .admin-stats > div { display: flex; flex-direction: column; gap: 2px; padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .admin-stats b { color: var(--ink); font-weight: 500; font-size: 16px; }

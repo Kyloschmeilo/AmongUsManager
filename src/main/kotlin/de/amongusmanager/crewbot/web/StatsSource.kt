@@ -10,6 +10,7 @@ package de.amongusmanager.crewbot.web
 import de.amongusmanager.crewbot.core.parseJson
 import de.amongusmanager.crewbot.db.Database
 import de.amongusmanager.crewbot.services.HistoryRound
+import de.amongusmanager.crewbot.services.LeaderboardExclusions
 import de.amongusmanager.crewbot.services.RoundHistoryService
 import kotlinx.serialization.json.JsonObject
 import org.slf4j.LoggerFactory
@@ -38,6 +39,9 @@ interface StatsSource {
     fun friendLinks(): Map<String, Long>
 
     fun levels(): Map<Long, BotLevel>
+
+    /** Von Admins aus den Bestenlisten ausgenommene Spielerschlüssel (services/LeaderboardExclusions.kt). */
+    fun hiddenPlayers(): Set<String> = emptySet()
 }
 
 class DatabaseSource(private val db: Database) : StatsSource {
@@ -80,6 +84,9 @@ class DatabaseSource(private val db: Database) : StatsSource {
         if (!hasTable("players")) return emptyMap()
         return db.query("SELECT user_id, xp, level FROM players") { it.long("user_id") to BotLevel(it.int("level"), it.int("xp")) }.toMap()
     }
+
+    override fun hiddenPlayers(): Set<String> =
+        if (hasTable("settings")) LeaderboardExclusions.parse(db.getSetting(LeaderboardExclusions.KEY)) else emptySet()
 }
 
 /** Liest alle *.json-Dateien eines Ordners (mit Unterordnern) als Runden – Empfangszeit = Änderungszeit der Datei. */

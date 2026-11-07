@@ -155,6 +155,8 @@ class StatsSnapshot private constructor(
     private val modifiers: Map<String, RoleAcc>,
     private val records: List<Record>,
     private val levels: Map<Long, BotLevel>,
+    /** Von Admins aus den Bestenlisten ausgenommen (Profil, Runden, Vergleich bleiben). */
+    private val hidden: Set<String> = emptySet(),
 ) {
     private val byGameId = views.associateBy { it.round.gameId }
     private val profileCache = ConcurrentHashMap<String, ByteArray>()
@@ -337,6 +339,7 @@ class StatsSnapshot private constructor(
             "crewmate" to p.crewmate,
             "linked" to (p.discordId != null),
             "level" to level?.level,
+            "unranked" to (p.key in hidden),
             "games" to p.games,
             "wins" to p.wins,
             "crewGames" to p.crewGames,
@@ -644,6 +647,8 @@ class StatsSnapshot private constructor(
             levels: Map<Long, BotLevel>,
             now: Instant,
             decorations: Map<Long, PlayerDecoration> = emptyMap(),
+            /** Spieler, die nicht in Bestenlisten und Rekorden erscheinen sollen. */
+            hidden: Set<String> = emptySet(),
         ): StatsSnapshot {
             val sorted = rounds.sortedByDescending { it.endedAt }
             val players = LinkedHashMap<String, PlayerAcc>()
@@ -653,6 +658,7 @@ class StatsSnapshot private constructor(
             val best = HashMap<String, Record>()
 
             fun record(id: String, value: Double, key: String?, view: RoundView, lowerIsBetter: Boolean = false) {
+                if (key != null && key in hidden) return
                 val current = best[id]
                 // gleicher Wert: die ältere Runde behält den Rekord (Runden kommen neueste zuerst)
                 val better = current == null || if (lowerIsBetter) value <= current.value else value >= current.value
@@ -849,6 +855,7 @@ class StatsSnapshot private constructor(
                 modifiers = modifiers,
                 records = best.values.sortedBy { RECORD_ORDER.indexOf(it.id) },
                 levels = levels,
+                hidden = hidden,
             )
         }
 

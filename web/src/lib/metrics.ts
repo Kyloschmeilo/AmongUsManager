@@ -97,6 +97,6 @@ export const GROUPS: { id: Metric['group']; label: string; caption: string }[] =
 
 export function rank(players: PlayerSummary[], m: Metric): PlayerSummary[] {
   return players
-    .filter(m.eligible)
+    .filter((p) => !p.unranked && m.eligible(p))
     .sort((a, b) => m.value(b) - m.value(a) || b.games - a.games || a.name.localeCompare(b.name, 'de'));
 }

@@ -370,6 +370,13 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - Bestenliste (seit 01.11.2026, Kilian: „etwas übersichtlicher, alles in eine Liste geworfen“): Bereiche Allgemein/Crew/
   Impostor/Unterwegs (`GROUPS` in `metrics.ts`) → Kärtchen je Kennzahl mit Top 3 (Handy: zum Wischen) → Podest →
   Tabelle ab Platz 4 (Suche zeigt alle), „Du: Platz N“ für Angemeldete.
+- **Aus Bestenlisten ausnehmen** (07.11.2026, Kilian: „gebe admins die option leute aus bestenlisten auszunehmen“): Admin-Panel
+  der Website, Reiter „Bestenliste“ (alle Website-Spieler inkl. unverknüpfter + Discord-Mitglieder ohne Runden) → Aktion
+  `admin.leaderboard` {player, hidden} → Bot speichert Website-Spielerschlüssel als JSON-Liste in `settings` `leaderboard.hidden`
+  (`services/LeaderboardExclusions.kt`, Discord-Mitglied = `WebAuth.playerKeyOf`), Log-Channel-Eintrag. Wirkung: Website-Bestenliste,
+  Top-Listen der Startseite und Rekorde ohne sie (`unranked` in `/api/players`, `rank()` in `metrics.ts` filtert; `StatsStore` lädt
+  die Liste bei jedem Abgleich, nach der Aktion sofort), `/leaderboard` im Discord überspringt sie (keine Medaille). Profil, Runden,
+  Vergleich, XP und Stats bleiben. Test: `adminsCanHidePlayersFromLeaderboards`.
 - **Abstimmungen / Verdachts-Statistik** (03.11.2026, Kilian: wie oft jemand zu Recht oder zu Unrecht gevotet hat): aus den
   Meeting-Stimmen (`StatsSnapshot`): als Crew Impostor getroffen / Crewmate verdächtigt / übersprungen, Rauswürfe mit eigener
   Stimme richtig/falsch (`rightEjections`/`wrongEjections`), als Impostor `deceptions` (Crewmate mit rausgewählt), erhaltene

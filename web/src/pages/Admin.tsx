@@ -3,11 +3,11 @@
 // (/panel), Runde beenden (/crew-win, /impostor-win, /runde-abbrechen), MVP-Voting, Panels/Changelog/Tutorial posten,
 // Spieleabend-Recap, Event-Channel und /mod-setup. Der Bot prüft jede Aktion selbst noch einmal.
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
-  ArrowRightLeft, Copy, Crown, Drama, Headphones, LogIn, Megaphone, MicOff, RotateCcw, Search, Settings, ShieldAlert, Trophy, UserCog, Users, Volume2
+  ArrowRightLeft, Copy, Crown, Drama, EyeOff, Headphones, LogIn, Megaphone, MicOff, RotateCcw, Search, Settings, ShieldAlert, Trophy, UserCog, Users, Volume2
 } from 'lucide-react';
-import { loginUrl } from '../lib/api';
+import { loginUrl, useApi, type PlayerSummary } from '../lib/api';
 import { useMe } from '../lib/me';
 import { useAction, useBot, usePermissions, type ActionResult, type Person } from '../lib/control';
 import { num } from '../lib/format';
@@ -50,11 +50,15 @@ interface Member extends Person {
   roles: string[];
   wish: { role: string; label: string; admin: boolean } | null;
   voice: string | null;
+  /** Aus den Bestenlisten ausgenommen. */
+  hidden?: boolean;
 }
+interface MembersResponse { members: Member[]; xpPerLevel: number; leaderboardHidden?: string[] }
 
 const TABS = [
   { id: 'spieler', label: 'Spieler', icon: <UserCog className="icon icon--sm" aria-hidden="true" /> },
   { id: 'rollen', label: 'Rollen nächste Runde', icon: <Drama className="icon icon--sm" aria-hidden="true" /> },
+  { id: 'bestenliste', label: 'Bestenliste', icon: <EyeOff className="icon icon--sm" aria-hidden="true" /> },
   { id: 'voice', label: 'Voice & Runde', icon: <Headphones className="icon icon--sm" aria-hidden="true" /> },
   { id: 'posten', label: 'Posten', icon: <Megaphone className="icon icon--sm" aria-hidden="true" /> },
   { id: 'einstellungen', label: 'Einstellungen', icon: <Settings className="icon icon--sm" aria-hidden="true" /> }
@@ -68,7 +72,7 @@ export function AdminPage() {
   const tab = (TABS.find((t) => t.id === params.get('tab'))?.id ?? 'spieler') as TabId;
   const allowed = !!perms?.admin;
   const overview = useBot<Overview>(allowed ? 'admin.overview' : null, undefined, tab === 'voice' ? 8_000 : 60_000);
-  const members = useBot<{ members: Member[]; xpPerLevel: number }>(allowed ? 'admin.members' : null);
+  const members = useBot<MembersResponse>(allowed ? 'admin.members' : null);
   const reloadAll = () => {
     overview.reload();
     members.reload();
@@ -132,6 +136,7 @@ export function AdminPage() {
             <>
               {tab === 'spieler' && <PlayersTab members={members.data.members} overview={overview.data} onChange={reloadAll} />}
               {tab === 'rollen' && <WishesTab members={members.data.members} overview={overview.data} onChange={reloadAll} />}
+              {tab === 'bestenliste' && <LeaderboardTab members={members.data} onChange={members.reload} />}
               {tab === 'voice' && <VoiceTab overview={overview.data} onChange={overview.reload} />}
               {tab === 'posten' && <PostTab overview={overview.data} onChange={overview.reload} />}
               {tab === 'einstellungen' && <SettingsTab overview={overview.data} onChange={overview.reload} />}
@@ -387,6 +392,116 @@ function PlayerEditor({ member, overview, onChange }: { member: Member; overview
 }
 
 // ---------- Rollen für die nächste Runde ----------
+
+/**
+ * Spieler aus den Bestenlisten ausnehmen: Website (Bestenliste, Top-Listen, Rekorde) und /leaderboard im Discord.
+ * Liste = alle Spieler der Website (auch unverknüpfte) + Discord-Mitglieder ohne Runden. Profil und Runden bleiben.
+ */
+function LeaderboardTab({ members, onChange }: { members: MembersResponse; onChange: () => void }) {
+  const players = useApi<{ players: PlayerSummary[] }>('players');
+  const action = useAction(onChange);
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set(members.leaderboardHidden ?? []));
+  const [query, setQuery] = useState('');
+  const [onlyHidden, setOnlyHidden] = useState(false);
+  useEffect(() => setHidden(new Set(members.leaderboardHidden ?? [])), [members]);
+
+  const rows = useMemo(() => {
+    const byKey = new Map<string, { key: string; name: string; person: Person; sub: string; games: number; profile: boolean; xp: number }>();
+    for (const p of players.data?.players ?? []) {
+      byKey.set(p.key, {
+        key: p.key,
+        name: p.name,
+        person: { key: p.key, name: p.name, colorId: p.colorId, avatar: p.avatar },
+        sub: p.linked ? 'verknüpft' : 'nicht verknüpft',
+        games: p.games,
+        profile: true,
+        xp: 0
+      });
+    }
+    for (const m of members.members) {
+      const known = byKey.get(m.key);
+      if (known) {
+        known.sub = `${m.name === known.name ? '' : `Discord: ${m.name} · `}Level ${m.level}`;
+        known.xp = m.xp;
+      } else {
+        byKey.set(m.key, { key: m.key, name: m.name, person: m, sub: `nur Discord · Level ${m.level}`, games: 0, profile: false, xp: m.xp });
+      }
+    }
+    // Ausgenommene, die es weder auf der Website noch im Discord (mehr) gibt
+    for (const key of hidden) {
+      if (!byKey.has(key)) byKey.set(key, { key, name: 'Unbekannter Spieler', person: { key, name: '?' }, sub: 'keine Runden mehr', games: 0, profile: false, xp: 0 });
+    }
+    return [...byKey.values()].sort((a, b) => b.games - a.games || b.xp - a.xp || a.name.localeCompare(b.name, 'de'));
+  }, [players.data, members.members, hidden]);
+
+  const q = query.trim().toLowerCase();
+  const shown = rows.filter((r) => (!onlyHidden || hidden.has(r.key)) && (!q || r.name.toLowerCase().includes(q) || r.sub.toLowerCase().includes(q)));
+
+  const toggle = (row: { key: string; name: string }, hide: boolean) =>
+    void action.run<ActionResult & { leaderboardHidden?: string[] }>(row.key, 'admin.leaderboard', { player: row.key, hidden: hide, name: row.name }).then((r) => {
+      if (r?.leaderboardHidden) setHidden(new Set(r.leaderboardHidden));
+    });
+
+  return (
+    <div className="stack">
+      <p className="caption">
+        Ausgeblendete Spieler fehlen in der Bestenliste, den Top-Listen und Rekorden der Website und im Discord bei /leaderboard (dort auch ohne Medaille).
+        Profil, Runden und Vergleich bleiben erreichbar, XP und Stats ändern sich nicht.
+      </p>
+      <div className="row">
+        <label className="search" style={{ flex: 1 }}>
+          <Search className="icon icon--sm" aria-hidden="true" />
+          <input type="search" placeholder={`${rows.length} Spieler durchsuchen`} value={query} onChange={(e) => setQuery(e.target.value)} />
+        </label>
+        <button type="button" className="btn btn--ghost" aria-pressed={onlyHidden} onClick={() => setOnlyHidden((v) => !v)}>
+          {onlyHidden ? 'Alle zeigen' : `Nur ausgeblendete (${hidden.size})`}
+        </button>
+      </div>
+      <Notice notice={action.notice} />
+      {players.error && <p className="caption">Spieler der Website nicht geladen – es stehen nur Discord-Mitglieder in der Liste.</p>}
+      <div className="table-wrap admin-list">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Spieler</th>
+              <th className="num">Runden</th>
+              <th className="num">Bestenliste</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.slice(0, 300).map((r) => {
+              const isHidden = hidden.has(r.key);
+              return (
+                <tr key={r.key} className={isHidden ? 'is-muted' : undefined}>
+                  <td className="main">
+                    {r.profile ? (
+                      <Link to={`/spieler/${r.key}`} className="admin-row-button"><Who person={r.person} sub={r.sub} /></Link>
+                    ) : (
+                      <Who person={r.person} sub={r.sub} />
+                    )}
+                  </td>
+                  <td className="num">{num(r.games)}</td>
+                  <td className="num">
+                    <button
+                      type="button"
+                      className={isHidden ? 'btn btn--primary' : 'btn'}
+                      disabled={action.busy !== null}
+                      aria-label={isHidden ? `${r.name} wieder in die Bestenlisten aufnehmen` : `${r.name} aus den Bestenlisten ausnehmen`}
+                      onClick={() => toggle(r, !isHidden)}
+                    >
+                      {action.busy === r.key ? '…' : isHidden ? 'Wieder aufnehmen' : 'Ausnehmen'}
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {shown.length === 0 && <Empty text={onlyHidden ? 'Niemand ausgeblendet.' : 'Niemand gefunden.'} />}
+      </div>
+    </div>
+  );
+}
 
 function WishesTab({ members, overview, onChange }: { members: Member[]; overview: Overview; onChange: () => void }) {
   const { busy, notice, run } = useAction(onChange);

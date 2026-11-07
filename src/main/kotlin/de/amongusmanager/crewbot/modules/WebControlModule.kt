@@ -38,6 +38,7 @@ import de.amongusmanager.crewbot.core.isNotFound
 import de.amongusmanager.crewbot.core.parseJson
 import de.amongusmanager.crewbot.core.rethrowIfCancelled
 import de.amongusmanager.crewbot.services.Actor
+import de.amongusmanager.crewbot.services.LeaderboardExclusions
 import de.amongusmanager.crewbot.services.PlayerInfoProtocol
 import de.amongusmanager.crewbot.services.isValidFriendCode
 import de.amongusmanager.crewbot.services.normalizeFriendCode
@@ -51,6 +52,7 @@ import de.amongusmanager.crewbot.services.selfRoleGroupOf
 import de.amongusmanager.crewbot.ui.Palette
 import de.amongusmanager.crewbot.ui.buildChangelogEmbed
 import de.amongusmanager.crewbot.ui.buildTutorialEmbeds
+import de.amongusmanager.crewbot.ui.escapeMarkdown
 import de.amongusmanager.crewbot.ui.simpleEmbed
 import de.amongusmanager.crewbot.ui.views.CLOSED_PREFIX
 import de.amongusmanager.crewbot.ui.views.ControlPanel
@@ -206,6 +208,7 @@ class WebControlModule(private val bot: CrewBot) : CrewModule("Website", "🌐")
             "admin.post" -> post(member, p)
             "admin.settings" -> settings(member, p)
             "admin.modsetup" -> modSetup(member, p)
+            "admin.leaderboard" -> leaderboard(member, p)
             else -> throw WebActionError("Unbekannte Aktion.")
         }
     }
@@ -445,6 +448,7 @@ class WebControlModule(private val bot: CrewBot) : CrewModule("Website", "🌐")
         val managed = managedRoleGroups(guild).flatMap { group -> group.second.map { it.second.idLong } }.toSet()
         val linked = bot.links.byUser().keys
         val pending = bot.roleWishes.pending().associateBy { it.userId }
+        val hidden = bot.leaderboardExclusions.keys()
         val members = guild.members.filter { !it.user.isBot }.map { member ->
             val stats = bot.levels.get(member.idLong)
             obj(
@@ -461,9 +465,10 @@ class WebControlModule(private val bot: CrewBot) : CrewModule("Website", "🌐")
                 "roles" to member.roles.filter { it.idLong in managed }.map { it.id },
                 "wish" to pending[member.idLong]?.let { obj("role" to it.roleName, "label" to it.label, "admin" to it.isAdmin) },
                 "voice" to member.voiceState?.channel?.name,
+                "hidden" to (keyOf(member) in hidden),
             )
         }.sortedWith(compareByDescending<JsonObject> { (it["xp"] as JsonPrimitive).content.toInt() }.thenBy { (it["name"] as JsonPrimitive).content.lowercase() })
-        return obj("members" to members, "xpPerLevel" to Rules.XP_PER_LEVEL)
+        return obj("members" to members, "xpPerLevel" to Rules.XP_PER_LEVEL, "leaderboardHidden" to hidden.toList())
     }
 
     /** Rollen, die das Admin-Panel vergeben darf: Rollen-Panel-Gruppen, Event Maker, Level-Belohnungen. */
@@ -726,6 +731,26 @@ class WebControlModule(private val bot: CrewBot) : CrewModule("Website", "🌐")
             "message" to "Rundenergebnisse erscheinen ab jetzt in #${channel.name}. Die alte Webhook-URL ist ungültig.",
             "webhookUrl" to url,
         )
+    }
+
+    /** Spieler aus den Bestenlisten (Website + /leaderboard) ausnehmen oder wieder aufnehmen. */
+    private suspend fun leaderboard(admin: Member, p: JsonObject): JsonObject {
+        val key = p.text("player")?.takeIf(LeaderboardExclusions.KEY_PATTERN::matches) ?: throw WebActionError("Welcher Spieler?")
+        val hidden = p.flag("hidden") ?: throw WebActionError("Ausblenden oder einblenden?")
+        val member = memberByKey(admin.guild, key)
+        // Name nur fürs Log: Discord-Mitglied, sonst der Anzeigename von der Website
+        val name = member?.effectiveName ?: p.text("name")?.take(64)?.let(::plain)?.ifEmpty { null } ?: "Spieler $key"
+        val changed = bot.leaderboardExclusions.set(key, hidden)
+        if (changed) {
+            bot.audit.log(
+                Actor.of(admin),
+                if (hidden) "Aus den Bestenlisten ausgenommen (Website)" else "Wieder in den Bestenlisten (Website)",
+                "**Spieler:** ${member?.asMention ?: escapeMarkdown(name)}",
+                if (hidden) Palette.ORANGE else Palette.SUCCESS,
+            )
+        }
+        val message = if (hidden) "$name erscheint nicht mehr in den Bestenlisten." else "$name erscheint wieder in den Bestenlisten."
+        return obj("ok" to true, "message" to message, "hidden" to hidden, "leaderboardHidden" to bot.leaderboardExclusions.keys().toList())
     }
 
     // ==========================================
