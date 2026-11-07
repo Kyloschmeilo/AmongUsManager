@@ -32,6 +32,8 @@ class StatsServer(
     private val modApi: ModApi? = null,
     /** Live-Anzeige der Lobbys mit „Beitreten“ (/api/lobbies), null = ohne (dann leer). */
     private val lobbies: LiveLobbies? = null,
+    /** CoreHold-Website unter /corehold (eigene JAR als Kindprozess), null = aus. */
+    private val coreHold: CoreHoldBridge? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
@@ -56,6 +58,7 @@ class StatsServer(
         try {
             val method = exchange.requestMethod.uppercase()
             val path = URLDecoder.decode(exchange.requestURI.rawPath ?: "/", Charsets.UTF_8)
+            if (coreHold != null && coreHold.handles(path)) return coreHold.forward(exchange)
             if (path == "/api/me" || path == "/api/me/profile" || path.startsWith("/auth/")) return account(exchange, method, path)
             if (path.startsWith(ControlApi.PREFIX)) return control(exchange, method, path)
             if (path.startsWith(ModApiSettings.PATH)) return mod(exchange, method, path)
