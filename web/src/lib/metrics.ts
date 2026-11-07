@@ -6,7 +6,7 @@ import { dec, distance, duration, num, pct, ratio } from './format';
 export interface Metric {
   id: string;
   label: string;
-  group: 'Allgemein' | 'Crew' | 'Impostor' | 'Details';
+  group: 'Allgemein' | 'Crew' | 'Impostor' | 'Details' | 'Crack';
   description: string;
   value: (p: PlayerSummary) => number;
   format: (p: PlayerSummary) => string;
@@ -83,6 +83,18 @@ export const METRICS: Metric[] = [
   {
     id: 'fixes', label: 'Reparaturen', group: 'Details', description: 'Beendete Sabotagen, an denen man mitrepariert hat (seit CrewStats 1.5.0).',
     value: (p) => p.sabotagesFixed, format: (p) => num(p.sabotagesFixed), detail: (p) => `in ${num(p.detailGames)} Runden`, eligible: (p) => p.sabotagesFixed > 0
+  },
+  {
+    id: 'crackwins', label: 'Crack-Siege', group: 'Crack', description: 'Nach jeder Runde wird 15 Minuten lang auf der Website gewählt, wer am meisten Crack geraucht hat. Gezählt wird, wie oft man vorne lag (bei Gleichstand alle mit den meisten Stimmen).',
+    value: (p) => p.crackWins ?? 0, format: (p) => num(p.crackWins ?? 0), detail: (p) => `in ${num(p.crackPolls ?? 0)} Votings`, eligible: (p) => (p.crackWins ?? 0) > 0
+  },
+  {
+    id: 'crackvotes', label: 'Crack-Stimmen', group: 'Crack', description: 'Alle Stimmen, die man im Crack-Voting bekommen hat.',
+    value: (p) => p.crackVotes ?? 0, format: (p) => num(p.crackVotes ?? 0), detail: (p) => `${num(p.crackWins ?? 0)} × vorne`, eligible: (p) => (p.crackVotes ?? 0) > 0
+  },
+  {
+    id: 'crackrate', label: 'Crack-Quote', group: 'Crack', description: 'Anteil der eigenen Runden mit Crack-Voting, in denen man vorne lag.', minLabel: 'ab 5 Votings',
+    value: (p) => ratio(p.crackWins ?? 0, p.crackPolls ?? 0), format: (p) => pct(p.crackWins ?? 0, p.crackPolls ?? 0), detail: (p) => `${num(p.crackWins ?? 0)} von ${num(p.crackPolls ?? 0)} Votings`, eligible: (p) => (p.crackPolls ?? 0) >= 5
   }
 ];
 
@@ -93,7 +105,8 @@ export const GROUPS: { id: Metric['group']; label: string; caption: string }[] =
   { id: 'Allgemein', label: 'Allgemein', caption: 'Siege, Runden, Überleben' },
   { id: 'Crew', label: 'Crew', caption: 'Aufgaben, Stimmen, Meldungen' },
   { id: 'Impostor', label: 'Impostor', caption: 'Kills, Täuschung, Sabotagen' },
-  { id: 'Details', label: 'Unterwegs', caption: 'Strecke und Reparaturen' }
+  { id: 'Details', label: 'Unterwegs', caption: 'Strecke und Reparaturen' },
+  { id: 'Crack', label: 'Crack-Voting', caption: 'Wer am meisten geraucht hat' }
 ];
 
 export function rank(players: PlayerSummary[], m: Metric): PlayerSummary[] {

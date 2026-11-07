@@ -17,6 +17,7 @@
  * Eigene Daten der Website (Anmeldungen, Profile, Profilbilder) liegen in data/website.db.
  * CrewStats-Spieleranfragen (Auto-Join, Stats, Verknüpfen): POST /api/mod/<Schlüssel>, siehe services/ModApi.kt.
  * Live-Lobbys mit „Beitreten“: /api/lobbies, siehe LiveLobbies.kt.
+ * Crack-Voting nach jeder Runde (15 min, Stimmen in data/website.db): /api/crack, siehe CrackVoting.kt.
  * Bot steuern (Event-Tab, Admin-Panel): die Website schreibt Aufträge in die Tabelle web_requests der Bot-Datenbank,
  * der Bot führt sie aus und prüft dabei die Discord-Rollen selbst.
  */
@@ -65,7 +66,8 @@ fun main() {
         log.info("🔑 Discord-Anmeldung aus (dafür DISCORD_CLIENT_SECRET in die .env)")
     }
 
-    val store = StatsStore(source, accounts)
+    val crackVotes = CrackVotes(accountsDb)
+    val store = StatsStore(source, accounts, crackVotes = crackVotes)
     try {
         store.refresh()
     } catch (e: Exception) {
@@ -110,6 +112,7 @@ fun main() {
             modApi = modApi,
             lobbies = lobbies,
             coreHold = coreHold,
+            crack = CrackVoting(crackVotes, auth, store),
         )
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)

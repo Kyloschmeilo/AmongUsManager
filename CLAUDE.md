@@ -383,6 +383,15 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Crew-Stimmen `suspectedAsCrew` (zu Unrecht) / `suspectedAsImpostor` (durchschaut) + Listen `wrongSuspects`/`suspectedBy`/
   `caughtBy` im Profil (Abschnitt „Abstimmungen“). Neutrale zählen weder richtig noch falsch, Selbst-Stimmen nicht. Bestenliste:
   `ejections` (Crew, ab 5 Rauswürfen) und `deceptions` (Impostor). Test `voteStatsTellRightFromWrongSuspicion`.
+- **Crack-Voting** (07.11.2026, Kilian: „nach jeder Runde auf der Website 15 min lang abstimmen, wer das meiste Crack geraucht
+  hat … auch als Bestenliste“): `web/CrackVoting.kt` (`CrackPoll`, `CrackVotes`, `CrackVoting`), Stimmen in `data/website.db`
+  Tabelle `web_crack_votes` (game_id, voter_id = Discord-ID, target_id = playerId der Runde). Voting läuft ab `receivedAt` der
+  Runde (Uhr des Bots) 15 min, nicht bei Runden, die > 30 min nach Rundenende ankamen (Offline-Puffer) oder aus `round_history`.
+  Nur angemeldet, eine Stimme je Konto (änderbar/zurückziehbar), nicht für sich selbst; Stimmenzahlen erst nach dem Ende,
+  wer wen gewählt hat geht nie an den Browser. Gleichstand = alle vorne. Beendete Votings fließen beim nächsten Refresh in
+  den Snapshot (`crackWins`/`crackVotes`/`crackPolls`, Profil `crack`), Bestenliste Bereich „Crack-Voting“ (`crackwins`,
+  `crackvotes`, `crackrate`). Frontend `components/Crack.tsx`, `lib/crack.ts`, `crack.css`: Abschnitt auf der Runden-Seite
+  (`#crack`), Hinweis-Streifen auf der Startseite, Abschnitt im Profil. Tests: `CrackVotingTest`.
 - **Abzeichen im Profil** (03.11.2026, Kilian: Erfolge/Abzeichen wie „5 Impostor-Siege in Folge“): `web/Badges.kt` berechnet
   26 Abzeichen live aus den Runden (nichts gespeichert, gilt rückwirkend, auch für unverknüpfte Spieler) in vier Gruppen
   (Serien, Momente, Laufbahn, Pech gehabt), je drei Stufen Bronze/Silber/Gold mit der Runde, in der sie erreicht wurden, und

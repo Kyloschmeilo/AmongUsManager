@@ -82,6 +82,10 @@ export interface PlayerSummary {
   sabotages: number;
   sabotagesFixed: number;
   playSeconds: number;
+  /** Crack-Voting: gewonnen, erhaltene Stimmen, eigene Runden mit beendetem Voting. */
+  crackWins?: number;
+  crackVotes?: number;
+  crackPolls?: number;
   firstSeen: string | null;
   lastSeen: string | null;
   favoriteRole: string | null;
@@ -194,6 +198,7 @@ export interface Profile {
   caughtBy: { player: PlayerRef; count: number }[];
   partners: { player: PlayerRef; games: number; wins: number }[];
   deathCauses: { cause: string; count: number }[];
+  crack?: { wins: number; votes: number; polls: number; won: { round: { gameId: string; map: string; mapId: number; endedAt: string }; votes: number }[] };
   form: boolean[];
   rounds: {
     round: RoundItem;

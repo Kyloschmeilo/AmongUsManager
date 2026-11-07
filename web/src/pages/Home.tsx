@@ -10,6 +10,7 @@ import { Count, reducedMotion, useGrow } from '../components/motion';
 import { MapView } from '../components/MapView';
 import { CrewDrift } from '../components/CrewDrift';
 import { LiveLobbyStrip } from './Lobbies';
+import { CrackStrip } from '../components/Crack';
 
 export function Home() {
   const overview = useApi<Overview>('overview');
@@ -21,6 +22,7 @@ export function Home() {
           <>
             <Masthead overview={o} />
             <LiveLobbyStrip />
+            <CrackStrip />
             {o.rounds === 0 ? (
               <Empty
                 text="Noch keine Runden aufgezeichnet."

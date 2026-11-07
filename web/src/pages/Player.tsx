@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeftRight, Clock, Crosshair, Eye, EyeOff, Footprints, HeartPulse, PenLine, ShieldCheck, Skull, Swords, Trophy, UserX, Vote, Wind, Wrench } from 'lucide-react';
+import { ArrowLeftRight, Cigarette, Clock, Crosshair, Eye, EyeOff, Footprints, HeartPulse, PenLine, ShieldCheck, Skull, Swords, Trophy, UserX, Vote, Wind, Wrench } from 'lucide-react';
 import { useApi, type PlayerSummary, type Profile, type PlayerRef } from '../lib/api';
 import { ago, date, distance, duration, num, pct } from '../lib/format';
 import { TEAM_COLOR, TEAM_LABEL, deathCause, teamPillClass } from '../lib/labels';
@@ -11,6 +11,7 @@ import { Async, Avatar, BarList, Form, PlayerLink, RoundList, Section, StatCard 
 import { Title } from '../components/motion';
 import { ProfileEditor } from '../components/ProfileEditor';
 import { BadgeSection } from '../components/Badges';
+import { CrackSection } from '../components/Crack';
 
 const LOOK_LABEL = { hat: 'Hut', visor: 'Visier', skin: 'Skin', pet: 'Haustier' } as const;
 
@@ -43,7 +44,8 @@ const SHOWCASE_ICON: Record<Metric['group'], ReactNode> = {
   Allgemein: <Trophy className="icon" />,
   Crew: <ShieldCheck className="icon" />,
   Impostor: <Crosshair className="icon" />,
-  Details: <Footprints className="icon" />
+  Details: <Footprints className="icon" />,
+  Crack: <Cigarette className="icon" />
 };
 
 /** Kennzahl-Karten oben im Profil: erst die selbst gewählten, dann die üblichen (zusammen höchstens vier). */
@@ -198,6 +200,8 @@ function ProfileView({ profile }: { profile: Profile }) {
       </Section>
 
       <VoteSection profile={profile} />
+
+      <CrackSection profile={profile} />
 
       <div className="grid grid--2">
         <Section title="Maps">
