@@ -36,7 +36,7 @@ object ProfileRules {
     /** Kennzahlen der Bestenliste (ids wie in web/src/lib/metrics.ts – StatsWebsiteTest prüft das). */
     val METRICS = listOf(
         "wins", "winrate", "games", "survival", "crewrate", "votes", "ejections", "tasks", "reports",
-        "kills", "kpg", "imprate", "deceptions", "sabotages", "distance", "fixes",
+        "kills", "kpg", "imprate", "deceptions", "sabotages", "distance", "fixes", "crackwins", "crackvotes", "crackrate",
     )
 
     /** Prüft eine Eingabe aus dem Browser; wirft [ProfileException] mit einer Meldung für die Seite. */

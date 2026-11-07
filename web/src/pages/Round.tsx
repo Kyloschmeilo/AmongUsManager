@@ -7,6 +7,7 @@ import { PLATFORMS, TEAM_LABEL, deathCause, endReason, humanize, modLabel, room,
 import { Async, PlayerLink, Section, TeamPill } from '../components/ui';
 import { Title } from '../components/motion';
 import { Replay } from '../replay/Replay';
+import { CrackVote } from '../components/Crack';
 import { describe, nameLookup, timelineOf } from '../replay/events';
 
 export function RoundPage() {
@@ -54,6 +55,8 @@ function RoundView({ round }: { round: RoundDetail }) {
           </span>
         </div>
       )}
+
+      <CrackVote gameId={round.gameId} />
 
       <Section title="Spieler">
         <PlayersTable round={round} name={name} />

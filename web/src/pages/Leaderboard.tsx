@@ -2,7 +2,7 @@
 // je Kennzahl ein Kärtchen mit den Top 3, darunter Podest und die ganze Rangliste.
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Crosshair, Footprints, Search, ShieldCheck, Trophy } from 'lucide-react';
+import { Cigarette, Crosshair, Footprints, Search, ShieldCheck, Trophy } from 'lucide-react';
 import { useApi, type PlayerSummary } from '../lib/api';
 import { GROUPS, METRICS, metric, rank, type Metric } from '../lib/metrics';
 import { useMe } from '../lib/me';
@@ -14,7 +14,8 @@ const GROUP_ICON: Record<Metric['group'], ReactNode> = {
   Allgemein: <Trophy className="icon" aria-hidden="true" />,
   Crew: <ShieldCheck className="icon" aria-hidden="true" />,
   Impostor: <Crosshair className="icon" aria-hidden="true" />,
-  Details: <Footprints className="icon" aria-hidden="true" />
+  Details: <Footprints className="icon" aria-hidden="true" />,
+  Crack: <Cigarette className="icon" aria-hidden="true" />
 };
 
 export function Leaderboard() {

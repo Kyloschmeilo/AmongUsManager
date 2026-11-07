@@ -85,6 +85,10 @@ private class PlayerAcc(val key: String) {
     var sabotages = 0
     var sabotagesFixed = 0
     var playSeconds = 0.0
+    var crackWins = 0 // Crack-Votings gewonnen (bei Gleichstand alle mit den meisten Stimmen)
+    var crackVotes = 0 // erhaltene Stimmen im Crack-Voting
+    var crackPolls = 0 // eigene Runden mit beendetem Crack-Voting (mit mindestens einer Stimme)
+    val crackWon = ArrayList<Pair<RoundView, Int>>() // gewonnene Votings: Runde + Stimmen, neueste zuerst
     var firstSeen: Instant? = null
     var lastSeen: Instant? = null
     val roles = HashMap<String, RoleAcc>()
@@ -374,6 +378,9 @@ class StatsSnapshot private constructor(
             "sabotages" to p.sabotages,
             "sabotagesFixed" to p.sabotagesFixed,
             "playSeconds" to p.playSeconds,
+            "crackWins" to p.crackWins,
+            "crackVotes" to p.crackVotes,
+            "crackPolls" to p.crackPolls,
             "firstSeen" to p.firstSeen,
             "lastSeen" to p.lastSeen,
             "favoriteRole" to (custom?.favoriteRole?.let { roleName(it) }
@@ -415,6 +422,12 @@ class StatsSnapshot private constructor(
                 ref(key)?.let { obj("player" to it, "games" to v[0], "wins" to v[1]) }
             },
             "deathCauses" to p.deathCauses.entries.sortedByDescending { it.value }.map { obj("cause" to it.key, "count" to it.value) },
+            "crack" to obj(
+                "wins" to p.crackWins,
+                "votes" to p.crackVotes,
+                "polls" to p.crackPolls,
+                "won" to p.crackWon.take(8).map { (view, got) -> obj("round" to roundRef(view), "votes" to got) },
+            ),
             "form" to p.rounds.take(20).map { (view, index) -> view.round.players[index].won },
             "rounds" to p.rounds.take(PROFILE_ROUNDS).map { (view, index) ->
                 val me = view.round.players[index]
@@ -644,6 +657,8 @@ class StatsSnapshot private constructor(
             levels: Map<Long, BotLevel>,
             now: Instant,
             decorations: Map<Long, PlayerDecoration> = emptyMap(),
+            /** Beendete Crack-Votings: gameId → (playerId → Stimmen). */
+            crack: Map<String, Map<Int, Int>> = emptyMap(),
         ): StatsSnapshot {
             val sorted = rounds.sortedByDescending { it.endedAt }
             val players = LinkedHashMap<String, PlayerAcc>()
@@ -835,6 +850,22 @@ class StatsSnapshot private constructor(
                             acc.impostorVotes++
                             if (exiled) acc.deceptions++
                         }
+                    }
+                }
+            }
+
+            // Crack-Voting: wer in seinen Runden wie viele Stimmen bekam und wie oft er vorne lag
+            for (view in views) {
+                val tally = crack[view.round.gameId]?.takeIf { t -> t.values.any { it > 0 } } ?: continue
+                val winners = CrackPoll.winners(tally)
+                view.round.players.forEachIndexed { i, p ->
+                    val acc = players.getValue(view.keys[i])
+                    val got = tally[p.playerId] ?: 0
+                    acc.crackPolls++
+                    acc.crackVotes += got
+                    if (p.playerId in winners) {
+                        acc.crackWins++
+                        acc.crackWon += view to got
                     }
                 }
             }

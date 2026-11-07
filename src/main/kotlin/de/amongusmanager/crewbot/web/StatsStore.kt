@@ -13,6 +13,8 @@ class StatsStore(
     /** Eigene Daten der Website (Anzeigenamen, Profilbilder, Profile), null = ohne. */
     private val accounts: WebAccounts? = null,
     private val clock: () -> Instant = Instant::now,
+    /** Stimmen des Crack-Votings (fertige Votings zählen in Bestenliste/Profil), null = ohne. */
+    private val crackVotes: CrackVotes? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsStore::class.java)
 
@@ -26,6 +28,7 @@ class StatsStore(
     private var levels: Map<Long, BotLevel>? = null
     private var accountsVersion: Long = -1
     private var decorations: Map<Long, PlayerDecoration> = emptyMap()
+    private var crack: Map<String, Map<Int, Int>> = emptyMap()
 
     @Volatile
     var snapshot: StatsSnapshot = StatsSnapshot.empty(clock())
@@ -105,9 +108,20 @@ class StatsStore(
             changed = true
         }
 
+        val rounds = archived.values + history.filter { it.gameId !in archiveIds }
+        if (crackVotes != null) {
+            // nur beendete Votings – laufende ändern sich mit jeder Stimme und stehen nur auf der Runden-Seite
+            val now = clock()
+            val byId = rounds.associateBy { it.gameId }
+            val closed = crackVotes.tallies().filterKeys { id -> byId[id]?.let { CrackPoll.isClosed(it, now) } == true }
+            if (closed != crack) {
+                crack = closed
+                changed = true
+            }
+        }
+
         if (changed) {
-            val rounds = archived.values + history.filter { it.gameId !in archiveIds }
-            snapshot = StatsSnapshot.build(rounds, links ?: emptyMap(), levels ?: emptyMap(), clock(), decorations)
+            snapshot = StatsSnapshot.build(rounds, links ?: emptyMap(), levels ?: emptyMap(), clock(), decorations, crack)
             log.info("Stats aktualisiert: {} Runden ({} mit Rohdaten), {} Spieler", rounds.size, archived.size, snapshotPlayers())
         }
         return changed

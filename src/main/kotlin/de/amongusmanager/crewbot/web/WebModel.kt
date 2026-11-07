@@ -126,6 +126,8 @@ class WebRound(
     val eventCount: Int,
     val hasTracks: Boolean,
     val mapSample: MapSample?,
+    /** Wann der Bot die Runde bekommen hat (Uhr des Bots, nicht des Hosts) – Beginn des Crack-Votings. */
+    val receivedAt: Instant = endedAt,
 ) {
     fun player(playerId: Int?): WebPlayer? = if (playerId == null) null else players.firstOrNull { it.playerId == playerId }
 }
@@ -280,6 +282,7 @@ object WebRounds {
             eventCount = events.size,
             hasTracks = tracks.any { ((it["points"] as? JsonArray)?.size ?: 0) >= 6 },
             mapSample = sampleMap(events, tracks, kills),
+            receivedAt = receivedAt,
         )
     }
 
