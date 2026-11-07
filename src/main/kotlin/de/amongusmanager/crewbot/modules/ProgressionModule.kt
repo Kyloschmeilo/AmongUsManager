@@ -16,6 +16,7 @@ import de.amongusmanager.crewbot.ui.buildCrewCardEmbed
 import de.amongusmanager.crewbot.ui.buildProfileEmbed
 import de.amongusmanager.crewbot.ui.notify
 import de.amongusmanager.crewbot.ui.views.takeCodePoints
+import de.amongusmanager.crewbot.web.WebAuth
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import net.dv8tion.jda.api.EmbedBuilder
@@ -70,7 +71,8 @@ class ProgressionModule(private val bot: CrewBot) : CrewModule("Level & Fortschr
                 .await()
         },
         SlashCommand("leaderboard", "Top 10 der Crew – die Top 3 bekommen Medaillen im Nickname") { event ->
-            val ranking = bot.levels.ranking()
+            val hidden = bot.leaderboardExclusions.keys()
+            val ranking = bot.levels.ranking().filter { WebAuth.playerKeyOf(it.first) !in hidden } // Admin-Panel der Website
             if (ranking.isEmpty()) {
                 event.notify("📊 Das Leaderboard ist aktuell leer!", Tone.INFO)
                 return@SlashCommand

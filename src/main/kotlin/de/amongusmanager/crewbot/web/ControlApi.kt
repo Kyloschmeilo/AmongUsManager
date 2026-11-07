@@ -98,6 +98,8 @@ class ControlApi(
         }
         if (!allow(userId)) return json(429, obj("error" to "Zu viele Klicks – warte kurz."))
         val reply = link.call(userId, action, payload)
+        // Bestenliste sofort neu (sonst erst beim nächsten Abgleich)
+        if (action == "admin.leaderboard" && reply.status == 200) store.refreshQuietly()
         if (userId == GUEST && reply.status == 200) guestCache = reply to clock()
         if (action == "me" && reply.status == 200) meCache[userId] = reply to clock()
         // Nach Änderungen sofort frische Rechte/Daten (z.B. Rolle vergeben → Event Maker)
@@ -157,6 +159,7 @@ class ControlApi(
             "me", "events.list", "events.join", "events.leave", "events.create",
             "admin.overview", "admin.members", "admin.player.set", "admin.player.reset", "admin.player.role", "admin.wish",
             "admin.voice", "admin.round", "admin.round.cancel", "admin.mvp", "admin.post", "admin.settings", "admin.modsetup",
+            "admin.leaderboard",
         )
     }
 }

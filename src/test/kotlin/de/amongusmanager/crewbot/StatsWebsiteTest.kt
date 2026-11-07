@@ -1,6 +1,7 @@
 package de.amongusmanager.crewbot
 
 import de.amongusmanager.crewbot.db.Database
+import de.amongusmanager.crewbot.services.LeaderboardExclusions
 import de.amongusmanager.crewbot.services.ModRound
 import de.amongusmanager.crewbot.web.CrewLook
 import de.amongusmanager.crewbot.web.Cosmetics
@@ -8,10 +9,12 @@ import de.amongusmanager.crewbot.web.DatabaseSource
 import de.amongusmanager.crewbot.web.PROFILE_ROUNDS
 import de.amongusmanager.crewbot.web.StatsServer
 import de.amongusmanager.crewbot.web.StatsStore
+import de.amongusmanager.crewbot.web.WebAuth
 import de.amongusmanager.crewbot.web.shortHash
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
@@ -160,6 +163,43 @@ open class StatsWebsiteTest {
         val keys = s.store.snapshot.views.flatMap { it.keys }.toSet()
         assertContains(keys, shortHash("crewstats-web:d:102"))
         assertFalse(shortHash("crewstats-web:f:tom#9012") in keys)
+    }
+
+    @Test
+    fun adminsCanHidePlayersFromLeaderboards() {
+        val s = setup()
+        s.store.refresh()
+        val exclusions = LeaderboardExclusions(s.bot.db)
+        val kilian = shortHash("crewstats-web:d:100")
+        assertEquals(WebAuth.playerKeyOf(100), kilian) // Bot und Website rechnen denselben Schlüssel
+        fun players() = json(s.store.snapshot.playersJson)["players"]!!.jsonArray.map { it.jsonObject }
+        fun recordHolders() = json(s.store.snapshot.overviewJson)["records"]!!.jsonArray
+            .mapNotNull { (it.jsonObject["player"] as? JsonObject)?.get("key")?.jsonPrimitive?.content }
+        assertTrue(recordHolders().isNotEmpty())
+        assertTrue(players().none { it["unranked"]!!.jsonPrimitive.boolean })
+
+        // Alle ausnehmen → keine Rekorde mit Spieler mehr, alle „unranked“, Profile bleiben
+        val all = players().map { it["key"]!!.jsonPrimitive.content }
+        all.forEach { assertTrue(exclusions.set(it, true)) }
+        assertFalse(exclusions.set(kilian, true)) // schon ausgenommen
+        assertTrue(exclusions.isHidden(100))
+        assertTrue(s.store.refresh())
+        assertFalse(s.store.refresh())
+        assertTrue(players().all { it["unranked"]!!.jsonPrimitive.boolean })
+        assertTrue(recordHolders().isEmpty())
+        assertNotNull(s.store.snapshot.playerJson(kilian))
+
+        // Wieder aufnehmen
+        all.forEach { exclusions.set(it, false) }
+        assertEquals(emptySet(), exclusions.keys())
+        assertNull(s.bot.db.getSetting(LeaderboardExclusions.KEY))
+        assertTrue(s.store.refresh())
+        assertTrue(players().none { it["unranked"]!!.jsonPrimitive.boolean })
+        assertTrue(recordHolders().isNotEmpty())
+
+        // Kaputte Einträge werden ignoriert
+        assertEquals(setOf(kilian), LeaderboardExclusions.parse("[\"$kilian\", \"<script>\", 5, null]"))
+        assertEquals(emptySet(), LeaderboardExclusions.parse("kein json"))
     }
 
     @Test

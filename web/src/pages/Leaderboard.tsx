@@ -107,7 +107,7 @@ function Ranking({ players, current }: { players: PlayerSummary[]; current: Metr
   const rows = ranked
     .map((p, i) => ({ p, place: i + 1 }))
     .filter(({ p, place }) => (q ? p.name.toLowerCase().includes(q) : place > 3));
-  const missing = players.length - ranked.length;
+  const missing = players.filter((p) => !p.unranked).length - ranked.length;
   const podiumRef = useRef<HTMLDivElement>(null);
   useStagger(podiumRef, [current.id]);
 

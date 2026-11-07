@@ -24,6 +24,7 @@ class StatsStore(
     private var historySignature: String? = null
     private var links: Map<String, Long>? = null
     private var levels: Map<Long, BotLevel>? = null
+    private var hidden: Set<String>? = null
     private var accountsVersion: Long = -1
     private var decorations: Map<Long, PlayerDecoration> = emptyMap()
 
@@ -99,6 +100,12 @@ class StatsStore(
             changed = true
         }
 
+        val newHidden = source.hiddenPlayers()
+        if (newHidden != hidden) {
+            hidden = newHidden
+            changed = true
+        }
+
         if (accounts != null && accounts.version != accountsVersion) {
             accountsVersion = accounts.version
             decorations = accounts.decorations()
@@ -107,7 +114,7 @@ class StatsStore(
 
         if (changed) {
             val rounds = archived.values + history.filter { it.gameId !in archiveIds }
-            snapshot = StatsSnapshot.build(rounds, links ?: emptyMap(), levels ?: emptyMap(), clock(), decorations)
+            snapshot = StatsSnapshot.build(rounds, links ?: emptyMap(), levels ?: emptyMap(), clock(), decorations, hidden ?: emptySet())
             log.info("Stats aktualisiert: {} Runden ({} mit Rohdaten), {} Spieler", rounds.size, archived.size, snapshotPlayers())
         }
         return changed

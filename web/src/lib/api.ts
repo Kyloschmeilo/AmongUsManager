@@ -43,6 +43,8 @@ export interface PlayerSummary {
   avatar?: string | null;
   linked: boolean;
   level: number | null;
+  /** Von einem Admin aus den Bestenlisten ausgenommen (Profil bleibt erreichbar). */
+  unranked?: boolean;
   games: number;
   wins: number;
   crewGames: number;

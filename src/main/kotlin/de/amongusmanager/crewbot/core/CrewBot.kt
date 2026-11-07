@@ -15,6 +15,7 @@ import de.amongusmanager.crewbot.modules.ProgressionModule
 import de.amongusmanager.crewbot.modules.RoundsModule
 import de.amongusmanager.crewbot.modules.VoiceModule
 import de.amongusmanager.crewbot.modules.WebControlModule
+import de.amongusmanager.crewbot.services.LeaderboardExclusions
 import de.amongusmanager.crewbot.services.AchievementService
 import de.amongusmanager.crewbot.services.AuditLog
 import de.amongusmanager.crewbot.services.AutoJoinSettings
@@ -101,6 +102,7 @@ class CrewBot(val db: Database) {
     val autoJoin = AutoJoinSettings(db)
     val modApi = ModApiSettings(db) // Spieler-Anfragen der Mod über die Stats-Website
     val lobbyStore = LobbyStore(db) // neueste Lobby für die Website (Auto-Join)
+    val leaderboardExclusions = LeaderboardExclusions(db) // von Admins aus den Bestenlisten ausgenommen
     val gameSettings = GameSettingsService(db)
     val roundHistory = RoundHistoryService(db)
     val achievements = AchievementService(db, levels)
