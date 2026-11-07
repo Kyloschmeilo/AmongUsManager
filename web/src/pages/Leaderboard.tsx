@@ -43,6 +43,7 @@ export function Leaderboard() {
                     role="tab"
                     aria-selected={g.id === current.group}
                     className="lb-group"
+                    ref={(el) => { if (el && g.id === current.group) el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }}
                     onClick={() => select(METRICS.find((m) => m.group === g.id)!.id)}
                   >
                     {GROUP_ICON[g.id]}

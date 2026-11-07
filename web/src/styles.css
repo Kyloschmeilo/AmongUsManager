@@ -314,11 +314,16 @@ button { font: inherit; color: inherit; }
 .board__more::after { content: ' →'; }
 
 /* Bestenliste: Bereiche, Kennzahl-Kärtchen, Podest */
-.lb-groups { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border-bottom: 1px solid var(--rule); }
-.lb-groups > .lb-group + .lb-group { border-left: 1px solid var(--border); padding-left: var(--space-3); }
-@media (max-width: 860px) { .lb-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.lb-groups { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; border-bottom: 1px solid var(--rule); }
+.lb-groups > .lb-group + .lb-group { border-left: 1px solid var(--border); }
+/* schmal: eine Zeile zum Wischen statt Umbruch (sonst steht ein Bereich allein in der zweiten Reihe) */
+@media (max-width: 1100px) {
+  .lb-groups { display: flex; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
+  .lb-groups::-webkit-scrollbar { display: none; }
+  .lb-group { flex: 1 0 190px; scroll-snap-align: start; }
+}
 .lb-group {
-  display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3) var(--space-2) var(--space-3) 0; min-width: 0;
+  display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3) var(--space-4); min-width: 0;
   border: 0; border-top: 3px solid var(--border); border-radius: 0; background: transparent; color: var(--ink-muted);
   font: 600 20px/24px var(--font-display); letter-spacing: .01em; text-align: left; cursor: pointer;
   transition: border-color .12s ease-out, color .12s ease-out;
@@ -327,7 +332,7 @@ button { font: inherit; color: inherit; }
 .lb-group[aria-selected='true'] { border-top-color: var(--ink); color: var(--ink); background: var(--surface-1); }
 .lb-group .icon { display: none; }
 .lb-group small { display: block; margin-top: 2px; font: 400 14px/18px var(--font-sans); letter-spacing: 0; text-transform: none; color: var(--ink-faint); }
-@media (max-width: 480px) { .lb-group small { display: none; } .lb-group { padding: var(--space-3) var(--space-2) var(--space-3) 0; } .lb-groups > .lb-group:nth-child(3) { border-left: 0; padding-left: 0; } }
+@media (max-width: 480px) { .lb-group small { display: none; } .lb-group { flex-basis: auto; padding: var(--space-3) var(--space-4); white-space: nowrap; } }
 
 .lb-cards { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: var(--space-3); }
 /* Handy: Kärtchen nebeneinander zum Wischen, damit die Rangliste nicht weit unten landet */
