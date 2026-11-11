@@ -226,6 +226,20 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   sucht die Region (`AutoJoinRules.FindRegion`: Adresse, dann Name) und wechselt per `ServerManager.SetRegion`; fehlt sie
   (z.B. TOR-Kopie ohne offizielle Server), steht das im Status. Braucht Host-Mod 1.7.1 + neuen Bot.
   Bot-JAR (mit Spezial-Rollenwunsch-Befehlen) in `/mnt/project-files/bot-autojoin/crewbot-update.zip`, Deploy macht Kilian.
+- **Proximity-Voice im Live-Tab** (11.11.2026, Kilian: „Voice-Chat unter den Live Tab … eine Art proximity voice chat“;
+  CrewStats 1.10.0): Host-Mod (`VoiceReporter.cs`/`VoiceRules.cs`, `[Voice] Enabled`, Standard an) schickt `{"crewstats":"voice",
+  fc, code, phase lobby|tasks|meeting, players:[{fc,name,color,x,y,dead,vent,mute}]}` an die Website-URL aus `[AutoJoin] Url`
+  (alle 0,2 s mit Zuhörern, sonst 2 s; Antwort `voice-reply` mit `listeners`). `web/VoiceChat.kt`: Räume je Host-Friendcode
+  (nur im Speicher), Regeln `VoiceRules` (Lobby/Ende alle; Runde nach Entfernung 1,2–5,3 Einheiten, Vent unhörbar, Lebende
+  hören keine Geister, Geister hören Geister überall; Meeting alle Lebenden außer TOR-Stummen). Browser: `/api/voice` (Status),
+  `join` (angemeldet + verknüpft + Friendcode in der Meldung), `stream` (SSE: hello/peers/mix/signal/bye, JDK-HttpServer kann kein
+  WebSocket → Thread-Pool 16 + `MAX_MEMBERS` 60), `signal`, `leave`. Sprache per WebRTC-Mesh direkt zwischen den Browsern
+  (`web/src/lib/voice.tsx`, Provider in `App.tsx`, bleibt beim Seitenwechsel; `components/Voice.tsx`, `voice.css`). Positionen
+  gehen nie an den Browser, nur Lautstärken (`hear`) und an wen man sendet (`send` – wer einen nicht hören darf, bekommt keinen
+  Ton). Host ohne Meldung > 6 s → „free“ (alle hören alle), > 5 min → Raum zu. **Mikrofon nur über https** (http://IP:Port geht
+  nicht). ICE: `VOICE_ICE_SERVERS` (JSON wie `iceServers`, Standard STUN `stun.cloudflare.com`), ohne TURN klappt nicht jede
+  Verbindung. Discord-Voice/Auto-Mute unverändert. Tests: `VoiceChatTest`; zwei echte Chromium-Browser gegeneinander geprüft
+  (Verbinden, Nähe, Meeting, Seitenwechsel). Im echten Spiel ungetestet.
 - **Spieler-Anfragen über die Website** (03.11.2026, Kilian: „mehr die Website nutzen als Webhooks, außer wenn es per
   Webhook schneller ist“; CrewStats 1.8.0): Auto-Join, Stats und Verknüpfungs-Code (Frage/Antwort) gehen an
   `POST <WEB_PUBLIC_URL>/api/mod/<Schlüssel>` der Stats-Website (`web/ModApi.kt`, gemeinsam `services/ModApi.kt`) – eine

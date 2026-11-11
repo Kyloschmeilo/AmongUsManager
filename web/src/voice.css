@@ -1,0 +1,64 @@
+/* Proximity-Voice (components/Voice.tsx) – im Stil der Live-Seite: Linie oben, Crewmates nebeneinander.
+   Wer spricht, bekommt einen Ring in Visier-Blau; Verlassen in Rot (Farbe nur mit Bedeutung). */
+
+.voice { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5) var(--space-6); border-top: 3px solid var(--border-control); margin-bottom: var(--space-6); }
+.voice--live { border-top-color: var(--accent); }
+.voice__head { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--space-4); flex-wrap: wrap; }
+.voice__title { display: flex; flex-direction: column; gap: 2px; min-width: 0; max-width: 640px; }
+.voice__kicker {
+  display: inline-flex; align-items: center; gap: 6px; font: 600 13px/18px var(--font-display); letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-muted);
+}
+.voice--live .voice__kicker { color: var(--accent); }
+.voice__name { font: 600 30px/34px var(--font-display); color: var(--ink); }
+
+.voice__controls { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.voice__volume { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--ink-muted); margin-right: var(--space-2); }
+.voice__volume input { width: 110px; accent-color: var(--accent); }
+.btn--warn { border-color: var(--gold); color: var(--gold); }
+.voice__hangup { border-color: var(--ember); color: var(--ember); }
+.voice__hangup:hover { background: #2e1517; color: var(--ember); }
+
+.voice__crew {
+  list-style: none; margin: 0; padding: var(--space-3) 0 0; display: grid; gap: var(--space-4) var(--space-2);
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); border-top: 1px solid var(--border);
+}
+.voice__seat { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; text-align: center; color: var(--ink); }
+a.voice__seat:hover .voice__seat-name { color: var(--accent-hover); }
+.voice__ring {
+  display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--border);
+  background: var(--surface-0); color: var(--ink-muted); transition: border-color .12s ease-out, box-shadow .12s ease-out;
+}
+.voice__body { width: 34px; height: 40px; }
+.voice__seat--talk .voice__ring { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.voice__seat--me .voice__ring { color: var(--accent); }
+.voice__seat--failed .voice__ring { border-style: dashed; opacity: .6; }
+.voice__seat-name { font: 500 14px/18px var(--font-sans); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.voice__seat--me .voice__seat-name { color: var(--accent); }
+.voice__seat-state { font-size: 12px; line-height: 16px; color: var(--ink-faint); }
+.voice__seat--talk .voice__seat-state { color: var(--accent); }
+.voice__seat-state--failed { color: var(--ember); }
+.voice__alone { grid-column: span 3; align-self: center; }
+
+.voice__join { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; padding-top: var(--space-3); border-top: 1px solid var(--border); }
+.voice__msg { flex-basis: 100%; font-size: 15px; color: var(--ink-muted); }
+.voice__foot { border-top: 1px solid var(--border); padding-top: var(--space-3); }
+
+/* Leiste auf anderen Seiten */
+.voice-dock {
+  position: fixed; right: var(--space-4); bottom: var(--space-4); z-index: 40; display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); max-width: calc(100vw - 2 * var(--space-4));
+  background: var(--surface-1); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  box-shadow: var(--shadow-raise);
+}
+.voice-dock__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-faint); flex: none; }
+.voice-dock__dot--talk { background: var(--accent); }
+.voice-dock__text { font-size: 15px; color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.voice-dock__text:hover { color: var(--accent-hover); }
+
+@media (max-width: 720px) {
+  .voice { padding: var(--space-4); }
+  .voice__name { font-size: 26px; line-height: 30px; }
+  .voice__controls { width: 100%; }
+  .voice__crew { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
+}

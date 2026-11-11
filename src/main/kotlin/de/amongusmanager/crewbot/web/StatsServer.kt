@@ -36,10 +36,12 @@ class StatsServer(
     private val coreHold: CoreHoldBridge? = null,
     /** Crack-Voting nach jeder Runde (/api/crack), null = ohne. */
     private val crack: CrackVoting? = null,
+    /** Proximity-Voice im Live-Tab (/api/voice), null = aus. */
+    private val voice: VoiceChat? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
-    private val executor: ExecutorService = Executors.newFixedThreadPool(16) { task -> Thread(task, "web").apply { isDaemon = true } }
+    private val executor: ExecutorService = Executors.newFixedThreadPool(16 + VoiceChat.MAX_MEMBERS + 8) { task -> Thread(task, "web").apply { isDaemon = true } }
     private val static = StaticFiles("web")
 
     init {
@@ -65,6 +67,7 @@ class StatsServer(
             if (path.startsWith(ControlApi.PREFIX)) return control(exchange, method, path)
             if (path.startsWith(ModApiSettings.PATH)) return mod(exchange, method, path)
             if (path == LiveLobbies.PATH || path.startsWith(LiveLobbies.PATH + "/")) return lobbies(exchange, method, path)
+            if (path == VoiceChat.PATH || path.startsWith(VoiceChat.PATH + "/")) return voice(exchange, method, path)
             if (path == CrackVoting.PATH || path.startsWith(CrackVoting.PATH + "/")) return crack(exchange, method, path)
             if (method != "GET" && method != "HEAD") {
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
@@ -150,6 +153,38 @@ class StatsServer(
         val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
         val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
         val response = handler.handle(WebRequest(method, path, emptyMap(), headers, body))
+        for ((name, value) in response.headers) {
+            if (name.equals("Cache-Control", ignoreCase = true)) continue
+            exchange.responseHeaders.add(name, value)
+        }
+        respond(exchange, response.status, response.type, response.body, cache = "no-store")
+    }
+
+    // ---------- Proximity-Voice ----------
+
+    private fun voice(exchange: HttpExchange, method: String, path: String) {
+        val handler = voice
+        if (handler == null) {
+            if (path == VoiceChat.PATH && (method == "GET" || method == "HEAD")) {
+                return respond(exchange, 200, TYPE_JSON, bytes(obj("enabled" to false, "loggedIn" to false)), cache = "no-store")
+            }
+            return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
+        }
+        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
+        val request = WebRequest(method, path, parseQuery(exchange.requestURI.rawQuery), headers, body)
+        if (path == VoiceChat.STREAM_PATH && method == "GET") {
+            val (member, failed) = handler.openStream(request)
+            if (member == null) return respond(exchange, failed!!.status, failed.type, failed.body, cache = "no-store")
+            exchange.responseHeaders.add("Content-Type", "text/event-stream; charset=utf-8")
+            exchange.responseHeaders.add("Cache-Control", "no-store, no-transform")
+            exchange.responseHeaders.add("X-Accel-Buffering", "no") // nginx & Co.: nicht puffern
+            exchange.responseHeaders.add("X-Content-Type-Options", "nosniff")
+            exchange.sendResponseHeaders(200, 0)
+            exchange.responseBody.use { out -> handler.pump(member, out) }
+            return
+        }
+        val response = handler.handle(request)
         for ((name, value) in response.headers) {
             if (name.equals("Cache-Control", ignoreCase = true)) continue
             exchange.responseHeaders.add(name, value)

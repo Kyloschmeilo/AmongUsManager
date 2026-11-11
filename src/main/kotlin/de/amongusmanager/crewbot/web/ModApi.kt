@@ -34,6 +34,8 @@ class ModApi(
     private val link: BotLink,
     /** „Beitreten“ auf der Website (Live-Lobbys) – die nächste Auto-Join-Frage dieser Person bekommt genau diese Lobby. */
     private val picks: JoinPicks? = null,
+    /** Proximity-Voice: Positionen vom Host (CrewStats ≥ 1.10.0), eigenes Mengenlimit (~5 Meldungen/s). */
+    private val voice: VoiceChat? = null,
     private val clock: () -> Instant = Instant::now,
 ) {
     private val log = LoggerFactory.getLogger(ModApi::class.java)
@@ -68,8 +70,9 @@ class ModApi(
         if (key.isEmpty() || !ModApiSettings.sameKey(currentKey(), key)) return json(404, """{"error":"unknown"}""")
         if (request.method != "POST") return WebResponse(405, body = """{"error":"post"}""".toByteArray(), headers = listOf("Allow" to "POST", NO_STORE))
         if (request.body.size > MAX_BODY) return json(413, """{"error":"size"}""")
-        if (!allow(client)) return json(429, """{"error":"busy"}""")
         val text = String(request.body, Charsets.UTF_8)
+        if (voice != null && VoiceReport.isReport(text)) return json(200, voice.report(text, client))
+        if (!allow(client)) return json(429, """{"error":"busy"}""")
 
         if (AutoJoinProtocol.isRequest(text)) return json(200, joinReply(text))
         return when (val info = PlayerInfoProtocol.parse(text)) {
@@ -131,7 +134,7 @@ class ModApi(
         /** Wie WebControlModule.GUEST / MOD_LINK (ohne Abhängigkeit vom Bot-Modul). */
         private const val GUEST = 0L
         private const val MOD_LINK = "mod.link"
-        private const val MAX_BODY = 4 * 1024
+        private const val MAX_BODY = 8 * 1024 // Voice-Meldung mit 15 Spielern ~2 KB
         private const val RATE = 40
         private val KEY_CACHE: Duration = Duration.ofSeconds(30)
         private val NO_STORE = "Cache-Control" to "no-store"
