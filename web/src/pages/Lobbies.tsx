@@ -9,6 +9,7 @@ import { cancelJoin, joinLobby, useLobbies, type LiveLobby, type LobbiesResponse
 import { CrewmateSvg } from '../components/CrewDrift';
 import { Empty, Loading } from '../components/ui';
 import { Title } from '../components/motion';
+import { VoicePanel } from '../components/Voice';
 import '../lobbies.css';
 
 export function LobbiesPage() {
@@ -41,6 +42,8 @@ export function LobbiesPage() {
           </span>
         </div>
       )}
+
+      <VoicePanel />
 
       {!data && !error && <Loading />}
       {!data && error && <div className="note note--warn" role="status">Lobbys gerade nicht abrufbar ({error.message}).</div>}

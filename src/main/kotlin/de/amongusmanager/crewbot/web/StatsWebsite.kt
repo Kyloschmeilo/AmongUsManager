@@ -17,6 +17,7 @@
  * Eigene Daten der Website (Anmeldungen, Profile, Profilbilder) liegen in data/website.db.
  * CrewStats-Spieleranfragen (Auto-Join, Stats, Verknüpfen): POST /api/mod/<Schlüssel>, siehe services/ModApi.kt.
  * Live-Lobbys mit „Beitreten“: /api/lobbies, siehe LiveLobbies.kt.
+ * Proximity-Voice im Live-Tab: /api/voice (SSE + WebRTC im Browser), Positionen vom Host über die Mod-API, siehe VoiceChat.kt.
  * Crack-Voting nach jeder Runde (15 min, Stimmen in data/website.db): /api/crack, siehe CrackVoting.kt.
  * Bot steuern (Event-Tab, Admin-Panel): die Website schreibt Aufträge in die Tabelle web_requests der Bot-Datenbank,
  * der Bot führt sie aus und prüft dabei die Discord-Rollen selbst.
@@ -86,7 +87,9 @@ fun main() {
     if (control == null) log.info("🎛️ Bot-Steuerung aus (keine Bot-Datenbank)")
     // CrewStats fragt (Auto-Join, Stats, Verknüpfen) hier statt über einen Discord-Webhook – /autojoin zeigt dann diese URL
     val picks = JoinPicks()
-    val modApi = controlDb?.let { ModApi(it, BotLink(WebQueue(it), wait = Duration.ofSeconds(6)), picks = picks) }
+    // Proximity-Voice im Live-Tab: Positionen kommen von der Host-Mod über die Mod-API, Sprache läuft per WebRTC im Browser
+    val voice = (controlDb ?: db)?.let { VoiceChat(it, auth, store, VoiceChat.iceFromEnv(Env.get("VOICE_ICE_SERVERS"))) }
+    val modApi = controlDb?.let { ModApi(it, BotLink(WebQueue(it), wait = Duration.ofSeconds(6)), picks = picks, voice = voice) }
     // Live-Lobbys (wer ist gerade in welcher Lobby) + „Beitreten“ über Auto-Join der Mod
     val lobbies = (controlDb ?: db)?.let { LiveLobbies(it, auth, store, picks) }
     val beat = {
@@ -113,12 +116,14 @@ fun main() {
             lobbies = lobbies,
             coreHold = coreHold,
             crack = CrackVoting(crackVotes, auth, store),
+            voice = voice,
         )
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)
         exitProcess(1)
     }
     server.start()
+    voice?.start()
     if (coreHold != null) {
         coreHold.start()
         log.info("🧱 CoreHold-Website: {} wird mitgestartet, erreichbar unter /corehold", Env.get("COREHOLD_JAR").trim().ifEmpty { CoreHoldBridge.DEFAULT_JAR })

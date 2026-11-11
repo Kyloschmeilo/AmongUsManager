@@ -16,6 +16,8 @@ import { DownloadsPage, TutorialsPage } from './pages/Guides';
 import { NotFound } from './pages/NotFound';
 import { AccountButton, LoginNotice } from './components/Account';
 import { MeProvider } from './lib/me';
+import { VoiceProvider } from './lib/voice';
+import { VoiceDock } from './components/Voice';
 import { PermissionProvider, usePermissions } from './lib/control';
 import { EventsPage } from './pages/Events';
 import { AdminPage } from './pages/Admin';
@@ -131,6 +133,7 @@ export function App() {
   return (
     <MeProvider>
       <PermissionProvider>
+      <VoiceProvider>
       <a className="sr-only" href="#inhalt">Zum Inhalt</a>
       <header className="topbar">
         <div className="wrap topbar__inner">
@@ -168,6 +171,8 @@ export function App() {
         </RouteFade>
       </main>
       <Footer />
+      <VoiceDock />
+      </VoiceProvider>
       </PermissionProvider>
     </MeProvider>
   );
