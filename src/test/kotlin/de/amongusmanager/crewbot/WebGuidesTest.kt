@@ -11,6 +11,7 @@ import de.amongusmanager.crewbot.ui.commandsIn
 import de.amongusmanager.crewbot.web.DirectorySource
 import de.amongusmanager.crewbot.web.Downloads
 import de.amongusmanager.crewbot.web.GitHubReleases
+import de.amongusmanager.crewbot.web.Pages
 import de.amongusmanager.crewbot.web.ReleaseAsset
 import de.amongusmanager.crewbot.web.ReleaseInfo
 import de.amongusmanager.crewbot.web.ReleaseSource
@@ -255,5 +256,66 @@ class WebGuidesTest {
             HttpResponse.BodyHandlers.discarding(),
         )
         assertEquals(404, response.statusCode())
+    }
+
+    @Test
+    fun serverShowsOwnPagesFromFolder() {
+        val dir = Files.createTempDirectory("seiten")
+        Files.writeString(dir.resolve("schach.html"), "<!DOCTYPE html><title>Schach</title>")
+        Files.writeString(dir.resolve("bild.svg"), "<svg xmlns='http://www.w3.org/2000/svg'/>")
+        Files.writeString(dir.resolve(".env"), "GEHEIM=1")
+        Files.writeString(dir.resolve("programm.jar"), "x")
+        Files.createDirectories(dir.resolve("sub"))
+        Files.writeString(dir.resolve("sub/x.html"), "x")
+        Files.writeString(dir.parent.resolve("draussen-${dir.fileName}.html"), "x")
+        val pages = Pages(dir)
+        assertEquals(listOf("bild.svg", "schach.html"), pages.files())
+
+        val store = StatsStore(DirectorySource(Files.createTempDirectory("runden")))
+        store.refresh()
+        val server = StatsServer(store, 0, "127.0.0.1", pages = pages)
+        server.start()
+        closers += AutoCloseable { server.stop() }
+        val client = HttpClient.newHttpClient()
+        fun get(path: String, method: String = "GET", etag: String? = null): HttpResponse<String> {
+            val request = HttpRequest.newBuilder(URI("http://127.0.0.1:${server.port}$path"))
+                .method(method, HttpRequest.BodyPublishers.noBody())
+                .apply { if (etag != null) header("If-None-Match", etag) }
+                .build()
+            return client.send(request, HttpResponse.BodyHandlers.ofString())
+        }
+
+        // wird angezeigt (kein Download) und darf CDNs und fremde APIs benutzen – anders als die Stats-Seite selbst
+        val page = get("/seiten/schach.html")
+        assertEquals(200, page.statusCode())
+        assertEquals("<!DOCTYPE html><title>Schach</title>", page.body())
+        assertEquals("text/html; charset=utf-8", page.headers().firstValue("Content-Type").orElse(""))
+        assertTrue(page.headers().firstValue("Content-Disposition").isEmpty)
+        val csp = page.headers().firstValue("Content-Security-Policy").orElse("")
+        assertContains(csp, "connect-src 'self' https:")
+        assertContains(csp, "'wasm-unsafe-eval'")
+        assertContains(csp, "worker-src 'self' blob:")
+        assertEquals(304, get("/seiten/schach.html", etag = page.headers().firstValue("ETag").orElseThrow()).statusCode())
+        assertEquals(200, get("/seiten/schach.html", method = "HEAD").statusCode())
+        assertEquals("image/svg+xml", get("/seiten/bild.svg").headers().firstValue("Content-Type").orElse(""))
+        // geänderte Datei kommt ohne Neustart
+        Files.writeString(dir.resolve("schach.html"), "<!DOCTYPE html><title>Neu</title>")
+        assertContains(get("/seiten/schach.html").body(), "Neu")
+
+        for (bad in listOf("/seiten/.env", "/seiten/programm.jar", "/seiten/sub/x.html", "/seiten/sub%2Fx.html",
+            "/seiten/%2E%2E/draussen-${dir.fileName}.html", "/seiten/gibtsnicht.html", "/seiten/")) {
+            assertEquals(404, get(bad).statusCode(), bad)
+        }
+        assertEquals(405, get("/seiten/schach.html", method = "POST").statusCode())
+
+        // die Stats-Seite selbst behält ihre strenge CSP
+        assertContains(get("/").headers().firstValue("Content-Security-Policy").orElse(""), "connect-src 'self';")
+
+        // ohne Ordner: 404 statt Fehler
+        val plain = StatsServer(store, 0, "127.0.0.1")
+        plain.start()
+        closers += AutoCloseable { plain.stop() }
+        assertEquals(404, client.send(HttpRequest.newBuilder(URI("http://127.0.0.1:${plain.port}/seiten/schach.html")).build(),
+            HttpResponse.BodyHandlers.ofString()).statusCode())
     }
 }
