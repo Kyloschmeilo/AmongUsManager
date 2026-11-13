@@ -1,6 +1,7 @@
 package de.amongusmanager.crewbot
 
 import de.amongusmanager.crewbot.services.LinkCodes
+import de.amongusmanager.crewbot.services.MAX_INFO_PLAYERS
 import de.amongusmanager.crewbot.services.ModRound
 import de.amongusmanager.crewbot.services.PlayerInfoProtocol
 import de.amongusmanager.crewbot.services.PlayerInfoRequest
@@ -42,7 +43,8 @@ class PlayerInfoTest {
         assertNull(PlayerInfoProtocol.parse("""{"crewstats":"join","v":1}"""))
         assertNull(PlayerInfoProtocol.parse("kein json"))
         val many = (1..30).joinToString(",") { "\"p$it#${1000 + it}\"" }
-        assertEquals(15, (PlayerInfoProtocol.parse("""{"crewstats":"stats","players":[$many]}""") as PlayerInfoRequest.Stats).players.size)
+        assertEquals(24, MAX_INFO_PLAYERS)
+        assertEquals(MAX_INFO_PLAYERS, (PlayerInfoProtocol.parse("""{"crewstats":"stats","players":[$many]}""") as PlayerInfoRequest.Stats).players.size)
     }
 
     @Test

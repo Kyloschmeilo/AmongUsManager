@@ -30,7 +30,7 @@ import java.security.SecureRandom
 import java.time.Duration
 import java.time.Instant
 
-const val MAX_INFO_PLAYERS = 15 // Among Us hat höchstens 15 Spieler pro Lobby
+const val MAX_INFO_PLAYERS = 24 // The Other Roles erlaubt auf Modded NA bis zu 24 Spieler (sonst 15)
 private const val MAX_REPLY_CHARS = 1900 // Discord-Nachrichten: höchstens 2000 Zeichen
 
 sealed interface PlayerInfoRequest {
