@@ -439,6 +439,14 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Blob-Worker (jsDelivr, Ersatz unpkg, alles mit SRI-Prüfsumme), chess.js 0.10.3, Figuren aus chessground-CSS, Standard-Design.
   Erste Version ohne Statistik-Seite/Training. Mit echter Engine, aber nachgestellter chess.com-API getestet (Cloud erreicht
   chess.com und die CDNs nicht). Test: `serverShowsOwnPagesFromFolder` in `WebGuidesTest`.
+- **Ballerbude** (14.11.2026, Kilian: Diep.io-artiges Spiel, „bunter“, „alles auch gerne animiert“, Standard-Design darf losgelassen
+  werden): Mehrspieler-Panzer-Arena, eigenes Aussehen (Kulleraugen-Panzer, Snacks Keks/Käse/Donut/Riesenpizza in der „Snackbar“).
+  Server `web/Ballerbude.kt` (`BallerRules` Klassen/Werte/Level, `BallerWorld` Physik + Bots, `Ballerbude` HTTP): rechnet alles mit
+  40 Schritten/s, `/api/arena` (Status), `join` (ohne Anmeldung, Name ≤ 16), `stream` (SSE, 20 Schnappschüsse/s, nur Sichtbereich),
+  `input`, `leave`; 24 Spieler, 3–7 Bots (füllen auf 8 auf), nach 12 s ohne Lebenszeichen raus, ohne Spieler steht die Welt still,
+  nichts gespeichert. 13 Klassen (Stufe 10 + 20), 7 Werte à 7 Punkte, Level 30, nach dem Tod halbes Level. Seite liegt **im
+  Website-JAR** unter `src/main/resources/seiten/ballerbude.html` (`/seiten/ballerbude.html`; eine gleichnamige Datei im Ordner
+  `seiten/` hat Vorrang). Test: `BallerbudeTest`; mit zwei Chromium-Browsern gegen die echte JAR gespielt.
 - **CoreHold-Website im selben Server** (05.11.2026, Kilian: „ich kann keinen neuen [Pelican-Server] machen, wie geht es das wir es auf dem selben machen“):
   Eigenes Programm (nicht im Repo, Quelltext in /mnt/project-files/corehold-website/): Teams, PvP-Tierliste, Special Items mit
   Rezepten des Minecraft-Servers CoreHold unter `/corehold`, Admin-Login per Passwort (`ADMIN_PASSWORD`). Ein Java-Egg startet nur
