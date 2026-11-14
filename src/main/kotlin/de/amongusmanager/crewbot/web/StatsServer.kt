@@ -38,6 +38,10 @@ class StatsServer(
     private val crack: CrackVoting? = null,
     /** Proximity-Voice im Live-Tab (/api/voice), null = aus. */
     private val voice: VoiceChat? = null,
+    /** Eigene Seiten aus dem Ordner seiten/ (/seiten/<datei>, z.B. schach.html), null = ohne. */
+    private val pages: Pages? = null,
+    /** Kritzelpost – Stille Post mit Zeichnungen (/api/kritzelpost, Seite seiten/kritzelpost.html), null = aus. */
+    private val kritzelpost: Kritzelpost? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
@@ -69,11 +73,13 @@ class StatsServer(
             if (path == LiveLobbies.PATH || path.startsWith(LiveLobbies.PATH + "/")) return lobbies(exchange, method, path)
             if (path == VoiceChat.PATH || path.startsWith(VoiceChat.PATH + "/")) return voice(exchange, method, path)
             if (path == CrackVoting.PATH || path.startsWith(CrackVoting.PATH + "/")) return crack(exchange, method, path)
+            if (kritzelpost != null && kritzelpost.handles(path)) return kritzelpost(exchange, method, path, kritzelpost)
             if (method != "GET" && method != "HEAD") {
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
             }
             if (path.startsWith("/downloads/")) return download(exchange)
+            if (path.startsWith(Pages.PREFIX)) return page(exchange)
             if (path == "/api" || path.startsWith("/api/")) api(exchange, path.removePrefix("/api").trim('/')) else staticFile(exchange, path)
         } catch (e: Exception) {
             log.warn("Fehler bei {} {}: {}", exchange.requestMethod, exchange.requestURI, e.toString())
@@ -212,9 +218,27 @@ class StatsServer(
         respond(exchange, response.status, response.type, response.body, cache = "no-store")
     }
 
-    /** Höchstens 16 KB, sonst null. */
-    private fun readBody(exchange: HttpExchange): ByteArray? {
-        val limit = 16 * 1024
+    // ---------- Kritzelpost ----------
+
+    private fun kritzelpost(exchange: HttpExchange, method: String, path: String, handler: Kritzelpost) {
+        val body = if (method == "POST") {
+            readBody(exchange, Kritzelpost.MAX_BODY) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store")
+        } else {
+            ByteArray(0)
+        }
+        val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
+        val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
+        val response = handler.handle(WebRequest(method, path, parseQuery(exchange.requestURI.rawQuery), headers, body), client)
+        for ((name, value) in response.headers) {
+            if (name.equals("Cache-Control", ignoreCase = true)) continue
+            exchange.responseHeaders.add(name, value)
+        }
+        val cache = response.headers.firstOrNull { it.first.equals("Cache-Control", ignoreCase = true) }?.second ?: "no-store"
+        respond(exchange, response.status, response.type, response.body, cache = cache)
+    }
+
+    /** Höchstens [limit] Bytes (Standard 16 KB), sonst null. */
+    private fun readBody(exchange: HttpExchange, limit: Int = 16 * 1024): ByteArray? {
         val out = ByteArrayOutputStream()
         val buffer = ByteArray(4096)
         exchange.requestBody.use { input ->
@@ -332,6 +356,17 @@ class StatsServer(
         if (size > 0) exchange.responseBody.use { out -> java.nio.file.Files.newInputStream(file).use { it.copyTo(out) } }
     }
 
+    /** Eigene Seite aus dem Ordner seiten/: wird angezeigt (kein Download), HTML mit der lockereren CSP für eigene Seiten. */
+    private fun page(exchange: HttpExchange) {
+        val name = (exchange.requestURI.path ?: "").removePrefix(Pages.PREFIX)
+        val file = pages?.file(name)
+            ?: return respond(exchange, 404, "text/plain; charset=utf-8", "Nicht gefunden".toByteArray(), cache = "no-cache")
+        val stamp = "$name:${java.nio.file.Files.size(file)}:${java.nio.file.Files.getLastModifiedTime(file).toMillis()}"
+        val etag = "W/\"s${shortHash(stamp)}\""
+        if (exchange.requestHeaders.getFirst("If-None-Match") == etag) return notModified(exchange, etag)
+        respond(exchange, 200, Pages.contentType(name)!!, java.nio.file.Files.readAllBytes(file), cache = "no-cache", etag = etag, csp = Pages.CSP)
+    }
+
     private fun parseQuery(raw: String?): Map<String, String> {
         if (raw.isNullOrEmpty()) return emptyMap()
         return raw.split('&').mapNotNull { part ->
@@ -374,6 +409,7 @@ class StatsServer(
         cache: String,
         etag: String? = null,
         gzipped: ByteArray? = null,
+        csp: String = CSP,
     ) {
         val headers = exchange.responseHeaders
         headers.add("Content-Type", type)
@@ -382,7 +418,7 @@ class StatsServer(
         headers.add("Referrer-Policy", "same-origin")
         headers.add("Vary", "Accept-Encoding")
         if (type.startsWith("text/html")) {
-            headers.add("Content-Security-Policy", CSP)
+            headers.add("Content-Security-Policy", csp)
             headers.add("X-Frame-Options", "DENY")
         }
         etag?.let { headers.add("ETag", it) }
