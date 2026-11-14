@@ -105,6 +105,8 @@ fun main() {
         else -> log.info("🎮 Mod-API an: CrewStats fragt Auto-Join/Stats über {}{}…", authConfig.publicUrl, ModApiSettings.PATH)
     }
 
+    // Geheimfunk (Wort-Ratespiel, /spiele/geheimfunk.html): Räume nur im Speicher, braucht keine Datenbank
+    val wordGame = WordGame()
     val coreHold = CoreHoldBridge.fromEnv({ Env.get(it) }, BotPaths.projectDir)
     val port = webPort()
     val server = try {
@@ -117,6 +119,7 @@ fun main() {
             coreHold = coreHold,
             crack = CrackVoting(crackVotes, auth, store),
             voice = voice,
+            wordGame = wordGame,
         )
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)
@@ -124,6 +127,7 @@ fun main() {
     }
     server.start()
     voice?.start()
+    wordGame.start()
     if (coreHold != null) {
         coreHold.start()
         log.info("🧱 CoreHold-Website: {} wird mitgestartet, erreichbar unter /corehold", Env.get("COREHOLD_JAR").trim().ifEmpty { CoreHoldBridge.DEFAULT_JAR })
