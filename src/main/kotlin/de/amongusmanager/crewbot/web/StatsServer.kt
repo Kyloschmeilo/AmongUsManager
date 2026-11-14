@@ -50,6 +50,8 @@ class StatsServer(
     private val drawGame: DrawGame? = null,
     /** MAMPF!-Spiel (/api/mampf, Seite seiten/mampf.html), null = aus. */
     private val mampf: MampfGame? = null,
+    /** Geheimfunk, das Wort-Ratespiel (/api/geheimfunk, Seite /spiele/geheimfunk.html), null = aus. */
+    private val wordGame: WordGame? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
@@ -58,6 +60,7 @@ class StatsServer(
         16 + VoiceChat.MAX_MEMBERS + 8 + Ballerbude.MAX_PLAYERS + NoodleGame.MAX_CLIENTS + MampfGame.MAX_PLAYERS,
     ) { task -> Thread(task, "web").apply { isDaemon = true } }
     private val static = StaticFiles("web")
+    private val games = StaticFiles("web-spiele")
 
     init {
         server.createContext("/") { exchange -> handle(exchange) }
@@ -94,11 +97,13 @@ class StatsServer(
             if (path == NoodleGame.PATH || path.startsWith(NoodleGame.PATH + "/")) return noodles(exchange, method, path)
             if (path == DrawGame.PATH) return drawGame(exchange, method, path)
             if (path == MampfGame.PATH || path.startsWith(MampfGame.PATH + "/")) return mampf(exchange, method, path)
+            if (path == WordGame.PATH || path.startsWith(WordGame.PATH + "/")) return wordGame(exchange, method, path)
             if (method != "GET" && method != "HEAD") {
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
             }
             if (path.startsWith("/downloads/")) return download(exchange, filePath(exchange, inApp))
+            if (path.startsWith(GAMES_PREFIX)) return gamePage(exchange, path.removePrefix(GAMES_PREFIX))
             if (path.startsWith(Pages.PREFIX)) return page(exchange, filePath(exchange, inApp))
             when {
                 path == "/api" || path.startsWith("/api/") -> api(exchange, path.removePrefix("/api").trim('/'))
@@ -113,7 +118,8 @@ class StatsServer(
                 // Antwort war schon unterwegs
             }
         } finally {
-            exchange.close()
+            // Streams, die ohne Server-Thread weiterlaufen (Geheimfunk), schließen sich später selbst
+            if (exchange.getAttribute(DETACHED) != true) exchange.close()
         }
     }
 
@@ -340,6 +346,44 @@ class StatsServer(
             exchange.responseHeaders.add(name, value)
         }
         respond(exchange, response.status, response.type, response.body, cache = "no-store")
+    }
+
+    // ---------- Spiele ----------
+
+    private fun wordGame(exchange: HttpExchange, method: String, path: String) {
+        val handler = wordGame ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
+        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
+        val request = WebRequest(method, path, parseQuery(exchange.requestURI.rawQuery), headers, body)
+        if (path == WordGame.STREAM_PATH && method == "GET") {
+            val (seat, failed) = handler.openStream(request)
+            if (seat == null) return respond(exchange, failed!!.status, failed.type, failed.body, cache = "no-store")
+            exchange.responseHeaders.add("Content-Type", "text/event-stream; charset=utf-8")
+            exchange.responseHeaders.add("Cache-Control", "no-store, no-transform")
+            exchange.responseHeaders.add("X-Accel-Buffering", "no") // nginx & Co.: nicht puffern
+            exchange.responseHeaders.add("X-Content-Type-Options", "nosniff")
+            exchange.sendResponseHeaders(200, 0)
+            // Verbindung bleibt offen, dieser Thread wird wieder frei – geschrieben wird aus dem Pool des Spiels
+            exchange.setAttribute(DETACHED, true)
+            handler.attach(seat.first, seat.second, exchange.responseBody) { exchange.close() }
+            return
+        }
+        val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
+        val response = handler.handle(request, client)
+        for ((name, value) in response.headers) {
+            if (name.equals("Cache-Control", ignoreCase = true)) continue
+            exchange.responseHeaders.add(name, value)
+        }
+        respond(exchange, response.status, response.type, response.body, cache = "no-store")
+    }
+
+    /** Seiten der Spiele aus dem JAR (Ordner `web-spiele`): /spiele/geheimfunk.html, auch ohne „.html“. */
+    private fun gamePage(exchange: HttpExchange, name: String) {
+        val file = if (name.contains('/')) null else games.get("/$name") ?: (if (!name.contains('.') && name.isNotEmpty()) games.get("/$name.html") else null)
+        if (file == null) return respond(exchange, 404, "text/plain; charset=utf-8", "Nicht gefunden".toByteArray(), cache = "no-cache")
+        val etag = "W/\"p${shortHash(name + file.bytes.size + file.bytes.contentHashCode())}\""
+        if (exchange.requestHeaders.getFirst("If-None-Match") == etag) return notModified(exchange, etag)
+        respond(exchange, 200, file.type, file.bytes, cache = "no-cache", etag = etag, gzipped = file.gzipped)
     }
 
     /** Höchstens [limit] Bytes (Standard 16 KB), sonst null. */
@@ -603,6 +647,8 @@ class StatsServer(
 
     companion object {
         const val TYPE_JSON = "application/json; charset=utf-8"
+        const val GAMES_PREFIX = "/spiele/"
+        private const val DETACHED = "detached"
 
         /** Adresse der Stats-Website (Among Us); / ist die Spiele-Startseite. */
         const val APP_BASE = "/amongus"
