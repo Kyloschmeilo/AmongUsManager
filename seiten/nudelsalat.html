@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#1a0f33">
+<title>Nudelsalat – die Arena</title>
+<style>
+:root {
+  --bg: #1a0f33; --card: #2a1856; --card2: #3a2170;
+  --pink: #ff4fa3; --yellow: #ffd23f; --cyan: #3be8ff; --green: #5cff8a; --orange: #ff8a3d; --violet: #a46bff; --red: #ff4f5e;
+  --ink: #fff7ec; --muted: #c9b8f0;
+  --round: "Arial Rounded MT Bold", "Nunito", "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font-family: var(--round);
+  -webkit-user-select: none; user-select: none; touch-action: none; -webkit-tap-highlight-color: transparent; }
+canvas#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
+button { font-family: inherit; cursor: pointer; }
+.hidden { display: none !important; }
+
+/* ---------- Menü ---------- */
+.overlay { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; z-index: 10;
+  background: radial-gradient(ellipse at center, rgba(26,15,51,.25), rgba(26,15,51,.75)); }
+.menu { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 300px); gap: 18px; align-items: start; max-width: 100%; }
+.card { background: var(--card); border-radius: 26px; padding: 22px 24px; border: 4px solid #000;
+  box-shadow: 0 8px 0 #000, 0 0 0 4px rgba(255,255,255,.06) inset; position: relative; }
+.card.main { transform: rotate(-1deg); }
+.card.side { transform: rotate(1.5deg); background: var(--card2); }
+h1.logo { margin: -6px 0 2px; font-weight: 900; font-size: clamp(38px, 8.5vw, 56px); line-height: 1; letter-spacing: 1px; text-align: center; white-space: nowrap; }
+h1.logo span { display: inline-block; -webkit-text-stroke: 3px #000; paint-order: stroke fill; text-shadow: 0 5px 0 #000;
+  animation: hop 1.6s ease-in-out infinite; }
+@keyframes hop { 0%, 100% { transform: translateY(0) rotate(0); } 40% { transform: translateY(-10px) rotate(-6deg); } 60% { transform: translateY(2px) rotate(4deg); } }
+.tag { text-align: center; color: var(--yellow); font-size: 15px; min-height: 40px; margin: 6px 0 14px; transition: opacity .3s; }
+label.small { display: block; font-size: 13px; color: var(--muted); margin: 0 0 6px 4px; text-transform: uppercase; letter-spacing: 1.5px; }
+input#name { width: 100%; font: inherit; font-size: 22px; padding: 12px 16px; border-radius: 16px; border: 4px solid #000; background: #fff7ec;
+  color: #2a1856; outline: none; box-shadow: 0 4px 0 #000; }
+input#name:focus { background: #fff; box-shadow: 0 4px 0 #000, 0 0 0 4px var(--cyan); }
+.skins { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 16px 0 6px; }
+.skin { height: 34px; border-radius: 99px; border: 3px solid #000; padding: 0; position: relative; transition: transform .15s; box-shadow: 0 3px 0 #000; }
+.skin:hover { transform: translateY(-3px) rotate(-4deg); }
+.skin.on { transform: scale(1.12); box-shadow: 0 3px 0 #000, 0 0 0 3px var(--yellow); }
+.skin::after { content: ""; position: absolute; right: 5px; top: 50%; width: 9px; height: 9px; margin-top: -5px; border-radius: 50%; background: #fff; box-shadow: inset 2px 0 0 2px #000; }
+.skinname { text-align: center; font-size: 14px; color: var(--muted); height: 18px; margin-bottom: 14px; }
+.go { width: 100%; font-size: 30px; padding: 14px; border-radius: 20px; border: 4px solid #000; color: #000; letter-spacing: 1px;
+  background: linear-gradient(90deg, var(--yellow), var(--orange), var(--pink), var(--violet), var(--cyan), var(--green), var(--yellow));
+  background-size: 300% 100%; animation: slide 4s linear infinite; box-shadow: 0 7px 0 #000; transition: transform .1s, box-shadow .1s; }
+.go:hover { transform: translateY(-2px) rotate(-1deg); }
+.go:active { transform: translateY(5px); box-shadow: 0 2px 0 #000; }
+.go:disabled { filter: grayscale(1); cursor: wait; }
+@keyframes slide { to { background-position: 300% 0; } }
+.help { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 16px; font-size: 13px; color: var(--muted); }
+.help b { color: var(--ink); background: #000; border-radius: 8px; padding: 2px 7px; }
+.status { text-align: center; font-size: 13px; margin-top: 12px; color: var(--muted); }
+.status .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--green); margin-right: 6px; box-shadow: 0 0 10px var(--green); animation: blink 1.2s infinite; }
+.status.off .dot { background: var(--red); box-shadow: 0 0 10px var(--red); }
+@keyframes blink { 50% { opacity: .35; } }
+.side h2 { margin: 0 0 10px; font-size: 22px; color: var(--yellow); -webkit-text-stroke: 1px #000; }
+ol.top { list-style: none; padding: 0; margin: 0; counter-reset: r; }
+ol.top li { counter-increment: r; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 12px; font-size: 16px; }
+ol.top li:nth-child(odd) { background: rgba(0,0,0,.18); }
+ol.top li::before { content: counter(r); width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 14px;
+  background: #000; color: var(--muted); flex: none; }
+ol.top li:nth-child(1)::before { background: var(--yellow); color: #000; }
+ol.top li:nth-child(2)::before { background: #dfe6ff; color: #000; }
+ol.top li:nth-child(3)::before { background: var(--orange); color: #000; }
+ol.top li.empty::before { display: none; }
+ol.top li .n { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ol.top li .s { color: var(--cyan); }
+.empty { color: var(--muted); font-size: 14px; }
+.back { display: inline-block; margin-top: 14px; font-size: 13px; color: var(--muted); text-decoration: none; }
+.back:hover { color: var(--ink); }
+
+/* ---------- Spiel-Anzeigen ---------- */
+.hud { position: fixed; z-index: 5; pointer-events: none; }
+.stats { left: 14px; top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+.pill { background: rgba(0,0,0,.55); border: 3px solid #000; border-radius: 14px; padding: 6px 12px; font-size: 15px; color: var(--muted); }
+.pill b { color: var(--ink); font-size: 22px; margin-left: 4px; display: inline-block; }
+.pill b.bump { animation: bump .35s; }
+@keyframes bump { 40% { transform: scale(1.4) rotate(-6deg); color: var(--yellow); } }
+.board { right: 14px; top: 14px; width: 230px; background: rgba(0,0,0,.5); border: 3px solid #000; border-radius: 16px; padding: 10px 12px; }
+.board h3 { margin: 0 0 6px; font-size: 14px; color: var(--yellow); letter-spacing: 1.5px; text-transform: uppercase; }
+.board .row { display: flex; gap: 8px; font-size: 14px; line-height: 1.55; }
+.board .row .r { width: 22px; color: var(--muted); text-align: right; }
+.board .row .n { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board .row .s { color: var(--cyan); }
+.board .row.me { color: var(--yellow); }
+.board .row.me .s { color: var(--yellow); }
+.board .row .bot { font-size: 10px; background: rgba(255,255,255,.15); border-radius: 5px; padding: 0 4px; margin-left: 4px; vertical-align: 2px; color: var(--muted); }
+.feed { right: 14px; top: 300px; width: 280px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.feed div { background: rgba(0,0,0,.55); border-radius: 10px; padding: 4px 10px; font-size: 13px; animation: feedin .3s ease-out; text-align: right; transition: opacity .6s; }
+.feed div.mine { background: var(--pink); color: #000; }
+@keyframes feedin { from { transform: translateX(40px) scale(.8); opacity: 0; } }
+canvas#mini { position: fixed; right: 14px; bottom: 14px; width: 150px; height: 150px; z-index: 5; pointer-events: none; }
+.boostbtn { position: fixed; left: 20px; bottom: 26px; z-index: 6; width: 92px; height: 92px; border-radius: 50%; border: 4px solid #000;
+  background: radial-gradient(circle at 35% 30%, #fff6, transparent 40%), var(--pink); color: #000; font-size: 18px; box-shadow: 0 6px 0 #000; }
+.boostbtn.on { transform: translateY(4px) scale(.95); box-shadow: 0 2px 0 #000; background-color: var(--yellow); }
+.pop { position: fixed; left: 50%; top: 26%; z-index: 7; pointer-events: none; font-size: clamp(36px, 7vw, 64px); white-space: nowrap;
+  -webkit-text-stroke: 3px #000; paint-order: stroke fill; text-shadow: 0 6px 0 #000; animation: pop 1.3s cubic-bezier(.2,1.6,.4,1) forwards; }
+@keyframes pop { 0% { transform: translate(-50%, 0) scale(0) rotate(-20deg); opacity: 1; } 25% { transform: translate(-50%, 0) scale(1.1) rotate(4deg); }
+  70% { transform: translate(-50%, -10px) scale(1) rotate(-2deg); opacity: 1; } 100% { transform: translate(-50%, -60px) scale(.9); opacity: 0; } }
+
+/* ---------- Tot ---------- */
+.dead .card { text-align: center; max-width: 460px; transform: rotate(-1.5deg); animation: drop .5s cubic-bezier(.2,1.5,.4,1); }
+@keyframes drop { from { transform: translateY(-80px) rotate(8deg) scale(.6); opacity: 0; } }
+.dead .big { font-size: clamp(34px, 7vw, 54px); margin: 0; -webkit-text-stroke: 2px #000; paint-order: stroke fill; color: var(--red); text-shadow: 0 5px 0 #000; }
+.dead .why { font-size: 18px; color: var(--ink); margin: 10px 0 16px; }
+.dead .nums { display: flex; justify-content: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.dead .nums .pill { pointer-events: none; }
+.dead .record { color: var(--yellow); font-size: 16px; margin: -6px 0 14px; min-height: 20px; }
+.dead .again { display: flex; gap: 10px; }
+.dead .again .go { font-size: 24px; }
+.dead .again .menu-btn { flex: none; width: 120px; font-size: 18px; border-radius: 20px; border: 4px solid #000; background: var(--card2); color: var(--ink); box-shadow: 0 7px 0 #000; }
+
+@media (max-width: 760px) {
+  .menu { grid-template-columns: minmax(0, 1fr); width: min(440px, 100%); }
+  .card.side { display: none; }
+  .board { width: 160px; padding: 6px 8px; }
+  .board .row { font-size: 12px; }
+  .board .row:nth-child(n+7) { display: none; }
+  .board h3 { font-size: 11px; }
+  .stats { flex-direction: column; gap: 5px; left: 10px; top: 10px; }
+  .pill { padding: 3px 9px; font-size: 12px; border-width: 2px; }
+  .board { right: 10px; top: 10px; border-width: 2px; }
+  .feed { display: none; }
+  canvas#mini { width: 96px; height: 96px; }
+  .pill b { font-size: 16px; }
+}
+@media (hover: hover) and (pointer: fine) { .boostbtn, .help.touch { display: none; } }
+@media (hover: none) { .help.desk { display: none; } }
+@media (prefers-reduced-motion: reduce) { h1.logo span, .go { animation: none; } }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<canvas id="mini" class="hidden"></canvas>
+
+<div class="hud stats hidden" id="stats">
+  <div class="pill">Punkte<b id="sLen">0</b></div>
+  <div class="pill">Platz<b id="sRank">–</b></div>
+  <div class="pill">Gefressen<b id="sKills">0</b></div>
+</div>
+<div class="hud board hidden" id="board"><h3>Gerade fett</h3><div id="boardRows"></div></div>
+<div class="hud feed hidden" id="feed"></div>
+<button class="boostbtn hidden" id="boostBtn">BOOST</button>
+
+<div class="overlay" id="menu">
+  <div class="menu">
+    <div class="card main">
+      <h1 class="logo" id="logo"></h1>
+      <div class="tag" id="tag"></div>
+      <label class="small" for="name">Dein Name</label>
+      <input id="name" maxlength="16" autocomplete="off" spellcheck="false" placeholder="z.B. Spaghettimonster">
+      <div class="skins" id="skins"></div>
+      <div class="skinname" id="skinName"></div>
+      <button class="go" id="play" disabled>Verbinde …</button>
+      <div class="help desk"><span><b>Maus</b> lenken</span><span><b>Klick</b> / <b>Leertaste</b> boosten</span><span>Boost kostet Länge</span></div>
+      <div class="help touch"><span><b>Tippen</b> lenkt</span><span><b>BOOST</b>-Knopf halten</span><span>Boost kostet Länge</span></div>
+      <div class="status off" id="status"><span class="dot"></span><span id="statusText">Verbinde mit der Arena …</span></div>
+    </div>
+    <div class="card side">
+      <h2>Ewige Bestenliste</h2>
+      <ol class="top" id="topList"></ol>
+      <a class="back" href="/">← zurück zu CrewStats</a>
+    </div>
+  </div>
+</div>
+
+<div class="overlay dead hidden" id="dead">
+  <div class="card">
+    <p class="big" id="deadBig">SKILL ISSUE</p>
+    <p class="why" id="deadWhy"></p>
+    <div class="nums">
+      <div class="pill">Punkte<b id="dLen">0</b></div>
+      <div class="pill">Gefressen<b id="dKills">0</b></div>
+      <div class="pill">Überlebt<b id="dTime">0s</b></div>
+    </div>
+    <div class="record" id="dRecord"></div>
+    <div class="again">
+      <button class="go" id="again">Nochmal!</button>
+      <button class="menu-btn" id="toMenu">Menü</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+// ======================================================================
+// Nudelsalat – Schlangen-Arena. Der Server rechnet alles (Bewegung, Fressen, Zusammenstöße),
+// diese Seite zeigt nur an und schickt Richtung + Boost. Protokoll: siehe NoodleGame.kt.
+// ======================================================================
+const API = "/api/nudelsalat";
+const SKINS = [
+  { name: "Ketchup-Kalle", a: "#ff3b4e", b: "#ffd23f" },
+  { name: "Pesto-Paul", a: "#4cd964", b: "#1d7a35" },
+  { name: "Schlumpfnudel", a: "#3b8bff", b: "#bfe0ff" },
+  { name: "Bananenmilch", a: "#ffe14d", b: "#fff8d6" },
+  { name: "Lila Laune", a: "#a259ff", b: "#ff7ad9" },
+  { name: "Matrix", a: "#0e3b1d", b: "#39ff6a" },
+  { name: "Feuerwehr", a: "#ff6a00", b: "#262626" },
+  { name: "Zahnpasta", a: "#3dffd0", b: "#ffffff" },
+  { name: "Pfirsich", a: "#ffb38a", b: "#ff6f91" },
+  { name: "Discord-Mod", a: "#5865f2", b: "#ffffff" },
+  { name: "Zebra", a: "#f4f4f4", b: "#1e1e1e" },
+  { name: "Einhorn-Kotze", a: "#ff4fa3", b: "#3be8ff", rainbow: true },
+];
+const RAINBOW = ["#ff4f5e", "#ff9f3b", "#ffe14d", "#4cd964", "#3be8ff", "#7a6bff", "#ff4fa3"];
+const TAGLINES = [
+  "Wie Snake, nur mit mehr Drama.",
+  "Garantiert 0 % Weizen, 100 % Skill Issue.",
+  "Der Tellerrand ist nicht dein Freund.",
+  "Die Bots heißen Kevin. Sei nicht wie Kevin.",
+  "Boost kostet Länge. Gier kostet alles.",
+  "Vom Erfinder von „Ich war in Elektro“.",
+  "Heute schon jemanden al dente gemacht?",
+  "Wer bremst, verliert. Wer boostet, auch.",
+];
+const DEATH_BIG = ["SKILL ISSUE", "GG EZ", "WASTED", "OOF", "RIP BOZO", "AUTSCH", "NOPE"];
+const DEATH_BY = [
+  "{k} hat dich zu Bolognese verarbeitet.",
+  "Gegessen von {k}. Al dente.",
+  "{k} sagt danke für die Krümel.",
+  "Du bist in {k} reingefahren. Mutig. Dumm, aber mutig.",
+  "{k} hat dich weggeschlürft wie die letzte Nudel.",
+];
+const DEATH_WALL = ["Der Tellerrand war's. Wie immer.", "Rand geküsst. Rand hat nicht zurückgeküsst.", "Lag. Ganz sicher war das Lag."];
+const FEED_KILL = ["{k} hat {v} vernascht", "{v} ist in {k} reingefahren", "{k} schlürft {v}", "{v} → Krümel (danke {k})"];
+const FEED_WALL = ["{v} hat den Tellerrand geküsst", "{v} wollte über den Rand", "{v}: Rand 1, {v} 0"];
+const KILL_POPS = ["NOM NOM!", "LECKER!", "GESCHLÜRFT!", "NICE!", "AL DENTE!", "ERWISCHT!"];
+
+// ---------- Zustand ----------
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const mini = document.getElementById("mini");
+const mctx = mini.getContext("2d");
+let W = 0, H = 0, DPR = 1;
+let es = null, token = null, R = 2400, tickMs = 50, lastTick = performance.now();
+const snakes = new Map();
+const foods = new Map();
+let bestList = [];
+let myId = null, playing = false, joining = false, myKills = 0, bornAt = 0, follow = null, followUntil = 0;
+let angle = 0, boost = false, keyBoost = false;
+let cam = { x: 0, y: 0, z: 1 };
+let shake = 0;
+const flying = [], particles = [], floaters = [];
+let feedTimer = 0, bossShown = false;
+
+// ---------- Hilfen ----------
+const $ = (id) => document.getElementById(id);
+const radiusOf = (len) => 8 + Math.min(14, Math.sqrt(len) / 5.5);
+const scoreOf = (len) => Math.round(len / 2);
+const pick = (list) => list[Math.floor(Math.random() * list.length)];
+const fill = (text, k, v) => text.replaceAll("{k}", k).replaceAll("{v}", v);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function esc(text) { const d = document.createElement("div"); d.textContent = text; return d.innerHTML; }
+
+function makeSnake(id, name, skin, bot) {
+  return { id, name, skin: SKINS[skin] || SKINS[0], skinNo: skin, bot: !!bot, len: 160, boost: 0,
+    xs: [], ys: [], seg: [], start: 0, total: 0, cut: 0, px: null, py: null, hx: 0, hy: 0, dir: 0, eatPulse: 0 };
+}
+function addPoint(s, x, y) {
+  const n = s.xs.length;
+  const step = n > s.start ? Math.hypot(x - s.xs[n - 1], y - s.ys[n - 1]) : 0;
+  if (n > s.start && step > 0.01) s.dir = Math.atan2(y - s.ys[n - 1], x - s.xs[n - 1]);
+  s.xs.push(x); s.ys.push(y); s.seg.push(step); s.total += step;
+}
+function trim(s) {
+  while (s.xs.length - s.start > 2 && s.total - s.seg[s.start + 1] >= s.len) {
+    s.total -= s.seg[s.start + 1];
+    s.cut += s.seg[s.start + 1];
+    s.start++;
+    s.seg[s.start] = 0;
+  }
+  if (s.start > 512 && s.start > s.xs.length / 2) {
+    s.xs = s.xs.slice(s.start); s.ys = s.ys.slice(s.start); s.seg = s.seg.slice(s.start); s.start = 0;
+  }
+}
+
+// ---------- Verbindung ----------
+function connect() {
+  if (es) es.close();
+  setStatus(false, "Verbinde mit der Arena …");
+  es = new EventSource(API + "/stream");
+  es.onmessage = (e) => {
+    let m;
+    try { m = JSON.parse(e.data); } catch { return; }
+    if (m.t === "init") onInit(m);
+    else if (m.t === "s") onStep(m);
+    else if (m.t === "bye") onBye(m);
+  };
+  es.onerror = () => {
+    setStatus(false, "Verbindung weg – versuche es gleich nochmal …");
+    $("play").disabled = true;
+    $("play").textContent = "Verbinde …";
+  };
+}
+function onInit(m) {
+  const wasPlaying = playing;
+  token = m.k; R = m.r; tickMs = m.tick || 50;
+  snakes.clear(); foods.clear();
+  for (const [id, name, skin, bot, len, b, path] of m.snakes) {
+    const s = makeSnake(id, name, skin, bot);
+    for (let i = 0; i < path.length; i += 2) addPoint(s, path[i], path[i + 1]);
+    s.len = len; s.boost = b; trim(s);
+    s.hx = s.xs[s.xs.length - 1]; s.hy = s.ys[s.ys.length - 1];
+    snakes.set(id, s);
+  }
+  const f = m.food;
+  for (let i = 0; i < f.length; i += 5) addFood(f[i], f[i + 1], f[i + 2], f[i + 3], f[i + 4]);
+  setTop(m.top);
+  lastTick = performance.now();
+  setStatus(true, "Arena läuft");
+  $("play").disabled = false;
+  $("play").textContent = "LOS GEHT'S";
+  myId = null;
+  if (wasPlaying) die(null, "Verbindung kurz weg – deine Nudel ist leider verdunstet.");
+}
+function onBye(m) {
+  es.close(); es = null; token = null;
+  setStatus(false, m.why === "idle" ? "Zu lange rumgestanden – zum Verbinden auf „Los“ drücken." : "Zu langsame Verbindung – zum Verbinden auf „Los“ drücken.");
+  $("play").disabled = false; $("play").textContent = "Neu verbinden";
+  if (playing) die(null, "Verbindung zu langsam – der Server hat dich rausgeschmissen.");
+}
+function addFood(id, x, y, c, v) {
+  const skin = SKINS[c] || SKINS[0];
+  foods.set(id, { id, x, y, color: skin.rainbow ? pick(RAINBOW) : (Math.random() < 0.5 ? skin.a : skin.b === "#ffffff" || skin.b === "#1e1e1e" || skin.b === "#262626" ? skin.a : skin.b),
+    v, r: 3.2 + Math.sqrt(v) * 1.5, phase: Math.random() * 6.28, born: performance.now() });
+}
+function onStep(m) {
+  const now = performance.now();
+  const gap = now - lastTick;
+  if (gap > 10 && gap < 200) tickMs = tickMs * 0.9 + gap * 0.1;
+  lastTick = now;
+  if (m.n) for (const [id, name, skin, bot] of m.n) if (!snakes.has(id)) snakes.set(id, makeSnake(id, name, skin, bot));
+  const s = m.s;
+  for (let i = 0; i < s.length; i += 5) {
+    const sn = snakes.get(s[i]);
+    if (!sn) continue;
+    const fresh = sn.xs.length === 0;
+    sn.px = fresh ? s[i + 1] : sn.hx; sn.py = fresh ? s[i + 2] : sn.hy;
+    addPoint(sn, s[i + 1], s[i + 2]);
+    sn.hx = s[i + 1]; sn.hy = s[i + 2];
+    const grew = s[i + 3] > sn.len;
+    sn.len = s[i + 3]; sn.boost = s[i + 4];
+    trim(sn);
+    if (sn.id === myId && grew) bumpLen();
+  }
+  if (m.fr) for (let i = 0; i < m.fr.length; i += 2) {
+    const food = foods.get(m.fr[i]);
+    if (!food) continue;
+    foods.delete(food.id);
+    const eater = snakes.get(m.fr[i + 1]);
+    if (eater && flying.length < 400) { flying.push({ x: food.x, y: food.y, r: food.r, color: food.color, to: eater, t: 0 }); eater.eatPulse = 1; }
+  }
+  if (m.fa) for (let i = 0; i < m.fa.length; i += 5) addFood(m.fa[i], m.fa[i + 1], m.fa[i + 2], m.fa[i + 3], m.fa[i + 4]);
+  if (m.d) for (let i = 0; i < m.d.length; i += 2) onDeath(m.d[i], m.d[i + 1]);
+  if (m.top) setTop(m.top);
+}
+function onDeath(id, killerId) {
+  const victim = snakes.get(id);
+  if (!victim) return;
+  const killer = snakes.get(killerId);
+  burst(victim);
+  snakes.delete(id);
+  if (killerId === -1) return; // gegangen
+  const mine = id === myId || killerId === myId;
+  feed(killer ? fill(pick(FEED_KILL), killer.name, victim.name) : fill(pick(FEED_WALL), "", victim.name), mine);
+  if (id === myId) {
+    shake = 18;
+    follow = killer || null; followUntil = performance.now() + 3500;
+    die(killer ? killer.name : "", null);
+  } else if (killerId === myId) {
+    myKills++;
+    $("sKills").textContent = myKills;
+    popText(pick(KILL_POPS), pick(["var(--yellow)", "var(--green)", "var(--cyan)", "var(--pink)"]));
+    shake = 8;
+  }
+}
+
+// ---------- Mitspielen ----------
+async function join() {
+  if (!token) { connect(); return; }
+  if (joining) return;
+  joining = true;
+  const name = $("name").value.trim();
+  localStorage.setItem("nudelsalat.name", name);
+  localStorage.setItem("nudelsalat.skin", String(skinNo));
+  try {
+    const res = await fetch(API + "/join", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ k: token, name, skin: skinNo }) });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || "Fehler");
+    myId = body.id; playing = true; myKills = 0; bornAt = performance.now(); bossShown = false; follow = null;
+    $("sKills").textContent = "0";
+    show("menu", false); show("dead", false);
+    ["stats", "board", "feed", "mini"].forEach((id) => show(id, true));
+    show("boostBtn", true);
+    popText(pick(["LOS!", "FRISS!", "HUNGER!", "GO GO GO"]), "var(--green)");
+  } catch (e) {
+    setStatus(false, e.message);
+  } finally {
+    joining = false;
+  }
+}
+function die(killerName, reason) {
+  if (!playing) return;
+  const me = snakes.get(myId);
+  playing = false; boost = false;
+  const len = me ? me.len : lastLen;
+  const secs = Math.round((performance.now() - bornAt) / 1000);
+  $("dLen").textContent = scoreOf(len);
+  $("dKills").textContent = myKills;
+  $("dTime").textContent = secs >= 60 ? Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0") : secs + "s";
+  $("deadBig").textContent = reason ? "UPS" : pick(DEATH_BIG);
+  $("deadWhy").textContent = reason || (killerName ? fill(pick(DEATH_BY), killerName, "") : pick(DEATH_WALL));
+  const name = $("name").value.trim();
+  const best = Number(localStorage.getItem("nudelsalat.best") || 0);
+  if (scoreOf(len) > best) { localStorage.setItem("nudelsalat.best", String(scoreOf(len))); $("dRecord").textContent = best ? "Neuer persönlicher Rekord! (vorher " + best + ")" : "Erster Rekord gesetzt!"; }
+  else $("dRecord").textContent = "Dein Rekord: " + best;
+  myId = null;
+  show("boostBtn", false);
+  setTimeout(() => { if (!playing) show("dead", true); }, 900);
+}
+let lastLen = 160;
+let sendBusy = false, sentAngle = 99, sentBoost = false, sentAt = 0;
+setInterval(async () => {
+  if (!playing || !token || sendBusy) return;
+  const now = performance.now();
+  const b = boost || keyBoost;
+  let diff = Math.abs(angle - sentAngle) % 6.283; if (diff > Math.PI) diff = 6.283 - diff;
+  if (diff < 0.02 && b === sentBoost && now - sentAt < 1000) return;
+  sendBusy = true; sentAngle = angle; sentBoost = b; sentAt = now;
+  try {
+    await fetch(API + "/steer", { method: "POST", headers: { "Content-Type": "text/plain" }, body: token + ";" + angle.toFixed(3) + ";" + (b ? 1 : 0) });
+  } catch { /* nächster Versuch gleich */ }
+  sendBusy = false;
+}, 45);
+
+// ---------- Eingabe ----------
+function aimAt(clientX, clientY) {
+  const me = snakes.get(myId);
+  if (!me) return;
+  const sx = (me.hx - cam.x) * cam.z + W / 2, sy = (me.hy - cam.y) * cam.z + H / 2;
+  if (Math.hypot(clientX - sx, clientY - sy) > 4) angle = Math.atan2(clientY - sy, clientX - sx);
+}
+canvas.addEventListener("mousemove", (e) => aimAt(e.clientX, e.clientY));
+canvas.addEventListener("mousedown", (e) => { if (e.button === 0) boost = true; });
+window.addEventListener("mouseup", () => { boost = false; });
+window.addEventListener("keydown", (e) => {
+  if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") { if (playing) { keyBoost = true; e.preventDefault(); } }
+  if (e.code === "Enter" && !playing && document.activeElement !== $("again")) { if (!$("menu").classList.contains("hidden") || !$("dead").classList.contains("hidden")) join(); }
+});
+window.addEventListener("keyup", (e) => { if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") keyBoost = false; });
+canvas.addEventListener("touchstart", (e) => { const t = e.touches[0]; aimAt(t.clientX, t.clientY); e.preventDefault(); }, { passive: false });
+canvas.addEventListener("touchmove", (e) => { const t = e.touches[0]; aimAt(t.clientX, t.clientY); e.preventDefault(); }, { passive: false });
+const boostBtn = $("boostBtn");
+boostBtn.addEventListener("touchstart", (e) => { boost = true; boostBtn.classList.add("on"); e.preventDefault(); }, { passive: false });
+boostBtn.addEventListener("touchend", (e) => { boost = false; boostBtn.classList.remove("on"); e.preventDefault(); }, { passive: false });
+$("play").addEventListener("click", join);
+$("again").addEventListener("click", join);
+$("toMenu").addEventListener("click", () => { show("dead", false); showMenu(); });
+window.addEventListener("blur", () => { boost = false; keyBoost = false; });
+
+// ---------- Anzeige ----------
+function show(id, on) { $(id).classList.toggle("hidden", !on); }
+function showMenu() {
+  show("menu", true);
+  ["stats", "board", "feed", "mini", "boostBtn"].forEach((id) => show(id, false));
+}
+function setStatus(ok, text) { $("status").classList.toggle("off", !ok); $("statusText").textContent = text; }
+function setTop(list) {
+  bestList = list || [];
+  $("topList").innerHTML = bestList.length
+    ? bestList.map((e) => `<li><span class="n">${esc(e.name)}</span><span class="s">${e.score}</span></li>`).join("")
+    : `<li class="empty" style="list-style:none">Noch leer. Sei die erste Legende.</li>`;
+}
+function feed(text, mine) {
+  const el = document.createElement("div");
+  el.textContent = text;
+  if (mine) el.className = "mine";
+  const box = $("feed");
+  box.prepend(el);
+  while (box.children.length > 5) box.lastChild.remove();
+  setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.remove(), 700); }, 5000);
+}
+function popText(text, color) {
+  const el = document.createElement("div");
+  el.className = "pop";
+  el.textContent = text;
+  el.style.color = color;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1400);
+}
+function bumpLen() {
+  const el = $("sLen");
+  el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump");
+}
+let hudAt = 0;
+function updateHud(now) {
+  if (now - hudAt < 200) return;
+  hudAt = now;
+  const list = [...snakes.values()].sort((a, b) => b.len - a.len);
+  const me = snakes.get(myId);
+  if (me) {
+    lastLen = me.len;
+    $("sLen").textContent = scoreOf(me.len);
+    const rank = list.indexOf(me) + 1;
+    $("sRank").textContent = rank + "/" + list.length;
+    if (rank === 1 && list.length > 3 && !bossShown && now - bornAt > 3000) { bossShown = true; popText("DU BIST DER PASTA-BOSS", "var(--yellow)"); shake = 10; }
+  }
+  let html = "";
+  list.slice(0, 10).forEach((s, i) => {
+    html += `<div class="row${s.id === myId ? " me" : ""}"><span class="r">${i + 1}.</span><span class="n">${esc(s.name)}${s.bot ? '<span class="bot">BOT</span>' : ""}</span><span class="s">${scoreOf(s.len)}</span></div>`;
+  });
+  if (me && list.indexOf(me) >= 10) html += `<div class="row me"><span class="r">${list.indexOf(me) + 1}.</span><span class="n">${esc(me.name)}</span><span class="s">${scoreOf(me.len)}</span></div>`;
+  $("boardRows").innerHTML = html;
+}
+
+// ---------- Effekte ----------
+function burst(s) {
+  const r = radiusOf(s.len);
+  const n = s.xs.length;
+  const step = Math.max(2, Math.floor((n - s.start) / 60));
+  for (let i = s.start; i < n && particles.length < 900; i += step) {
+    const color = s.skin.rainbow ? pick(RAINBOW) : (Math.random() < 0.5 ? s.skin.a : s.skin.b);
+    const a = Math.random() * 6.28, v = 40 + Math.random() * 160;
+    particles.push({ x: s.xs[i], y: s.ys[i], vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: r * (0.3 + Math.random() * 0.4), color, life: 1 });
+  }
+  floaters.push({ x: s.hx, y: s.hy, text: pick(["RIP", "F", "OOF", "x_x", "*plopp*"]), life: 1 });
+}
+
+// ---------- Zeichnen ----------
+function resize() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+  const m = mini.getBoundingClientRect().width || 150;
+  mini.width = Math.round(m * DPR); mini.height = Math.round(m * DPR);
+}
+window.addEventListener("resize", resize);
+
+const tile = (() => {
+  const c = document.createElement("canvas");
+  c.width = 120; c.height = 104;
+  const g = c.getContext("2d");
+  g.fillStyle = "#221245"; g.fillRect(0, 0, 120, 104);
+  const hex = (cx, cy, s) => {
+    g.beginPath();
+    for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i; g.lineTo(cx + Math.cos(a) * s, cy + Math.sin(a) * s); }
+    g.closePath();
+  };
+  const cells = [[0, 0], [60, 0], [120, 0], [30, 52], [90, 52], [0, 104], [60, 104], [120, 104]];
+  const tints = ["#2e1763", "#1c2a63", "#3b1656", "#163654"];
+  const tintOf = [0, 1, 0, 2, 3, 0, 1, 0]; // Rand-Kopien derselben Wabe gleich färben, sonst Nähte
+  cells.forEach(([x, y], i) => {
+    hex(x, y, 28); g.fillStyle = tints[tintOf[i]]; g.fill();
+    g.lineWidth = 3; g.strokeStyle = "#1a0f33"; g.stroke();
+  });
+  const dots = ["#ff4fa3", "#ffd23f", "#3be8ff", "#5cff8a"];
+  [[30, 52], [90, 52], [60, 0], [0, 104]].forEach(([x, y], i) => { g.beginPath(); g.arc(x + 6, y - 6, 2, 0, 6.28); g.fillStyle = dots[i] + "55"; g.fill(); });
+  return c;
+})();
+let pattern = null;
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (!W) resize();
+  const alpha = clamp((now - lastTick) / tickMs, 0, 1.25);
+  const dt = Math.min(0.05, (now - (frame.last || now)) / 1000);
+  frame.last = now;
+
+  // Kamera: eigene Nudel, nach dem Tod kurz den Mörder („Kill-Cam“), sonst die Größte
+  let target = snakes.get(myId);
+  if (!target && follow && now < followUntil && snakes.has(follow.id)) target = follow;
+  if (!target) {
+    let best = null;
+    for (const s of snakes.values()) if (!best || s.len > best.len) best = s;
+    target = best;
+  }
+  let tx = 0, ty = 0, zoom = 0.75;
+  if (target) {
+    tx = target.px == null ? target.hx : target.px + (target.hx - target.px) * alpha;
+    ty = target.py == null ? target.hy : target.py + (target.hy - target.py) * alpha;
+    zoom = clamp(1.12 - (radiusOf(target.len) - 8) / 28, 0.62, 1.1);
+  }
+  zoom *= clamp(Math.min(W, H) / 820, 0.55, 1.35);
+  const follows = target && target.id === myId;
+  cam.x += (tx - cam.x) * (follows ? 0.6 : 0.08);
+  cam.y += (ty - cam.y) * (follows ? 0.6 : 0.08);
+  cam.z += (zoom - cam.z) * 0.05;
+  shake *= 0.88;
+  const sx = (Math.random() - 0.5) * shake, sy = (Math.random() - 0.5) * shake;
+
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = "#12091f";
+  ctx.fillRect(0, 0, W, H);
+  ctx.setTransform(DPR * cam.z, 0, 0, DPR * cam.z, DPR * (W / 2 + sx - cam.x * cam.z), DPR * (H / 2 + sy - cam.y * cam.z));
+  const vw = W / cam.z, vh = H / cam.z;
+  const left = cam.x - vw / 2 - 40, topY = cam.y - vh / 2 - 40, right = cam.x + vw / 2 + 40, bottom = cam.y + vh / 2 + 40;
+
+  // Teller
+  if (!pattern) pattern = ctx.createPattern(tile, "repeat");
+  ctx.save();
+  ctx.beginPath(); ctx.arc(0, 0, R, 0, 6.2832); ctx.clip();
+  ctx.fillStyle = pattern; ctx.fillRect(left, topY, right - left, bottom - topY);
+  ctx.restore();
+  // Rand: außen rot getönt, innen wandernde Warnstreifen
+  ctx.beginPath(); ctx.rect(left, topY, right - left, bottom - topY); ctx.moveTo(R, 0); ctx.arc(0, 0, R, 0, 6.2832, true);
+  ctx.fillStyle = "rgba(255,40,90,.14)"; ctx.fill("evenodd");
+  ctx.lineWidth = 22; ctx.strokeStyle = "#000"; ctx.beginPath(); ctx.arc(0, 0, R + 4, 0, 6.2832); ctx.stroke();
+  ctx.lineWidth = 14; ctx.strokeStyle = "#ff4fa3"; ctx.setLineDash([46, 34]); ctx.lineDashOffset = -now / 25;
+  ctx.beginPath(); ctx.arc(0, 0, R + 4, 0, 6.2832); ctx.stroke();
+  ctx.strokeStyle = "#ffd23f"; ctx.lineDashOffset = -now / 25 + 40; ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Krümel
+  const t = now / 1000;
+  for (const f of foods.values()) {
+    if (f.x < left || f.x > right || f.y < topY || f.y > bottom) continue;
+    const grow = clamp((now - f.born) / 300, 0.05, 1);
+    const r = f.r * grow * (1 + Math.sin(t * 3 + f.phase) * 0.18);
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = f.color;
+    ctx.beginPath(); ctx.arc(f.x, f.y, r * 2.3, 0, 6.2832); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.7)";
+    ctx.beginPath(); ctx.arc(f.x - r * 0.3, f.y - r * 0.3, r * 0.35, 0, 6.2832); ctx.fill();
+  }
+  // gefressene Krümel fliegen zum Maul
+  for (let i = flying.length - 1; i >= 0; i--) {
+    const f = flying[i];
+    f.t += dt * 7;
+    const to = f.to;
+    if (f.t >= 1 || !snakes.has(to.id)) { flying.splice(i, 1); continue; }
+    f.x += (to.hx - f.x) * f.t; f.y += (to.hy - f.y) * f.t;
+    ctx.fillStyle = f.color; ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 - f.t), 0, 6.2832); ctx.fill();
+  }
+
+  // Nudeln (eigene zuletzt, also oben)
+  const me = snakes.get(myId);
+  for (const s of snakes.values()) if (s !== me) drawSnake(s, alpha, t, left, topY, right, bottom);
+  if (me) drawSnake(me, alpha, t, left, topY, right, bottom);
+
+  // Teilchen + Texte
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.life -= dt * 1.1; if (p.life <= 0) { particles.splice(i, 1); continue; }
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.94; p.vy *= 0.94;
+    ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.5 + p.life), 0, 6.2832); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  for (let i = floaters.length - 1; i >= 0; i--) {
+    const f = floaters[i];
+    f.life -= dt * 0.8; if (f.life <= 0) { floaters.splice(i, 1); continue; }
+    f.y -= dt * 40;
+    ctx.globalAlpha = Math.min(1, f.life * 2);
+    ctx.font = "900 28px " + getComputedStyle(document.body).fontFamily;
+    ctx.lineWidth = 6; ctx.strokeStyle = "#000"; ctx.strokeText(f.text, f.x, f.y);
+    ctx.fillStyle = "#fff"; ctx.fillText(f.text, f.x, f.y);
+  }
+  ctx.globalAlpha = 1;
+
+  drawMini(now);
+  updateHud(now);
+}
+
+let fontCache = null;
+function drawSnake(s, alpha, t, left, topY, right, bottom) {
+  const n = s.xs.length;
+  if (n - s.start < 1) return;
+  const r = radiusOf(s.len);
+  const hx = s.px == null ? s.hx : s.px + (s.hx - s.px) * alpha;
+  const hy = s.py == null ? s.hy : s.py + (s.hy - s.py) * alpha;
+  // grob prüfen, ob etwas davon zu sehen ist
+  let visible = false;
+  for (let i = n - 1; i >= s.start; i -= 6) {
+    if (s.xs[i] > left - r && s.xs[i] < right + r && s.ys[i] > topY - r && s.ys[i] < bottom + r) { visible = true; break; }
+  }
+  if (!visible) return;
+  const path = new Path2D();
+  path.moveTo(s.xs[s.start], s.ys[s.start]);
+  for (let i = s.start + 1; i < n - 1; i++) path.lineTo(s.xs[i], s.ys[i]);
+  path.lineTo(hx, hy);
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  if (s.boost) {
+    ctx.globalAlpha = 0.35 + Math.sin(t * 30) * 0.15;
+    ctx.lineWidth = r * 2 + 18; ctx.strokeStyle = s.skin.rainbow ? RAINBOW[Math.floor(t * 12) % RAINBOW.length] : s.skin.a;
+    ctx.stroke(path);
+    ctx.globalAlpha = 1;
+  }
+  ctx.lineWidth = r * 2 + 6; ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.stroke(path);
+  ctx.lineWidth = r * 2; ctx.strokeStyle = s.skin.a; ctx.stroke(path);
+  // Streifen: kleben am Körper (Versatz = schon abgeschnittene Länge)
+  ctx.lineCap = "butt";
+  if (s.skin.rainbow) {
+    const band = r * 1.1, period = band * RAINBOW.length;
+    ctx.setLineDash([band, period - band]);
+    RAINBOW.forEach((c, i) => { ctx.strokeStyle = c; ctx.lineDashOffset = s.cut - i * band; ctx.stroke(path); });
+  } else {
+    ctx.setLineDash([r * 0.9, r * 1.3]);
+    ctx.lineDashOffset = s.cut % (r * 2.2);
+    ctx.strokeStyle = s.skin.b; ctx.stroke(path);
+  }
+  ctx.setLineDash([]); ctx.lineCap = "round";
+  ctx.lineWidth = r * 0.55; ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.stroke(path);
+
+  // Kopf
+  const pulse = 1 + s.eatPulse * 0.25;
+  s.eatPulse = Math.max(0, s.eatPulse - 0.08);
+  ctx.fillStyle = s.skin.a;
+  ctx.beginPath(); ctx.arc(hx, hy, r * 1.08 * pulse, 0, 6.2832); ctx.fill();
+  const dir = s.dir;
+  const look = s.id === myId ? angle : dir;
+  const ex = Math.cos(dir), ey = Math.sin(dir), nx = -ey, ny = ex;
+  for (const side of [-1, 1]) {
+    const cx = hx + ex * r * 0.35 + nx * side * r * 0.52;
+    const cy = hy + ey * r * 0.35 + ny * side * r * 0.52;
+    ctx.fillStyle = "#fff"; ctx.strokeStyle = "#000"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.46, 0, 6.2832); ctx.fill(); ctx.stroke();
+    // Wackelaugen
+    const wob = Math.sin(t * 9 + s.id + side) * 0.35;
+    const px = cx + Math.cos(look + wob) * r * 0.2, py = cy + Math.sin(look + wob) * r * 0.2;
+    ctx.fillStyle = "#000";
+    ctx.beginPath(); ctx.arc(px, py, r * 0.24, 0, 6.2832); ctx.fill();
+  }
+  // Name
+  if (!fontCache) fontCache = getComputedStyle(document.body).fontFamily;
+  ctx.font = "900 " + Math.round(13 + r * 0.35) + "px " + fontCache;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const ty = hy - r * 2 - 8;
+  ctx.lineWidth = 5; ctx.strokeStyle = "rgba(0,0,0,.85)"; ctx.strokeText(s.name, hx, ty);
+  ctx.fillStyle = s.id === myId ? "#ffd23f" : "#fff"; ctx.fillText(s.name, hx, ty);
+}
+
+function drawMini(now) {
+  if (mini.classList.contains("hidden")) return;
+  const size = mini.width, c = size / 2, k = (size / 2 - 6 * DPR) / R;
+  mctx.clearRect(0, 0, size, size);
+  mctx.fillStyle = "rgba(0,0,0,.55)"; mctx.beginPath(); mctx.arc(c, c, size / 2 - 2, 0, 6.2832); mctx.fill();
+  mctx.lineWidth = 3 * DPR; mctx.strokeStyle = "#ff4fa3"; mctx.stroke();
+  for (const s of snakes.values()) {
+    if (s.id === myId) continue;
+    mctx.fillStyle = s.skin.a;
+    mctx.beginPath(); mctx.arc(c + s.hx * k, c + s.hy * k, (1.5 + radiusOf(s.len) / 10) * DPR, 0, 6.2832); mctx.fill();
+  }
+  const me = snakes.get(myId);
+  if (me) {
+    mctx.strokeStyle = "rgba(255,210,63,.6)"; mctx.lineWidth = 2 * DPR; mctx.beginPath();
+    for (let i = me.start; i < me.xs.length; i += 4) mctx.lineTo(c + me.xs[i] * k, c + me.ys[i] * k);
+    mctx.stroke();
+    const p = 3 + Math.sin(now / 150) * 1.2;
+    mctx.fillStyle = "#ffd23f"; mctx.beginPath(); mctx.arc(c + me.hx * k, c + me.hy * k, p * DPR, 0, 6.2832); mctx.fill();
+  }
+}
+
+// ---------- Menü ----------
+let skinNo = Number(localStorage.getItem("nudelsalat.skin") || Math.floor(Math.random() * SKINS.length)) % SKINS.length;
+function buildMenu() {
+  const logo = $("logo");
+  const colors = ["#ffd23f", "#ff4fa3", "#3be8ff", "#5cff8a", "#ff8a3d", "#a46bff"];
+  [..."NUDELSALAT"].forEach((ch, i) => {
+    const span = document.createElement("span");
+    span.textContent = ch;
+    span.style.color = colors[i % colors.length];
+    span.style.animationDelay = (i * 0.09) + "s";
+    logo.appendChild(span);
+  });
+  const box = $("skins");
+  SKINS.forEach((s, i) => {
+    const b = document.createElement("button");
+    b.className = "skin";
+    b.title = s.name;
+    b.style.background = s.rainbow ? `linear-gradient(90deg, ${RAINBOW.join(",")})` : `repeating-linear-gradient(90deg, ${s.a} 0 12px, ${s.b} 12px 20px)`;
+    b.addEventListener("click", () => { skinNo = i; markSkin(); });
+    box.appendChild(b);
+  });
+  markSkin();
+  $("name").value = localStorage.getItem("nudelsalat.name") || "";
+  let tag = Math.floor(Math.random() * TAGLINES.length);
+  $("tag").textContent = TAGLINES[tag];
+  setInterval(() => {
+    const el = $("tag");
+    el.style.opacity = "0";
+    setTimeout(() => { tag = (tag + 1) % TAGLINES.length; el.textContent = TAGLINES[tag]; el.style.opacity = "1"; }, 300);
+  }, 4200);
+  setTop([]);
+}
+function markSkin() {
+  [...$("skins").children].forEach((b, i) => b.classList.toggle("on", i === skinNo));
+  $("skinName").textContent = "Skin: " + SKINS[skinNo].name;
+}
+
+buildMenu();
+resize();
+connect();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -495,6 +495,16 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Schuss (`cd`). Computer: Wahrscheinlichkeitskarte (`density`/`aiMove`), drei Stärken (ungenauer + Fähigkeit lädt 4/2/0 Schüsse
   langsamer, `SKILL_SLOW`). Regeln ohne DOM unter `window.SV` (damit per Playwright simulierbar). Eigenes buntes Design, nicht das
   Standard-Design. Kein Mehrspieler. Die Spiele-Startseite (Kacheln) baut ein anderer Thread; „Alle Spiele“ zeigt auf `/`.
+- **Nudelsalat – Schlangen-Arena** (14.11.2026, Kilian: Spiele wie Slither.io auf der Website, „bunter“, animiert, Meme-Humor; eigenes
+  Spiel mit eigenem Namen/Look, kein Nachbau): Seite `seiten/nudelsalat.html` (**im Repo**, gehört in den `seiten/`-Ordner neben der
+  StatsWebsite.jar → `/seiten/nudelsalat.html`), Server `web/NoodleGame.kt`. Mehrspieler über den Website-Server: SSE-Stream
+  `/api/nudelsalat/stream` (erst `init` mit allen Pfaden + Schlüssel, dann 20×/s Köpfe/Längen/Tode/Krümel), `POST join`
+  ({k,name,skin}) und `POST steer` (Text `Schlüssel;Winkel;Boost`). Server rechnet alles (Bewegung, Fressen, Zusammenstöße,
+  Tellerrand), Browser schickt nur Richtung/Boost. Arena nur im Speicher, rechnet nur mit Zuschauern; Bots (`BOT_NAMES`, weichen aus,
+  fressen) füllen auf `MIN_SNAKES` (14) auf. Ohne Anmeldung (Spitzname ≤ 16 Zeichen), ≤ 40 Zuschauer (8 je IP), wer nicht mitliest
+  (Warteschlange > 200) oder 5 min im Menü steht, fliegt raus. Ewige Bestenliste (Top 10 je Name) in `data/nudelsalat-bestenliste.json`.
+  Seite: Canvas, 12 Skins, Wackelaugen, Kill-Cam, Kill-Feed, Minimap, Handy mit BOOST-Knopf. Eigener bunter Stil (nicht das
+  Standard-Design). Tests: `NoodleGameTest`; mit zwei Chromium-Fenstern + Handy-Ansicht gegen den echten Server geprüft.
 - **CoreHold-Website im selben Server** (05.11.2026, Kilian: „ich kann keinen neuen [Pelican-Server] machen, wie geht es das wir es auf dem selben machen“):
   Eigenes Programm (nicht im Repo, Quelltext in /mnt/project-files/corehold-website/): Teams, PvP-Tierliste, Special Items mit
   Rezepten des Minecraft-Servers CoreHold unter `/corehold`, Admin-Login per Passwort (`ADMIN_PASSWORD`). Ein Java-Egg startet nur
