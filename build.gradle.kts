@@ -61,7 +61,7 @@ tasks.test {
 
 tasks.shadowJar {
     archiveFileName.set("AmongUsManager.jar")
-    exclude("web/**", "web-cosmetics/**") // die gebaute Stats-Website (+ Kosmetik-Bilder) gehört nur ins StatsWebsite.jar
+    exclude("web/**", "web-cosmetics/**", "seiten/**") // die gebaute Stats-Website (+ Kosmetik-Bilder) gehört nur ins StatsWebsite.jar
     // Service-Dateien (z.B. JDBC-Treiber von SQLite UND MariaDB) zusammenführen statt nur die erste zu behalten
     filesMatching("META-INF/services/**") { duplicatesStrategy = DuplicatesStrategy.INCLUDE }
     mergeServiceFiles()
