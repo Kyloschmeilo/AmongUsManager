@@ -1,6 +1,7 @@
 // Spiele der Startseite. Die Browserspiele sind eigene Seiten unter /seiten/<datei> (Ordner seiten/ neben dem StatsWebsite.jar
 // oder im JAR); Titel und Beschreibung kommen, wenn vorhanden, aus der Seite selbst (/api/pages).
-// Fehlt die Seite noch, zeigt die Kachel „Bald“. Neue Spiele hier anhängen.
+// Fehlt die Seite noch, zeigt die Kachel „Bald“. Neue Spiele hier anhängen; mit `live` erscheinen
+// laufende Partien oben in der Live-Leiste (Raum-Codes bleiben privat, die Karte führt nur zum Spiel).
 import type { ReactNode } from 'react';
 
 export interface Game {
@@ -20,6 +21,26 @@ export interface Game {
   icon: ReactNode;
   /** Breite Kachel (zwei Spalten), damit das Raster aufgeht. */
   wide?: boolean;
+  /** Feste Adresse statt /seiten/<datei> (z.B. Geheimfunk unter /spiele/), [files] dient dann nur der Prüfung, ob es das Spiel gibt. */
+  fixedHref?: boolean;
+  /** Status-Adresse des Spiels (GET, JSON) für die Live-Leiste – was gerade läuft, liest [liveOf]. */
+  live?: string;
+}
+
+/** Was in einem Browserspiel gerade los ist. */
+export interface LiveGame { players: number; rooms: number }
+
+/**
+ * Liest die Status-Antwort eines Spiels: Arenen melden Spieler (`players`, MAMPF! `online`), Raum-Spiele die Zahl offener Räume
+ * (`rooms`, als Zahl oder Liste). Bots zählen nicht. null = nichts los.
+ */
+export function liveOf(data: unknown): LiveGame | null {
+  if (!data || typeof data !== 'object') return null;
+  const d = data as Record<string, unknown>;
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.floor(v)) : Array.isArray(v) ? v.length : 0);
+  const players = num(d.players) || num(d.online);
+  const rooms = num(d.rooms);
+  return players > 0 || rooms > 0 ? { players, rooms } : null;
 }
 
 const stroke = { stroke: '#120f24', strokeWidth: 3, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
@@ -38,7 +59,7 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    files: ['kritzeln.html', 'skribbl.html'], href: '/seiten/kritzeln.html', title: 'Kritzelkiste', tag: 'Party',
+    files: ['kritzeln.html', 'skribbl.html'], href: '/seiten/kritzeln.html', title: 'Kritzelkiste', tag: 'Party', live: '/api/kritzel',
     text: 'Einer malt, alle raten – je schneller, desto mehr Punkte.',
     color: '#ffc928', ink: '#120f24', accent: '#ff4f81',
     icon: (
@@ -50,7 +71,7 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    files: ['kritzelpost.html', 'gartic.html'], href: '/seiten/kritzelpost.html', title: 'Kritzelpost', tag: 'Party',
+    files: ['kritzelpost.html', 'gartic.html'], href: '/seiten/kritzelpost.html', title: 'Kritzelpost', tag: 'Party', live: '/api/kritzelpost',
     text: 'Satz, Bild, Satz, Bild – was kommt am Ende raus?',
     color: '#ff6fae', ink: '#120f24', accent: '#3ad0ff',
     icon: (
@@ -64,7 +85,7 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    files: ['memes.html', 'makeitmeme.html'], href: '/seiten/memes.html', title: 'Meme-Schmiede', tag: 'Party',
+    files: ['memes.html', 'makeitmeme.html'], href: '/seiten/memes.html', title: 'Meme-Schmiede', tag: 'Party', live: '/api/memes',
     text: 'Jeder textet sein Meme, alle bewerten – wer ist am lustigsten?',
     color: '#ff8a2b', ink: '#120f24', accent: '#ffe14d',
     icon: (
@@ -77,8 +98,8 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    files: ['codenames.html', 'decknamen.html'], href: '/seiten/codenames.html', title: 'Geheime Wörter', tag: 'Teams',
-    text: 'Zwei Teams, ein Hinweis, viele Wörter – rot gegen blau.',
+    files: ['geheimfunk.html'], href: '/spiele/geheimfunk', fixedHref: true, title: 'Geheimfunk', tag: 'Teams', live: '/api/geheimfunk',
+    text: 'Zwei Teams, ein Hinweis, viele Wörter – und irgendwo die Bombe.',
     color: '#ef3b3b', ink: '#ffffff', accent: '#2f6cf6',
     icon: (
       <svg viewBox="0 0 64 64" aria-hidden="true">
@@ -90,7 +111,7 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    files: ['agar.html'], href: '/seiten/agar.html', title: 'Zellen-Arena', tag: 'Arena',
+    files: ['mampf.html', 'agar.html'], href: '/seiten/mampf.html', title: 'MAMPF!', tag: 'Arena', live: '/api/mampf',
     text: 'Fressen, wachsen, teilen – und bloß nicht gefressen werden.',
     color: '#2fd27a', ink: '#120f24', accent: '#ff7a1a',
     icon: (
@@ -103,7 +124,7 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    files: ['nudelsalat.html', 'slither.html'], href: '/seiten/nudelsalat.html', title: 'Nudelsalat', tag: 'Arena',
+    files: ['nudelsalat.html', 'slither.html'], href: '/seiten/nudelsalat.html', title: 'Nudelsalat', tag: 'Arena', live: '/api/nudelsalat',
     text: 'Leuchtpunkte sammeln, lang werden, die anderen ausbremsen.',
     color: '#8b5cff', ink: '#ffffff', accent: '#b8ff3a',
     icon: (
@@ -117,7 +138,7 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    files: ['ballerbude.html', 'diep.html'], href: '/seiten/ballerbude.html', title: 'Ballerbude', tag: 'Arena',
+    files: ['ballerbude.html', 'diep.html'], href: '/seiten/ballerbude.html', title: 'Ballerbude', tag: 'Arena', live: '/api/arena',
     text: 'Formen abschießen, aufleveln, den eigenen Panzer ausbauen.',
     color: '#16b9e8', ink: '#120f24', accent: '#ff4f5e',
     icon: (

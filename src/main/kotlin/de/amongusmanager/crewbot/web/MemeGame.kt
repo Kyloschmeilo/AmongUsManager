@@ -144,7 +144,8 @@ class MemeGame(
 
     @Synchronized
     fun handle(request: WebRequest, client: String): WebResponse {
-        if (request.method != "POST") return WebResponse(405, body = bytes(obj("error" to "Nur POST")), headers = listOf("Allow" to "POST", NO_STORE))
+        if (request.method == "GET" || request.method == "HEAD") return status()
+        if (request.method != "POST") return WebResponse(405, body = bytes(obj("error" to "Nur POST")), headers = listOf("Allow" to "GET, POST", NO_STORE))
         val body = try {
             Json.parseToJsonElement(request.body.toString(Charsets.UTF_8)) as? JsonObject
         } catch (e: Exception) {
@@ -188,6 +189,14 @@ class MemeGame(
                 json(200, state(room, player, body, now, error))
             }
         }
+    }
+
+    /** Für die Live-Leiste der Startseite: wie viele Räume gerade jemanden haben und wie viele Leute da sind (ohne Codes/Namen). */
+    private fun status(): WebResponse {
+        val now = clock()
+        sweep(now)
+        val online = rooms.values.map { room -> room.players.values.count { now - it.lastSeen < OFFLINE_MS } }.filter { it > 0 }
+        return json(200, obj("rooms" to online.size, "players" to online.sum()))
     }
 
     // ---------- Raum betreten ----------

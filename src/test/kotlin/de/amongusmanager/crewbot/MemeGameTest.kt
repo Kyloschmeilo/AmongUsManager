@@ -158,6 +158,20 @@ class MemeGameTest {
     }
 
     @Test
+    fun statusCountsRoomsAndPlayersWithoutCodes() {
+        fun status() = Json.parseToJsonElement(game.handle(WebRequest("GET", MemeGame.PATH, emptyMap(), emptyMap()), "1.2.3.4").body.toString(Charsets.UTF_8)).jsonObject
+        assertEquals(0, status()["rooms"]!!.jsonPrimitive.int)
+        val host = create("A")
+        join(host.code, "B")
+        val s = status()
+        assertEquals(1, s["rooms"]!!.jsonPrimitive.int)
+        assertEquals(2, s["players"]!!.jsonPrimitive.int)
+        assertFalse(host.code in s.toString())
+        now += MemeGame.OFFLINE_MS + 1
+        assertEquals(0, status()["rooms"]!!.jsonPrimitive.int)
+    }
+
+    @Test
     fun needsTwoPlayersAndKnownRooms() {
         val host = create("Allein")
         val res = act(host, "a" to "start")
