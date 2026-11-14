@@ -439,6 +439,16 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Blob-Worker (jsDelivr, Ersatz unpkg, alles mit SRI-Prüfsumme), chess.js 0.10.3, Figuren aus chessground-CSS, Standard-Design.
   Erste Version ohne Statistik-Seite/Training. Mit echter Engine, aber nachgestellter chess.com-API getestet (Cloud erreicht
   chess.com und die CDNs nicht). Test: `serverShowsOwnPagesFromFolder` in `WebGuidesTest`.
+- **MAMPF! – Agar.io-artiges Spiel** (14.11.2026, Kilian: Spiele wie Agar.io auf der Website, „etwas bunter … gerne animiert“,
+  Standard-Design darf losgelassen werden): Seite `seiten/mampf.html` (liegt **im Repo** im Ordner `seiten/`, kommt mit in den
+  `seiten/`-Ordner neben der StatsWebsite.jar → `/seiten/mampf.html`), eine Datei ohne CDN (Canvas, Gesichter im Code gezeichnet,
+  Töne per WebAudio). Server `web/MampfWorld.kt` (reine Welt: Krümel, Teilen/Leertaste, Spucken/W, Kakteen zerlegen Dicke und
+  wachsen durch 7× Anspucken, Fressen ab 25 % mehr Masse, Bots mit Meme-Namen füllen auf 12 auf) + `web/MampfGame.kt`
+  (`/api/mampf`: GET Status/Rekorde, POST join|spawn|input|leave, GET `stream?t=` = SSE mit 25 Bildern/s nur für den sichtbaren
+  Ausschnitt, Krümel als Differenz; kein WebSocket im JDK-HttpServer). Ohne Anmeldung, nur im Speicher, Takt läuft nur mit
+  Spielern; ≤ 40 Spieler, ≤ 6 je IP, 12 s ohne Eingabe = weg. Rekordliste (Top 10) in `data/mampf-rekorde.json`.
+  Bildausschnitt `MampfRules.VIEW_HALF_W/H` muss zu `baseScale()` in der Seite passen. Tests: `MampfTest`; mit zwei
+  Chromium-Browsern gespielt (Menü, Spiel, Teilen, Handy-Menü).
 - **CoreHold-Website im selben Server** (05.11.2026, Kilian: „ich kann keinen neuen [Pelican-Server] machen, wie geht es das wir es auf dem selben machen“):
   Eigenes Programm (nicht im Repo, Quelltext in /mnt/project-files/corehold-website/): Teams, PvP-Tierliste, Special Items mit
   Rezepten des Minecraft-Servers CoreHold unter `/corehold`, Admin-Login per Passwort (`ADMIN_PASSWORD`). Ein Java-Egg startet nur

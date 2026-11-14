@@ -13,6 +13,7 @@
  *                          (oder DISCORD_CLIENT_ID)
  *   WEB_PUBLIC_URL       – Adresse der Website, z.B. http://45.81.233.92:25570 (für die Weiterleitung nach dem Login)
  *   WEB_DOWNLOADS_DIR    – Ordner mit eigenen Downloads (Standard: downloads/ neben dem JAR, z.B. TheOtherRoles-Installer.bat)
+ * MAMPF! (Blob-Fress-Spiel): /seiten/mampf.html + /api/mampf (SSE + POST), siehe MampfGame.kt.
  *   WEB_PAGES_DIR        – Ordner mit eigenen Seiten (Standard: seiten/ neben dem JAR → /seiten/<datei>, z.B. schach.html)
  *   CoreHoldWebsite.jar daneben legen = CoreHold-Website unter /corehold im selben Server (siehe CoreHoldBridge.kt)
  * Eigene Daten der Website (Anmeldungen, Profile, Profilbilder) liegen in data/website.db.
@@ -86,6 +87,9 @@ fun main() {
     val pages = Pages(pagesDir)
     log.info("📄 Eigene Seiten: {} ({})", pagesDir, pages.files().joinToString().ifEmpty { "keine" })
 
+    // MAMPF! (Blob-Fress-Spiel, Seite seiten/mampf.html): Welt nur im Speicher, Rekorde in data/mampf-rekorde.json
+    val mampf = MampfGame(BotPaths.dataDir.resolve("mampf-rekorde.json"))
+
     val auth = WebAuth(accounts, store, discord, authConfig, sync)
     // Bot steuern (Events, Admin-Panel): eigene, beschreibbare Verbindung nur für die Auftrags-Tabelle des Bots
     val controlDb = if (db != null) openControlDatabase() else null
@@ -124,6 +128,7 @@ fun main() {
             crack = CrackVoting(crackVotes, auth, store),
             voice = voice,
             pages = pages,
+            mampf = mampf,
         )
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)
