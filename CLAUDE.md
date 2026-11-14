@@ -565,6 +565,14 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   X-Forwarded-For/-Host/-Proto eines Reverse-Proxys zählt nur mit `WEB_TRUST_PROXY=true` (sonst Fälschung möglich). Ohne die JAR
   ändert sich nichts. Gleiche `.env` (ADMIN_PASSWORD …), Daten in `data/corehold/`. Test: `CoreHoldBridgeTest`.
 
+- **Alle Spiele zusammen** (14.11.2026, Kilian: „eine Zip mit allem auch den games“): Integrations-Branch führt #17–#27 zusammen.
+  Jedes Spiel hängt sich gleich in `StatsServer` ein: Konstruktor-Parameter (null = aus), eine Zeile im Routing vor dem
+  GET-Check, eigene Handler-Funktion; SSE-Spiele erhöhen den Thread-Pool (`Ballerbude.MAX_PLAYERS + NoodleGame.MAX_CLIENTS +
+  MampfGame.MAX_PLAYERS`), Geheimfunk hängt seine Streams ab (`DETACHED`). Seiten: `seiten/` im Repo-Wurzelordner (kommen in den
+  Ordner neben der JAR), Ballerbude unter `src/main/resources/seiten/`, Geheimfunk unter `web-spiele/` (`/spiele/…`); beides nicht
+  im Bot-JAR (`exclude`). Neue Spiele: Kachel in `web/src/start/games.tsx` (mit `live` = GET-Status mit `rooms`/`players`).
+  Gemeinsames Paket: `/mnt/project-files/alle-spiele/` (StatsWebsite.zip mit `seiten/` + `downloads/` + CoreHold, crewbot-update.zip).
+
 ## Minecraft-Kopplung (CoreSMP-Plugin `CoreHold`, Projekt `C:\Users\petra\Desktop\CoreSMP`)
 - Plugin → Bot ebenfalls per **Webhook**, der im Log-Channel (`Channels.MINECRAFT_INBOX` =
   `Channels.LOG`) liegt; der Bot verschiebt ihn beim Start dorthin (URL bleibt gleich, braucht
