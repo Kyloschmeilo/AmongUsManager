@@ -52,7 +52,10 @@ export function Start() {
 
   useEffect(() => {
     if (!root.current || reduced()) return;
+    // CSS-Übergänge auf transform würden GSAP ausbremsen – während des Einflugs aus
+    root.current.classList.add('st-entering');
     const ctx = gsap.context(() => {
+      gsap.delayedCall(1.8, () => root.current?.classList.remove('st-entering'));
       gsap.from('.st-word span', { y: -60, rotate: () => gsap.utils.random(-25, 25), opacity: 0, duration: 0.7, ease: 'back.out(2.2)', stagger: 0.045 });
       gsap.from('.st-sub, .st-live', { y: 20, opacity: 0, duration: 0.6, delay: 0.35, stagger: 0.1, ease: 'power3.out' });
       gsap.from('.st-tile', { y: 60, rotate: () => gsap.utils.random(-6, 6), opacity: 0, duration: 0.7, delay: 0.5, stagger: 0.06, ease: 'back.out(1.6)', clearProps: 'transform,opacity' });
@@ -109,12 +112,18 @@ function LiveBar({ lobbies, loaded, failed, overview }: { lobbies: LiveLobby[]; 
   return (
     <section className="st-live" aria-label="Gerade live">
       <div className="st-live__label">
-        <span className={`st-dot${lobbies.length ? ' is-on' : ''}`} aria-hidden="true" />
-        <b>Live</b>
+        <b><span className={`st-dot${lobbies.length ? ' is-on' : ''}`} aria-hidden="true" />Live</b>
         <span className="st-live__hint">{lobbies.length ? `${lobbies.length} ${lobbies.length === 1 ? 'Lobby' : 'Lobbys'} in Among Us` : 'Among Us'}</span>
       </div>
       <div className="st-live__row">
         {lobbies.map((lobby) => <LobbyCard key={lobby.id} lobby={lobby} />)}
+        {lobbies.length > 0 && (
+          <a className="st-lobby st-lobby--more" href={`${APP}/lobbys`}>
+            <b className="st-lobby__map">Alle Lobbys</b>
+            <span className="st-lobby__host">Wer drin ist, Level, Beitreten über Auto-Join</span>
+            <span className="st-tile__go">Zur Live-Seite <Arrow /></span>
+          </a>
+        )}
         {loaded && lobbies.length === 0 && (
           <div className="st-idle">
             <b>Gerade keine offene Lobby.</b>
@@ -218,9 +227,9 @@ function GameTile({ game, page, ready }: { game: Game; page?: PageInfo; ready: b
     </>
   );
   return ready ? (
-    <a className="st-tile st-game" href={game.href} style={style} onPointerMove={tilt} onPointerLeave={untilt}>{body}</a>
+    <a className={`st-tile st-game${game.wide ? ' st-game--wide' : ''}`} href={game.href} style={style} onPointerMove={tilt} onPointerLeave={untilt}>{body}</a>
   ) : (
-    <div className="st-tile st-game is-soon" style={style} aria-disabled="true">{body}</div>
+    <div className={`st-tile st-game is-soon${game.wide ? ' st-game--wide' : ''}`} style={style} aria-disabled="true">{body}</div>
   );
 }
 
@@ -229,7 +238,7 @@ function Arrow() {
 }
 
 function Crewmate({ color, index }: { color: string; index: number }) {
-  const style = { '--d': `${index * -2.3}s`, '--x': `${8 + ((index * 37) % 84)}%`, '--y': `${10 + ((index * 53) % 70)}%`, '--s': `${0.7 + ((index * 17) % 5) / 10}` } as CSSProperties;
+  const style = { '--d': `${index * -2.3}s`, '--x': `${8 + ((index * 37) % 84)}%`, '--y': `${4 + ((index * 53) % 40)}%`, '--s': `${0.7 + ((index * 17) % 5) / 10}` } as CSSProperties;
   return (
     <svg className="st-crew" style={style} viewBox="0 0 44 50">
       <rect x="2" y="17" width="10" height="19" rx="3.5" fill={color} stroke="#120f24" strokeWidth="2.6" />

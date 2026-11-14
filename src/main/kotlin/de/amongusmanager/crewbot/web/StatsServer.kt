@@ -80,8 +80,8 @@ class StatsServer(
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
             }
-            if (path.startsWith("/downloads/")) return download(exchange, path)
-            if (path.startsWith(Pages.PREFIX)) return page(exchange, path)
+            if (path.startsWith("/downloads/")) return download(exchange, filePath(exchange, inApp))
+            if (path.startsWith(Pages.PREFIX)) return page(exchange, filePath(exchange, inApp))
             when {
                 path == "/api" || path.startsWith("/api/") -> api(exchange, path.removePrefix("/api").trim('/'))
                 inApp -> staticFile(exchange, path)
@@ -328,7 +328,6 @@ class StatsServer(
 
     /** Eigene Datei aus dem Download-Ordner, immer als Download (nicht im Browser anzeigen), gestreamt. */
     private fun download(exchange: HttpExchange, path: String) {
-        // Pfad ohne „+ = Leerzeichen“ (Dateinamen wie mod-1.0+26.3.jar)
         val name = path.removePrefix("/downloads/")
         val file = guides?.downloads?.localFile(name)
             ?: return respond(exchange, 404, "text/plain; charset=utf-8", "Nicht gefunden".toByteArray(), cache = "no-cache")
@@ -409,6 +408,12 @@ class StatsServer(
             return redirect(exchange, APP_BASE + path + query(exchange))
         }
         respond(exchange, 404, "text/plain; charset=utf-8", "Nicht gefunden".toByteArray(), cache = "no-cache")
+    }
+
+    /** Pfad ohne „+ = Leerzeichen“ (Dateinamen wie mod-1.0+26.3.jar), ohne /amongus davor. */
+    private fun filePath(exchange: HttpExchange, inApp: Boolean): String {
+        val path = exchange.requestURI.path ?: "/"
+        return if (inApp) path.removePrefix(APP_BASE) else path
     }
 
     private fun query(exchange: HttpExchange): String = exchange.requestURI.rawQuery?.let { "?$it" } ?: ""

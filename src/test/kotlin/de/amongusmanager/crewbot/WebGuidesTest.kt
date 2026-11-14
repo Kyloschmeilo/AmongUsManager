@@ -245,7 +245,9 @@ class WebGuidesTest {
         assertEquals(405, get("/downloads/TheOtherRoles-Installer.bat", method = "POST").statusCode())
 
         // App-Seiten des Bereichs liefern die Seite
-        assertEquals(200, get("/hilfe/downloads").statusCode())
+        assertEquals(200, get("/amongus/hilfe/downloads").statusCode())
+        assertEquals(200, get("/amongus/downloads/TheOtherRoles-Installer.bat").statusCode())
+        assertEquals(12, get("/amongus/downloads/Karte+Tipps.pdf").body().size)
 
         // ohne Hilfe-Bereich: 404 statt Fehler
         val plain = StatsServer(store, 0, "127.0.0.1")
@@ -308,8 +310,15 @@ class WebGuidesTest {
         }
         assertEquals(405, get("/seiten/schach.html", method = "POST").statusCode())
 
-        // die Stats-Seite selbst behält ihre strenge CSP
+        // die Stats-Seite und die Startseite behalten ihre strenge CSP
+        assertContains(get("/amongus/").headers().firstValue("Content-Security-Policy").orElse(""), "connect-src 'self';")
         assertContains(get("/").headers().firstValue("Content-Security-Policy").orElse(""), "connect-src 'self';")
+        // auch unter /amongus, und die Startseite kennt Titel + Beschreibung der HTML-Seiten
+        assertContains(get("/amongus/seiten/schach.html").body(), "Neu")
+        val listed = get("/api/pages").body()
+        assertContains(listed, "\"file\":\"schach.html\"")
+        assertContains(listed, "\"title\":\"Neu\"")
+        assertFalse("bild.svg" in listed)
 
         // ohne Ordner: 404 statt Fehler
         val plain = StatsServer(store, 0, "127.0.0.1")

@@ -62,7 +62,7 @@ a { color: inherit; text-decoration: none; }
 .st-live__label b { font: 400 30px/1 var(--display); letter-spacing: .03em; display: flex; align-items: center; gap: 8px; }
 .st-live__label { position: relative; }
 .st-live__hint { color: var(--muted); font-size: 14px; white-space: nowrap; }
-.st-dot { width: 14px; height: 14px; border-radius: 50%; background: #6b6585; border: 2.5px solid var(--line); position: absolute; top: 14px; left: -6px; }
+.st-dot { flex: none; width: 14px; height: 14px; border-radius: 50%; background: #6b6585; border: 2.5px solid var(--line); }
 .st-dot.is-on { background: #ff3b47; }
 .st-live__row { display: flex; gap: 12px; overflow-x: auto; scrollbar-width: thin; padding: 2px 4px 6px 2px; }
 .st-idle { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px 6px; color: var(--muted); }
@@ -81,6 +81,11 @@ a { color: inherit; text-decoration: none; }
   transition: transform .15s ease-out, box-shadow .15s ease-out;
 }
 .st-lobby--started { background: #ffd23f; }
+.st-lobby--more { background: var(--paper); align-content: start; }
+.st-lobby--more .st-lobby__host { white-space: normal; }
+.st-lobby--more .st-tile__go { margin-top: 8px; }
+.st-game--wide { grid-column: span 2; }
+.st-entering .st-tile, .st-entering .st-word span { transition: none !important; }
 .st-lobby:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--line); }
 .st-lobby__state { font: 600 12px/1 'Barlow Condensed', sans-serif; letter-spacing: .12em; text-transform: uppercase; }
 .st-lobby__map { font: 400 26px/1 var(--display); }
@@ -103,7 +108,7 @@ a { color: inherit; text-decoration: none; }
 
 /* Among Us – immer die große Kachel vorne */
 .st-among {
-  grid-column: span 2; grid-row: span 2; min-height: 460px; overflow: hidden; color: #fff;
+  grid-column: span 2; grid-row: span 3; min-height: 460px; overflow: hidden; color: #fff;
   background: #d62a20;
   background-image: radial-gradient(rgba(255, 255, 255, .5) 1px, transparent 1.4px), radial-gradient(rgba(255, 255, 255, .25) 1px, transparent 1.4px);
   background-size: 90px 90px, 37px 37px; background-position: 0 0, 13px 21px;
@@ -208,14 +213,15 @@ a { color: inherit; text-decoration: none; }
 /* ---------- Kleine Bildschirme ---------- */
 @media (max-width: 1020px) {
   .st-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .st-among { grid-row: auto; min-height: 520px; }
 }
 @media (max-width: 620px) {
   .st-head { padding-top: 32px; }
   .st-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .st-among { grid-column: auto; grid-row: auto; min-height: 520px; }
+  .st-game--wide { grid-column: auto; }
   .st-game { min-height: 0; }
   .st-live { grid-template-columns: minmax(0, 1fr); }
-  .st-live__label { border-right: 0; border-bottom: 2px dashed rgba(255, 255, 255, .15); padding: 4px 4px 10px 26px; flex-direction: row; align-items: baseline; gap: 10px; }
-  .st-dot { top: 10px; left: 2px; }
+  .st-live__label { border-right: 0; border-bottom: 2px dashed rgba(255, 255, 255, .15); padding: 4px 4px 10px; flex-direction: row; align-items: baseline; gap: 10px; }
   .st-lobby { width: 230px; }
 }

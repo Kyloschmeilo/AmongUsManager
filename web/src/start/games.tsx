@@ -15,6 +15,8 @@ export interface Game {
   ink: string;
   accent: string;
   icon: ReactNode;
+  /** Breite Kachel (zwei Spalten), damit das Raster aufgeht. */
+  wide?: boolean;
 }
 
 const stroke = { stroke: '#120f24', strokeWidth: 3, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
@@ -122,7 +124,7 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    file: null, href: '/corehold/', title: 'CoreHold', tag: 'Minecraft',
+    file: null, href: '/corehold/', title: 'CoreHold', tag: 'Minecraft', wide: true,
     text: 'Teams, PvP-Tierliste und alle Special Items mit Rezept.',
     color: '#5cb85c', ink: '#120f24', accent: '#8a5a2b',
     icon: (

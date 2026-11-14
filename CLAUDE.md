@@ -439,6 +439,20 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Blob-Worker (jsDelivr, Ersatz unpkg, alles mit SRI-Prüfsumme), chess.js 0.10.3, Figuren aus chessground-CSS, Standard-Design.
   Erste Version ohne Statistik-Seite/Training. Mit echter Engine, aber nachgestellter chess.com-API getestet (Cloud erreicht
   chess.com und die CDNs nicht). Test: `serverShowsOwnPagesFromFolder` in `WebGuidesTest`.
+- **Startseite + /amongus** (14.11.2026, Kilian: „Mach die aktuelle Seite zu https://spieleabend.timonso.de/amongus und auf der
+  https://spieleabend.timonso.de sieht man oben eine Live auswahl und alle Games aber die weiterleitung zu Amongus soll immer noch im
+  Vordergrund stehen“; buntere Gestaltung erlaubt): Stats-Website liegt unter **`/amongus/`** (Vite `base`, Router-`basename`,
+  `StatsServer.APP_BASE`), `/` ist die **Spiele-Startseite** (zweiter Vite-Einstieg `web/start.html` + `web/src/start/`, eigenes buntes
+  Design mit Lilita One, dicken Konturen, harten Schatten, GSAP-Einflug). API, `/auth`, `/downloads`, `/seiten` gehen unter beiden
+  Adressen (`/amongus/api/…` = `/api/…`; CrewStats ruft `/api/mod|voice` direkt auf), Frontend ruft weiter `/api/…`. Alte App-Adressen
+  ohne Punkt (`/spieler/x`, `/runden` …) → 302 nach `/amongus/…` (mit Query). Startseite: oben „Live“ (Among-Us-Lobbys aus `/api/lobbies`,
+  sonst letzte Runde), dann Kacheln – **Among Us immer die größte Kachel vorne** (2×3), dann `GAMES` in `web/src/start/games.tsx`
+  (Browserspiele als `seiten/<spiel>.html` der Spiele-Threads, Schach, CoreHold). `GET /api/pages` liefert die HTML-Dateien aus
+  `seiten/` mit `<title>`/`<meta name="description">` (Kachel übernimmt sie) + `corehold` (Bridge an); fehlende Datei = Kachel „Bald“,
+  unbekannte Dateien erscheinen als eigene Kachel „Neu“. Neue Spiele in `GAMES` anhängen. Link „Alle Spiele“ oben rechts in der
+  Stats-Website. Deploy: Proxy der Domain reicht **alle** Pfade unverändert an den Stats-Server, `WEB_TRUST_PROXY=true`,
+  `WEB_PUBLIC_URL=https://spieleabend.timonso.de` (ohne /amongus → Discord-Redirect bleibt `/auth/callback`).
+  Test: `StatsWebsiteTest` (Routen), `serverShowsOwnPagesFromFolder`.
 - **CoreHold-Website im selben Server** (05.11.2026, Kilian: „ich kann keinen neuen [Pelican-Server] machen, wie geht es das wir es auf dem selben machen“):
   Eigenes Programm (nicht im Repo, Quelltext in /mnt/project-files/corehold-website/): Teams, PvP-Tierliste, Special Items mit
   Rezepten des Minecraft-Servers CoreHold unter `/corehold`, Admin-Login per Passwort (`ADMIN_PASSWORD`). Ein Java-Egg startet nur
