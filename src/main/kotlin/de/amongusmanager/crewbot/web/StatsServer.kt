@@ -42,6 +42,8 @@ class StatsServer(
     private val pages: Pages? = null,
     /** Ballerbude (Mehrspieler-Arena, /api/arena + /seiten/ballerbude.html), null = aus. */
     private val arena: Ballerbude? = null,
+    /** Kritzelpost – Stille Post mit Zeichnungen (/api/kritzelpost, Seite seiten/kritzelpost.html), null = aus. */
+    private val kritzelpost: Kritzelpost? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
@@ -74,6 +76,7 @@ class StatsServer(
             if (path == VoiceChat.PATH || path.startsWith(VoiceChat.PATH + "/")) return voice(exchange, method, path)
             if (arena != null && arena.handles(path)) return arena(exchange, arena, method, path)
             if (path == CrackVoting.PATH || path.startsWith(CrackVoting.PATH + "/")) return crack(exchange, method, path)
+            if (kritzelpost != null && kritzelpost.handles(path)) return kritzelpost(exchange, method, path, kritzelpost)
             if (method != "GET" && method != "HEAD") {
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
@@ -238,9 +241,27 @@ class StatsServer(
         respond(exchange, response.status, response.type, response.body, cache = "no-store")
     }
 
-    /** Höchstens 16 KB, sonst null. */
-    private fun readBody(exchange: HttpExchange): ByteArray? {
-        val limit = 16 * 1024
+    // ---------- Kritzelpost ----------
+
+    private fun kritzelpost(exchange: HttpExchange, method: String, path: String, handler: Kritzelpost) {
+        val body = if (method == "POST") {
+            readBody(exchange, Kritzelpost.MAX_BODY) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store")
+        } else {
+            ByteArray(0)
+        }
+        val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
+        val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
+        val response = handler.handle(WebRequest(method, path, parseQuery(exchange.requestURI.rawQuery), headers, body), client)
+        for ((name, value) in response.headers) {
+            if (name.equals("Cache-Control", ignoreCase = true)) continue
+            exchange.responseHeaders.add(name, value)
+        }
+        val cache = response.headers.firstOrNull { it.first.equals("Cache-Control", ignoreCase = true) }?.second ?: "no-store"
+        respond(exchange, response.status, response.type, response.body, cache = cache)
+    }
+
+    /** Höchstens [limit] Bytes (Standard 16 KB), sonst null. */
+    private fun readBody(exchange: HttpExchange, limit: Int = 16 * 1024): ByteArray? {
         val out = ByteArrayOutputStream()
         val buffer = ByteArray(4096)
         exchange.requestBody.use { input ->

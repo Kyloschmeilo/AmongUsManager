@@ -125,6 +125,7 @@ fun main() {
             voice = voice,
             pages = pages,
             arena = Ballerbude(),
+            kritzelpost = Kritzelpost(),
         )
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)
