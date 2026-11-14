@@ -52,6 +52,8 @@ class StatsServer(
     private val mampf: MampfGame? = null,
     /** Geheimfunk, das Wort-Ratespiel (/api/geheimfunk, Seite /spiele/geheimfunk.html), null = aus. */
     private val wordGame: WordGame? = null,
+    /** Meme-Schmiede: Memes schreiben und bewerten (/api/memes, Seite seiten/memes.html), null = aus. */
+    private val memeGame: MemeGame? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
@@ -98,6 +100,7 @@ class StatsServer(
             if (path == DrawGame.PATH) return drawGame(exchange, method, path)
             if (path == MampfGame.PATH || path.startsWith(MampfGame.PATH + "/")) return mampf(exchange, method, path)
             if (path == WordGame.PATH || path.startsWith(WordGame.PATH + "/")) return wordGame(exchange, method, path)
+            if (path == MemeGame.PATH) return memeGame(exchange, method, path)
             if (method != "GET" && method != "HEAD") {
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
@@ -348,7 +351,21 @@ class StatsServer(
         respond(exchange, response.status, response.type, response.body, cache = "no-store")
     }
 
-    // ---------- Spiele ----------
+    // ---------- Meme-Schmiede ----------
+
+    private fun memeGame(exchange: HttpExchange, method: String, path: String) {
+        val handler = memeGame ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
+        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
+        val response = handler.handle(WebRequest(method, path, emptyMap(), emptyMap(), body), client)
+        for ((name, value) in response.headers) {
+            if (name.equals("Cache-Control", ignoreCase = true)) continue
+            exchange.responseHeaders.add(name, value)
+        }
+        respond(exchange, response.status, response.type, response.body, cache = "no-store")
+    }
+
+    // ---------- Geheimfunk ----------
 
     private fun wordGame(exchange: HttpExchange, method: String, path: String) {
         val handler = wordGame ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")

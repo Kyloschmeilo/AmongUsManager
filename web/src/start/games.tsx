@@ -85,7 +85,7 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    files: ['memes.html', 'makeitmeme.html'], href: '/seiten/memes.html', title: 'Meme-Schmiede', tag: 'Party',
+    files: ['memes.html', 'makeitmeme.html'], href: '/seiten/memes.html', title: 'Meme-Schmiede', tag: 'Party', live: '/api/memes',
     text: 'Jeder textet sein Meme, alle bewerten – wer ist am lustigsten?',
     color: '#ff8a2b', ink: '#120f24', accent: '#ffe14d',
     icon: (
