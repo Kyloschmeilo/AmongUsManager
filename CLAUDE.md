@@ -439,6 +439,15 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Blob-Worker (jsDelivr, Ersatz unpkg, alles mit SRI-Prüfsumme), chess.js 0.10.3, Figuren aus chessground-CSS, Standard-Design.
   Erste Version ohne Statistik-Seite/Training. Mit echter Engine, aber nachgestellter chess.com-API getestet (Cloud erreicht
   chess.com und die CDNs nicht). Test: `serverShowsOwnPagesFromFolder` in `WebGuidesTest`.
+- **Schiffe versenken** (14.11.2026, Kilian: Browserspiele auf der Website, jedes Spiel eine eigene Seite, „bunter“ im Stil von
+  Codenames, „alles gerne animiert“): `seiten/schiffe.html` **im Repo** (Ordner `seiten/` im Wurzelordner = Standard von
+  `WEB_PAGES_DIR` beim lokalen Start; aufs Panel in `seiten/` neben die JAR legen), eine Datei ohne Abhängigkeiten (Schrift Barlow
+  Condensed eingebettet, Porträts als SVG im Skript, Töne per Web Audio). 10×10, Schiffe 5/4/3/3/2, gegen den Computer. Sieben
+  Kommandeure (`COMMANDERS`: Euryleia Pfeilhagel 1+6 in der Nähe, Potier Surgical Strike, Wade Breitseite Kreuz aus 5, Astrid 6
+  zufällig, Ferrara 3×3, Schmidt Torpedo bis zum ersten Schiff, Karslake ganze Reihe/Spalte); die Fähigkeit lädt mit jedem normalen
+  Schuss (`cd`). Computer: Wahrscheinlichkeitskarte (`density`/`aiMove`), drei Stärken (ungenauer + Fähigkeit lädt 4/2/0 Schüsse
+  langsamer, `SKILL_SLOW`). Regeln ohne DOM unter `window.SV` (damit per Playwright simulierbar). Eigenes buntes Design, nicht das
+  Standard-Design. Kein Mehrspieler. Die Spiele-Startseite (Kacheln) baut ein anderer Thread; „Alle Spiele“ zeigt auf `/`.
 - **CoreHold-Website im selben Server** (05.11.2026, Kilian: „ich kann keinen neuen [Pelican-Server] machen, wie geht es das wir es auf dem selben machen“):
   Eigenes Programm (nicht im Repo, Quelltext in /mnt/project-files/corehold-website/): Teams, PvP-Tierliste, Special Items mit
   Rezepten des Minecraft-Servers CoreHold unter `/corehold`, Admin-Login per Passwort (`ADMIN_PASSWORD`). Ein Java-Egg startet nur
