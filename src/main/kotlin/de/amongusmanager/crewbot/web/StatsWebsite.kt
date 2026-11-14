@@ -124,6 +124,7 @@ fun main() {
             crack = CrackVoting(crackVotes, auth, store),
             voice = voice,
             pages = pages,
+            kritzelpost = Kritzelpost(),
         )
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)

@@ -439,6 +439,17 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Blob-Worker (jsDelivr, Ersatz unpkg, alles mit SRI-Prüfsumme), chess.js 0.10.3, Figuren aus chessground-CSS, Standard-Design.
   Erste Version ohne Statistik-Seite/Training. Mit echter Engine, aber nachgestellter chess.com-API getestet (Cloud erreicht
   chess.com und die CDNs nicht). Test: `serverShowsOwnPagesFromFolder` in `WebGuidesTest`.
+- **Kritzelpost** (14.11.2026, Kilian: Gartic Phone als eigene Seite, „Lass ein bisschen vom Design system los und mach die ganzen
+  Seiten etwas bunter … alles auch gerne animiert“; jedes Spiel in eigenem Thread): Stille Post mit Zeichnungen, Seite
+  `seiten/kritzelpost.html` (**im Repo**, kommt in den `seiten/`-Ordner neben der JAR), Server `web/Kritzelpost.kt` unter `/api/kritzelpost`
+  (create/join/state/drawing/act). Ohne Anmeldung: Raum-Code (4 Buchstaben) + geheimer Spieler-Schlüssel, alles nur im Speicher
+  (≤ 20 Räume, ≤ 12 Spieler, Raum weg nach 10 min ohne Spieler bzw. 2 h). Browser fragt jede Sekunde `state?v=` ab (kein WebSocket),
+  Antwort `{same:true}` wenn unverändert. Ablauf: Satz → Zeichnung → Beschreibung … (Buch i bei Schritt s = Spieler i+s), Zeit je
+  Host-Einstellung, nach Ablauf + 3 s bzw. wenn alle Anwesenden fertig sind geht es weiter, Fehlende bekommen Ersatz-Satz/leeres Blatt.
+  Zeichnungen = Strich-Liste auf 800×600 (`cleanDrawing` prüft und schreibt neu, ≤ 150 KB), Abruf nur, wenn man sie gerade sehen darf.
+  Aufdecken blättert der Host für alle, Emoji-Reaktionen fliegen bei allen hoch, am Ende Galerie + „Buch als Bild“ (PNG). Host-Wechsel nach
+  30 s Abwesenheit. Eigenes buntes Design (Sticker-Look, Verlauf, kein Standard-Design). Tests: `KritzelpostTest`; mit drei Chromium-Browsern
+  durchgespielt.
 - **CoreHold-Website im selben Server** (05.11.2026, Kilian: „ich kann keinen neuen [Pelican-Server] machen, wie geht es das wir es auf dem selben machen“):
   Eigenes Programm (nicht im Repo, Quelltext in /mnt/project-files/corehold-website/): Teams, PvP-Tierliste, Special Items mit
   Rezepten des Minecraft-Servers CoreHold unter `/corehold`, Admin-Login per Passwort (`ADMIN_PASSWORD`). Ein Java-Egg startet nur
