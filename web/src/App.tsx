@@ -140,6 +140,10 @@ export function App() {
           <Brand />
           <Nav />
           <div className="topbar__account">
+            <a className="topbar__games" href="/" title="Alle Spiele vom Spieleabend">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="6" height="6" rx="1.5" /><rect x="9" y="1" width="6" height="6" rx="1.5" /><rect x="1" y="9" width="6" height="6" rx="1.5" /><rect x="9" y="9" width="6" height="6" rx="1.5" /></svg>
+              <span>Alle Spiele</span>
+            </a>
             <AccountButton />
           </div>
         </div>

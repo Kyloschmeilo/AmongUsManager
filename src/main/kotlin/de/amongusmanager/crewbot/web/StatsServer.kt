@@ -38,6 +38,8 @@ class StatsServer(
     private val crack: CrackVoting? = null,
     /** Proximity-Voice im Live-Tab (/api/voice), null = aus. */
     private val voice: VoiceChat? = null,
+    /** Eigene Seiten aus dem Ordner seiten/ (/seiten/<datei>, z.B. schach.html), null = ohne. */
+    private val pages: Pages? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
@@ -61,8 +63,13 @@ class StatsServer(
     private fun handle(exchange: HttpExchange) {
         try {
             val method = exchange.requestMethod.uppercase()
-            val path = URLDecoder.decode(exchange.requestURI.rawPath ?: "/", Charsets.UTF_8)
-            if (coreHold != null && coreHold.handles(path)) return coreHold.forward(exchange)
+            val rawPath = URLDecoder.decode(exchange.requestURI.rawPath ?: "/", Charsets.UTF_8)
+            if (coreHold != null && coreHold.handles(rawPath)) return coreHold.forward(exchange)
+            // Die Stats-Website liegt unter /amongus, / ist die Spiele-Startseite. API, Anmeldung, Downloads und eigene
+            // Seiten gehen unter beiden Adressen (CrewStats und alte Links rufen /api/… direkt auf).
+            if (rawPath == APP_BASE) return redirect(exchange, "$APP_BASE/" + query(exchange))
+            val inApp = rawPath.startsWith("$APP_BASE/")
+            val path = if (inApp) rawPath.removePrefix(APP_BASE) else rawPath
             if (path == "/api/me" || path == "/api/me/profile" || path.startsWith("/auth/")) return account(exchange, method, path)
             if (path.startsWith(ControlApi.PREFIX)) return control(exchange, method, path)
             if (path.startsWith(ModApiSettings.PATH)) return mod(exchange, method, path)
@@ -73,8 +80,13 @@ class StatsServer(
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
             }
-            if (path.startsWith("/downloads/")) return download(exchange)
-            if (path == "/api" || path.startsWith("/api/")) api(exchange, path.removePrefix("/api").trim('/')) else staticFile(exchange, path)
+            if (path.startsWith("/downloads/")) return download(exchange, filePath(exchange, inApp))
+            if (path.startsWith(Pages.PREFIX)) return page(exchange, filePath(exchange, inApp))
+            when {
+                path == "/api" || path.startsWith("/api/") -> api(exchange, path.removePrefix("/api").trim('/'))
+                inApp -> staticFile(exchange, path)
+                else -> rootFile(exchange, path)
+            }
         } catch (e: Exception) {
             log.warn("Fehler bei {} {}: {}", exchange.requestMethod, exchange.requestURI, e.toString())
             try {
@@ -268,6 +280,19 @@ class StatsServer(
         if (parts.size == 2 && parts[0] == "avatar") return avatar(exchange, parts[1])
         if (parts == listOf("crewmate")) return crewmate(exchange, query)
         if (parts.size == 1 && parts[0] in WebGuides.ROUTES) return guidesApi(exchange, parts)
+        if (parts == listOf("pages")) {
+            // Startseite: welche Spiele/Seiten im Ordner seiten/ liegen (fehlende zeigt sie als „Bald“)
+            val html = pages?.htmlPages().orEmpty()
+            // ?check=a.html,b.html: welche dieser Seiten es gibt (Ordner seiten/ oder im JAR mitgeliefert unter seiten/)
+            val check = query["check"].orEmpty().split(',').map { it.trim() }.filter { Pages.offered(it) }.distinct().take(40)
+            val exists = check.filter { pages?.file(it) != null || javaClass.classLoader.getResource("seiten/$it") != null }
+            val body = bytes(obj(
+                "pages" to html.map { obj("file" to it.file, "title" to it.title, "description" to it.description) },
+                "exists" to exists,
+                "corehold" to (coreHold != null),
+            ))
+            return respond(exchange, 200, TYPE_JSON, body, cache = "no-cache")
+        }
         if (exchange.requestHeaders.getFirst("If-None-Match") == etag) return notModified(exchange, etag)
 
         val body: ByteArray? = when {
@@ -306,9 +331,8 @@ class StatsServer(
     }
 
     /** Eigene Datei aus dem Download-Ordner, immer als Download (nicht im Browser anzeigen), gestreamt. */
-    private fun download(exchange: HttpExchange) {
-        // Pfad ohne „+ = Leerzeichen“ (Dateinamen wie mod-1.0+26.3.jar)
-        val name = (exchange.requestURI.path ?: "").removePrefix("/downloads/")
+    private fun download(exchange: HttpExchange, path: String) {
+        val name = path.removePrefix("/downloads/")
         val file = guides?.downloads?.localFile(name)
             ?: return respond(exchange, 404, "text/plain; charset=utf-8", "Nicht gefunden".toByteArray(), cache = "no-cache")
         val size = java.nio.file.Files.size(file)
@@ -330,6 +354,17 @@ class StatsServer(
         }
         exchange.sendResponseHeaders(200, if (size == 0L) -1 else size)
         if (size > 0) exchange.responseBody.use { out -> java.nio.file.Files.newInputStream(file).use { it.copyTo(out) } }
+    }
+
+    /** Eigene Seite aus dem Ordner seiten/: wird angezeigt (kein Download), HTML mit der lockereren CSP für eigene Seiten. */
+    private fun page(exchange: HttpExchange, path: String) {
+        val name = path.removePrefix(Pages.PREFIX)
+        val file = pages?.file(name)
+            ?: return respond(exchange, 404, "text/plain; charset=utf-8", "Nicht gefunden".toByteArray(), cache = "no-cache")
+        val stamp = "$name:${java.nio.file.Files.size(file)}:${java.nio.file.Files.getLastModifiedTime(file).toMillis()}"
+        val etag = "W/\"s${shortHash(stamp)}\""
+        if (exchange.requestHeaders.getFirst("If-None-Match") == etag) return notModified(exchange, etag)
+        respond(exchange, 200, Pages.contentType(name)!!, java.nio.file.Files.readAllBytes(file), cache = "no-cache", etag = etag, csp = Pages.CSP)
     }
 
     private fun parseQuery(raw: String?): Map<String, String> {
@@ -358,6 +393,41 @@ class StatsServer(
         respond(exchange, 404, "text/plain; charset=utf-8", "Nicht gefunden".toByteArray(), cache = "no-cache")
     }
 
+    /**
+     * Alles außerhalb von /amongus: / ist die Spiele-Startseite, Dateien wie /favicon.svg kommen aus der Seite,
+     * alte Adressen der Stats-Website (/spieler/abc, /runden …) leiten nach /amongus/… weiter.
+     */
+    private fun rootFile(exchange: HttpExchange, path: String) {
+        if (path == "/" || path == "/index.html") {
+            val start = static.get(START_PAGE)
+                ?: return respond(exchange, 404, "text/plain; charset=utf-8", "Nicht gefunden".toByteArray(), cache = "no-cache")
+            return respond(exchange, 200, start.type, start.bytes, cache = "no-cache", gzipped = start.gzipped)
+        }
+        val file = static.get(path)
+        if (file != null && path != START_PAGE) {
+            val cache = if (path.startsWith("/assets/")) "public, max-age=31536000, immutable" else "no-cache"
+            return respond(exchange, 200, file.type, file.bytes, cache = cache, gzipped = file.gzipped)
+        }
+        if (!path.substringAfterLast('/').contains('.') && !path.contains("//")) {
+            return redirect(exchange, APP_BASE + path + query(exchange))
+        }
+        respond(exchange, 404, "text/plain; charset=utf-8", "Nicht gefunden".toByteArray(), cache = "no-cache")
+    }
+
+    /** Pfad ohne „+ = Leerzeichen“ (Dateinamen wie mod-1.0+26.3.jar), ohne /amongus davor. */
+    private fun filePath(exchange: HttpExchange, inApp: Boolean): String {
+        val path = exchange.requestURI.path ?: "/"
+        return if (inApp) path.removePrefix(APP_BASE) else path
+    }
+
+    private fun query(exchange: HttpExchange): String = exchange.requestURI.rawQuery?.let { "?$it" } ?: ""
+
+    /** Vorübergehende Weiterleitung (302), damit sich die Aufteilung später noch ändern lässt. */
+    private fun redirect(exchange: HttpExchange, location: String) {
+        exchange.responseHeaders.add("Location", location)
+        respond(exchange, 302, "text/plain; charset=utf-8", ByteArray(0), cache = "no-cache")
+    }
+
     // ---------- Antworten ----------
 
     private fun notModified(exchange: HttpExchange, etag: String) {
@@ -374,6 +444,7 @@ class StatsServer(
         cache: String,
         etag: String? = null,
         gzipped: ByteArray? = null,
+        csp: String = CSP,
     ) {
         val headers = exchange.responseHeaders
         headers.add("Content-Type", type)
@@ -382,7 +453,7 @@ class StatsServer(
         headers.add("Referrer-Policy", "same-origin")
         headers.add("Vary", "Accept-Encoding")
         if (type.startsWith("text/html")) {
-            headers.add("Content-Security-Policy", CSP)
+            headers.add("Content-Security-Policy", csp)
             headers.add("X-Frame-Options", "DENY")
         }
         etag?.let { headers.add("ETag", it) }
@@ -408,6 +479,12 @@ class StatsServer(
 
     companion object {
         const val TYPE_JSON = "application/json; charset=utf-8"
+
+        /** Adresse der Stats-Website (Among Us); / ist die Spiele-Startseite. */
+        const val APP_BASE = "/amongus"
+
+        /** Startseite mit allen Spielen (zweiter Einstieg der Vite-Seite, web/start.html). */
+        const val START_PAGE = "/start.html"
 
         // Alles kommt vom eigenen Server (auch die Schriften) – keine fremden Anfragen aus dem Browser
         private const val CSP = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; " +

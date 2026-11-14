@@ -430,6 +430,31 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   ausgeliefert, wenn die Dateien noch im Ordner liegen. CrewStats + TOR-Version: GitHub-API `releases/latest` alle 30 min
   im Hintergrund (ohne Token; Fehler → alte Infos, Links `…/releases/latest/download/<Datei>` gehen immer). CrewStats-Dateien
   lädt der Browser direkt von GitHub. `StatsWebsite.zip` enthält deshalb `downloads/` mit dem Installer.
+- **Eigene Seiten / Schach-Analyse** (12.11.2026, Kilian: Schach-Analyse als eine HTML-Datei, „die ich in den aktuellen Website-Server
+  reinlegen kann“): Ordner `seiten/` neben der StatsWebsite.jar (`WEB_PAGES_DIR`, `web/Pages.kt`) → `/seiten/<datei>`, wird angezeigt
+  statt heruntergeladen, nur Dateien direkt im Ordner mit bekannter Endung, ohne Neustart. HTML dort bekommt eine eigene, lockerere
+  CSP (`Pages.CSP`: CDN-Skripte, Inline-Skripte, fremde https-APIs, Blob-Worker, WebAssembly) – die Stats-Seite selbst bleibt streng.
+  Läuft unter derselben Adresse wie die Website (gleiche Anmeldung) → nur eigene Dateien. `schach.html` liegt **nicht im Repo**,
+  sondern in /mnt/project-files/schach-analyse/ (und im `StatsWebsite.zip` unter `seiten/`): chess.com-API, Stockfish 18 lite als
+  Blob-Worker (jsDelivr, Ersatz unpkg, alles mit SRI-Prüfsumme), chess.js 0.10.3, Figuren aus chessground-CSS, Standard-Design.
+  Erste Version ohne Statistik-Seite/Training. Mit echter Engine, aber nachgestellter chess.com-API getestet (Cloud erreicht
+  chess.com und die CDNs nicht). Test: `serverShowsOwnPagesFromFolder` in `WebGuidesTest`.
+- **Startseite + /amongus** (14.11.2026, Kilian: „Mach die aktuelle Seite zu https://spieleabend.timonso.de/amongus und auf der
+  https://spieleabend.timonso.de sieht man oben eine Live auswahl und alle Games aber die weiterleitung zu Amongus soll immer noch im
+  Vordergrund stehen“; buntere Gestaltung erlaubt): Stats-Website liegt unter **`/amongus/`** (Vite `base`, Router-`basename`,
+  `StatsServer.APP_BASE`), `/` ist die **Spiele-Startseite** (zweiter Vite-Einstieg `web/start.html` + `web/src/start/`, eigenes buntes
+  Design mit Lilita One, dicken Konturen, harten Schatten, GSAP-Einflug). API, `/auth`, `/downloads`, `/seiten` gehen unter beiden
+  Adressen (`/amongus/api/…` = `/api/…`; CrewStats ruft `/api/mod|voice` direkt auf), Frontend ruft weiter `/api/…`. Alte App-Adressen
+  ohne Punkt (`/spieler/x`, `/runden` …) → 302 nach `/amongus/…` (mit Query). Startseite: oben „Live“ (Among-Us-Lobbys aus `/api/lobbies`,
+  sonst letzte Runde), dann Kacheln – **Among Us immer die größte Kachel vorne** (2×3), dann `GAMES` in `web/src/start/games.tsx`
+  (Browserspiele der Spiele-Threads unter `/seiten/…`: je Spiel mögliche Dateinamen in `files`, z.B. kritzeln, kritzelpost, nudelsalat,
+  ballerbude, schiffe; Schach, CoreHold). `GET /api/pages?check=a.html,…` liefert die HTML-Dateien aus `seiten/` mit `<title>`/
+  `<meta name="description">` (Kachel übernimmt sie), `exists` (welche der Namen es im Ordner oder im JAR unter `seiten/` gibt) +
+  `corehold` (Bridge an); keine Datei = Kachel „Bald“,
+  unbekannte Dateien erscheinen als eigene Kachel „Neu“. Neue Spiele in `GAMES` anhängen. Link „Alle Spiele“ oben rechts in der
+  Stats-Website. Deploy: Proxy der Domain reicht **alle** Pfade unverändert an den Stats-Server, `WEB_TRUST_PROXY=true`,
+  `WEB_PUBLIC_URL=https://spieleabend.timonso.de` (ohne /amongus → Discord-Redirect bleibt `/auth/callback`).
+  Test: `StatsWebsiteTest` (Routen), `serverShowsOwnPagesFromFolder`.
 - **CoreHold-Website im selben Server** (05.11.2026, Kilian: „ich kann keinen neuen [Pelican-Server] machen, wie geht es das wir es auf dem selben machen“):
   Eigenes Programm (nicht im Repo, Quelltext in /mnt/project-files/corehold-website/): Teams, PvP-Tierliste, Special Items mit
   Rezepten des Minecraft-Servers CoreHold unter `/corehold`, Admin-Login per Passwort (`ADMIN_PASSWORD`). Ein Java-Egg startet nur

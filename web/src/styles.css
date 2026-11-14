@@ -145,7 +145,12 @@ button { font: inherit; color: inherit; }
 }
 
 /* Konto (Discord-Anmeldung) */
-.topbar__account { margin-left: auto; display: flex; align-items: center; }
+.topbar__account { margin-left: auto; display: flex; align-items: center; gap: var(--space-3); }
+.topbar__games { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-muted); font: 600 13px/1 var(--font-display); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.topbar__games svg { width: 14px; height: 14px; fill: currentColor; transition: transform .3s cubic-bezier(.3, .7, .2, 1); }
+.topbar__games:hover { color: var(--ink); }
+.topbar__games:hover svg { transform: rotate(90deg); }
+@media (max-width: 520px) { .topbar__games span { display: none; } }
 .account { position: relative; }
 .account__login { padding: 8px var(--space-3); font-size: 11px; }
 .account__button {

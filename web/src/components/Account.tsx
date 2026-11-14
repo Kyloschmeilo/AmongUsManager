@@ -32,7 +32,7 @@ export function AccountButton() {
 
   if (!me.loggedIn) {
     return (
-      <a className="btn account__login" href={loginUrl(location.pathname + location.search)} aria-label="Mit Discord anmelden">
+      <a className="btn account__login" href={loginUrl()} aria-label="Mit Discord anmelden">
         <LogIn className="icon icon--sm" aria-hidden="true" />
         <span>Mit Discord anmelden</span>
       </a>

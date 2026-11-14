@@ -413,15 +413,36 @@ open class StatsWebsiteTest {
         assertEquals(404, get("/api/compare/${shortHash("crewstats-web:d:100")}/gibtsnicht").statusCode())
         assertEquals(405, get("/api/overview", method = "POST").statusCode())
 
-        // Seiten: index.html für jede App-Adresse, fehlende Dateien 404, nichts außerhalb von web/
-        val home = get("/")
+        // Stats-Website unter /amongus: index.html für jede App-Adresse, fehlende Dateien 404, nichts außerhalb von web/
+        val home = get("/amongus/")
         assertEquals(200, home.statusCode())
         assertContains(home.body(), "<div id=\"root\">")
-        assertEquals(home.body(), get("/spieler/abc").body())
-        assertEquals(404, get("/assets/gibtsnicht.js").statusCode())
+        assertContains(home.body(), "/amongus/assets/")
+        assertEquals(home.body(), get("/amongus/spieler/abc").body())
+        assertEquals(404, get("/amongus/assets/gibtsnicht.js").statusCode())
+        assertEquals(404, get("/amongus/%2E%2E/logback.xml").statusCode())
+        assertEquals(404, get("/amongus/logback.xml").statusCode())
+        assertEquals(home.body(), get("/amongus/assets").body(), "Ordner werden nicht aufgelistet")
+        val asset = Regex("/amongus(/assets/[^\"]+\\.js)").find(home.body())!!.groupValues[1]
+        assertEquals(200, get("/amongus$asset").statusCode())
+        assertEquals(302, get("/amongus").statusCode())
+        assertEquals("/amongus/", get("/amongus").headers().firstValue("Location").orElse(""))
+
+        // / ist die Spiele-Startseite, alte Adressen leiten nach /amongus weiter (mit Query)
+        val start = get("/")
+        assertEquals(200, start.statusCode())
+        assertContains(start.body(), "<div id=\"start\">")
+        assertEquals(start.body(), get("/index.html").body())
+        assertEquals(302, get("/spieler/abc").statusCode())
+        assertEquals("/amongus/spieler/abc", get("/spieler/abc").headers().firstValue("Location").orElse(""))
+        assertEquals("/amongus/hilfe?t=autojoin", get("/hilfe?t=autojoin").headers().firstValue("Location").orElse(""))
         assertEquals(404, get("/%2E%2E/logback.xml").statusCode())
         assertEquals(404, get("/logback.xml").statusCode())
-        assertEquals(home.body(), get("/assets").body(), "Ordner werden nicht aufgelistet")
+        assertEquals(200, get("/favicon.svg").statusCode())
+        assertEquals(404, get("/start.html").statusCode(), "Startseite nur unter /")
+        // API und Anmeldung unter beiden Adressen (CrewStats ruft /api/… direkt auf)
+        assertEquals(get("/api/overview").body(), get("/amongus/api/overview").body())
+        assertEquals(200, get("/api/pages").statusCode())
     }
 
     @Test
@@ -474,6 +495,10 @@ open class StatsWebsiteTest {
         val assets = Regex("""/assets/[A-Za-z0-9_.-]+\.(js|css)""").findAll(index).map { it.value }.toList()
         assertTrue(assets.isNotEmpty())
         for (asset in assets) assertNotNull(javaClass.classLoader.getResource("web$asset"), "$asset fehlt – Seite neu bauen")
+        val start = assertNotNull(javaClass.classLoader.getResource("web/start.html"), "Startseite fehlt – Seite neu bauen").readText()
+        for (asset in Regex("""/assets/[A-Za-z0-9_.-]+\.(js|css)""").findAll(start).map { it.value }) {
+            assertNotNull(javaClass.classLoader.getResource("web$asset"), "$asset fehlt – Seite neu bauen")
+        }
     }
 
     companion object {
