@@ -82,6 +82,9 @@ export function Start() {
   const found = useMemo(() => foundPages(pages.data), [pages.data]);
   const known = useMemo(() => new Map((pages.data?.pages ?? []).map((p) => [p.file, p])), [pages.data]);
   const extra = (pages.data?.pages ?? []).filter((p) => !GAMES.some((g) => g.files.includes(p.file)));
+  // Breite Kachel nur, wenn sie das Raster (4 Spalten, Among Us belegt 6 Felder) auffüllt – sonst bliebe eine Lücke
+  const singles = GAMES.filter((g) => !g.wide).length + extra.length;
+  const wideFits = (singles + 6) % 4 === 2;
 
   return (
     <div className="st" ref={root}>
@@ -100,12 +103,12 @@ export function Start() {
           <AmongUsTile overview={overview.data} live={live} />
           {GAMES.map((game) => {
             if (!game.files.length) {
-              return <GameTile key={game.href} game={game} ready={pages.data?.corehold !== false} />;
+              return <GameTile key={game.href} game={{ ...game, wide: game.wide && wideFits }} ready={pages.data?.corehold !== false} />;
             }
             const file = found?.get(game.href);
             const page = file ? known.get(file) : undefined;
             const href = file ? `/seiten/${file}` : game.href;
-            return <GameTile key={game.href} game={{ ...game, href }} page={page} ready={found ? !!file : true} />;
+            return <GameTile key={game.href} game={{ ...game, href, wide: game.wide && wideFits }} page={page} ready={found ? !!file : true} />;
           })}
           {extra.map((p) => (
             <GameTile key={p.file} page={p} ready game={{

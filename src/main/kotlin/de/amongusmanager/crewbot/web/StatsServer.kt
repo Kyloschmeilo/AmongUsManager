@@ -40,6 +40,8 @@ class StatsServer(
     private val voice: VoiceChat? = null,
     /** Eigene Seiten aus dem Ordner seiten/ (/seiten/<datei>, z.B. schach.html), null = ohne. */
     private val pages: Pages? = null,
+    /** Meme-Schmiede: Memes schreiben und bewerten (/api/memes, Seite seiten/memes.html), null = aus. */
+    private val memeGame: MemeGame? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
@@ -76,6 +78,7 @@ class StatsServer(
             if (path == LiveLobbies.PATH || path.startsWith(LiveLobbies.PATH + "/")) return lobbies(exchange, method, path)
             if (path == VoiceChat.PATH || path.startsWith(VoiceChat.PATH + "/")) return voice(exchange, method, path)
             if (path == CrackVoting.PATH || path.startsWith(CrackVoting.PATH + "/")) return crack(exchange, method, path)
+            if (path == MemeGame.PATH) return memeGame(exchange, method, path)
             if (method != "GET" && method != "HEAD") {
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
@@ -225,6 +228,20 @@ class StatsServer(
     }
 
     /** Höchstens 16 KB, sonst null. */
+    // ---------- Meme-Schmiede ----------
+
+    private fun memeGame(exchange: HttpExchange, method: String, path: String) {
+        val handler = memeGame ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
+        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
+        val response = handler.handle(WebRequest(method, path, emptyMap(), emptyMap(), body), client)
+        for ((name, value) in response.headers) {
+            if (name.equals("Cache-Control", ignoreCase = true)) continue
+            exchange.responseHeaders.add(name, value)
+        }
+        respond(exchange, response.status, response.type, response.body, cache = "no-store")
+    }
+
     private fun readBody(exchange: HttpExchange): ByteArray? {
         val limit = 16 * 1024
         val out = ByteArrayOutputStream()

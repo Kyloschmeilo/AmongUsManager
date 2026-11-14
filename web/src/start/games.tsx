@@ -64,6 +64,19 @@ export const GAMES: Game[] = [
     ),
   },
   {
+    files: ['memes.html', 'makeitmeme.html'], href: '/seiten/memes.html', title: 'Meme-Schmiede', tag: 'Party',
+    text: 'Jeder textet sein Meme, alle bewerten – wer ist am lustigsten?',
+    color: '#ff8a2b', ink: '#120f24', accent: '#ffe14d',
+    icon: (
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <rect className="g-meme" x="8" y="10" width="48" height="40" rx="6" fill="#fff" {...stroke} />
+        <path d="M14 18h36M18 42h28" fill="none" {...stroke} strokeWidth={5} />
+        <circle cx="32" cy="30" r="7" fill="#ffe14d" {...stroke} strokeWidth={2.5} />
+        <path d="M44 50l8 8 2-12" fill="#ff3d8b" {...stroke} strokeWidth={2.5} />
+      </svg>
+    ),
+  },
+  {
     files: ['codenames.html', 'decknamen.html'], href: '/seiten/codenames.html', title: 'Geheime Wörter', tag: 'Teams',
     text: 'Zwei Teams, ein Hinweis, viele Wörter – rot gegen blau.',
     color: '#ef3b3b', ink: '#ffffff', accent: '#2f6cf6',

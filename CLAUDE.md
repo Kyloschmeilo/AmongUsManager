@@ -455,6 +455,20 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Stats-Website. Deploy: Proxy der Domain reicht **alle** Pfade unverändert an den Stats-Server, `WEB_TRUST_PROXY=true`,
   `WEB_PUBLIC_URL=https://spieleabend.timonso.de` (ohne /amongus → Discord-Redirect bleibt `/auth/callback`).
   Test: `StatsWebsiteTest` (Routen), `serverShowsOwnPagesFromFolder`.
+- **Meme-Schmiede – Memes texten & bewerten** (14.11.2026, Kilian: „Make it Meme“ als Spiel auf die Website; eigener Name/Look,
+  kein Nachbau): `seiten/memes.html` (im Repo, eine Datei ohne CDNs, kommt in den `seiten/`-Ordner neben der StatsWebsite.jar) +
+  Server `web/MemeGame.kt` (`MemeTemplates` = ids + Anzahl Textfelder der 24 eingebauten Vorlagen, `MemeRules` = reine Regeln,
+  `MemeGame` = Räume nur im Speicher). Gleiches Muster wie die Kritzelkiste: `POST /api/memes` (create/join/sync/settings/start/
+  write/reroll/vote/react/kick/skip/again/leave), Polling 0,45–1,2 s, ohne Anmeldung, Raum-Code aus 4 Buchstaben, Token im
+  localStorage, 2–12 Spieler. Ablauf je Runde: jeder bekommt eine eigene Vorlage (in der Partie möglichst keine doppelt), darf sie
+  `rerolls`-mal pro Spiel neu würfeln, schreibt die Texte (max. 90 Zeichen, 3 Zeilen) → alle Memes nacheinander ohne Namen,
+  die anderen bewerten 1–4 (25/50/100/150 Punkte), Emojis fliegen lassen → Aufdecken mit Autor/Punkten → Zwischenstand →
+  am Ende Podest + Galerie (bestes je Runde + Top 3). Fremde Texte gehen erst beim Zeigen raus, der Autor erst beim Aufdecken,
+  eigene Stimme zählt nicht; Host kann „Weiter“ drücken. Vorlagen zeichnet die Seite als SVG (Blob-Figuren, `TEMPLATES` in der
+  HTML – neue Vorlage dort UND in `MemeTemplates.ALL`, `MemeGameTest` prüft beides), Texte immer per `textContent`. Eigene Bilder:
+  Host trägt bis zu 20 https-Adressen ein (je 2 Textfelder), die Browser laden sie direkt. Startseiten-Kachel in `games.tsx`
+  (`memes.html`); CoreHold ist nur noch breit, wenn das Raster dadurch aufgeht (`wideFits` in `Start.tsx`). Tests: `MemeGameTest`;
+  mit drei Chromium-Browsern (Desktop + Handy) eine ganze Partie gespielt. Mit echten Spielern ungetestet.
 - **CoreHold-Website im selben Server** (05.11.2026, Kilian: „ich kann keinen neuen [Pelican-Server] machen, wie geht es das wir es auf dem selben machen“):
   Eigenes Programm (nicht im Repo, Quelltext in /mnt/project-files/corehold-website/): Teams, PvP-Tierliste, Special Items mit
   Rezepten des Minecraft-Servers CoreHold unter `/corehold`, Admin-Login per Passwort (`ADMIN_PASSWORD`). Ein Java-Egg startet nur
