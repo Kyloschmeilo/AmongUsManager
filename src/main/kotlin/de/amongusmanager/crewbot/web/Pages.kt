@@ -29,7 +29,31 @@ class Pages(val dir: Path) {
         }
     }
 
+    /** Titel und Beschreibung einer HTML-Seite (aus <title> und <meta name="description">) – für die Kacheln der Startseite. */
+    class Info(val file: String, val title: String?, val description: String?)
+
+    /** Alle HTML-Seiten mit Titel/Beschreibung, alphabetisch. */
+    fun htmlPages(): List<Info> = files().filter { it.endsWith(".html") || it.endsWith(".htm") }.map { name ->
+        val head = runCatching {
+            Files.newInputStream(file(name) ?: return@runCatching "").use { String(it.readNBytes(HEAD_BYTES), Charsets.UTF_8) }
+        }.getOrDefault("")
+        Info(name, headText(head, TITLE), headText(head, DESCRIPTION))
+    }
+
     companion object {
+        private const val HEAD_BYTES = 64 * 1024
+        private val TITLE = Regex("<title[^>]*>([\\s\\S]*?)</title>", RegexOption.IGNORE_CASE)
+        private val DESCRIPTION = Regex("<meta\\s+name=[\"']description[\"']\\s+content=[\"']([^\"']*)[\"']", RegexOption.IGNORE_CASE)
+
+        /** Text aus dem Kopf einer Seite, Entities aufgelöst, Leerraum zusammengefasst, höchstens 160 Zeichen. */
+        internal fun headText(head: String, pattern: Regex): String? {
+            val raw = pattern.find(head)?.groupValues?.get(1) ?: return null
+            val text = raw.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"")
+                .replace("&#39;", "'").replace("&nbsp;", " ").replace(Regex("\\s+"), " ").trim()
+            return text.take(160).ifEmpty { null }
+        }
+
+
         const val PREFIX = "/seiten/"
         const val MAX_BYTES = 20L * 1024 * 1024
 
