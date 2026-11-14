@@ -38,10 +38,14 @@ class StatsServer(
     private val crack: CrackVoting? = null,
     /** Proximity-Voice im Live-Tab (/api/voice), null = aus. */
     private val voice: VoiceChat? = null,
+    /** Eigene Seiten aus dem Ordner seiten/ (/seiten/<datei>, z.B. schach.html), null = ohne. */
+    private val pages: Pages? = null,
+    /** MAMPF!-Spiel (/api/mampf, Seite seiten/mampf.html), null = aus. */
+    private val mampf: MampfGame? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
-    private val executor: ExecutorService = Executors.newFixedThreadPool(16 + VoiceChat.MAX_MEMBERS + 8) { task -> Thread(task, "web").apply { isDaemon = true } }
+    private val executor: ExecutorService = Executors.newFixedThreadPool(16 + VoiceChat.MAX_MEMBERS + MampfGame.MAX_PLAYERS + 8) { task -> Thread(task, "web").apply { isDaemon = true } }
     private val static = StaticFiles("web")
 
     init {
@@ -69,11 +73,13 @@ class StatsServer(
             if (path == LiveLobbies.PATH || path.startsWith(LiveLobbies.PATH + "/")) return lobbies(exchange, method, path)
             if (path == VoiceChat.PATH || path.startsWith(VoiceChat.PATH + "/")) return voice(exchange, method, path)
             if (path == CrackVoting.PATH || path.startsWith(CrackVoting.PATH + "/")) return crack(exchange, method, path)
+            if (path == MampfGame.PATH || path.startsWith(MampfGame.PATH + "/")) return mampf(exchange, method, path)
             if (method != "GET" && method != "HEAD") {
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
             }
             if (path.startsWith("/downloads/")) return download(exchange)
+            if (path.startsWith(Pages.PREFIX)) return page(exchange)
             if (path == "/api" || path.startsWith("/api/")) api(exchange, path.removePrefix("/api").trim('/')) else staticFile(exchange, path)
         } catch (e: Exception) {
             log.warn("Fehler bei {} {}: {}", exchange.requestMethod, exchange.requestURI, e.toString())
@@ -189,6 +195,28 @@ class StatsServer(
             if (name.equals("Cache-Control", ignoreCase = true)) continue
             exchange.responseHeaders.add(name, value)
         }
+        respond(exchange, response.status, response.type, response.body, cache = "no-store")
+    }
+
+    // ---------- MAMPF! ----------
+
+    private fun mampf(exchange: HttpExchange, method: String, path: String) {
+        val game = mampf ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
+        if (path == MampfGame.STREAM_PATH && method == "GET") {
+            val session = game.session(parseQuery(exchange.requestURI.rawQuery)["t"])
+                ?: return respond(exchange, 410, TYPE_JSON, bytes(obj("error" to "Sitzung abgelaufen", "gone" to true)), cache = "no-store")
+            exchange.responseHeaders.add("Content-Type", "text/event-stream; charset=utf-8")
+            exchange.responseHeaders.add("Cache-Control", "no-store, no-transform")
+            exchange.responseHeaders.add("X-Accel-Buffering", "no")
+            exchange.responseHeaders.add("X-Content-Type-Options", "nosniff")
+            exchange.sendResponseHeaders(200, 0)
+            exchange.responseBody.use { out -> game.pump(session, out) }
+            return
+        }
+        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
+        val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
+        val response = game.handle(WebRequest(method, path, emptyMap(), headers, body), client)
         respond(exchange, response.status, response.type, response.body, cache = "no-store")
     }
 
@@ -332,6 +360,17 @@ class StatsServer(
         if (size > 0) exchange.responseBody.use { out -> java.nio.file.Files.newInputStream(file).use { it.copyTo(out) } }
     }
 
+    /** Eigene Seite aus dem Ordner seiten/: wird angezeigt (kein Download), HTML mit der lockereren CSP für eigene Seiten. */
+    private fun page(exchange: HttpExchange) {
+        val name = (exchange.requestURI.path ?: "").removePrefix(Pages.PREFIX)
+        val file = pages?.file(name)
+            ?: return respond(exchange, 404, "text/plain; charset=utf-8", "Nicht gefunden".toByteArray(), cache = "no-cache")
+        val stamp = "$name:${java.nio.file.Files.size(file)}:${java.nio.file.Files.getLastModifiedTime(file).toMillis()}"
+        val etag = "W/\"s${shortHash(stamp)}\""
+        if (exchange.requestHeaders.getFirst("If-None-Match") == etag) return notModified(exchange, etag)
+        respond(exchange, 200, Pages.contentType(name)!!, java.nio.file.Files.readAllBytes(file), cache = "no-cache", etag = etag, csp = Pages.CSP)
+    }
+
     private fun parseQuery(raw: String?): Map<String, String> {
         if (raw.isNullOrEmpty()) return emptyMap()
         return raw.split('&').mapNotNull { part ->
@@ -374,6 +413,7 @@ class StatsServer(
         cache: String,
         etag: String? = null,
         gzipped: ByteArray? = null,
+        csp: String = CSP,
     ) {
         val headers = exchange.responseHeaders
         headers.add("Content-Type", type)
@@ -382,7 +422,7 @@ class StatsServer(
         headers.add("Referrer-Policy", "same-origin")
         headers.add("Vary", "Accept-Encoding")
         if (type.startsWith("text/html")) {
-            headers.add("Content-Security-Policy", CSP)
+            headers.add("Content-Security-Policy", csp)
             headers.add("X-Frame-Options", "DENY")
         }
         etag?.let { headers.add("ETag", it) }
