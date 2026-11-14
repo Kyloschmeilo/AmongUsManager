@@ -167,7 +167,8 @@ class DrawGame(
 
     @Synchronized
     fun handle(request: WebRequest, client: String): WebResponse {
-        if (request.method != "POST") return WebResponse(405, body = bytes(obj("error" to "Nur POST")), headers = listOf("Allow" to "POST", NO_STORE))
+        if (request.method == "GET" || request.method == "HEAD") return status(clock())
+        if (request.method != "POST") return WebResponse(405, body = bytes(obj("error" to "Nur GET oder POST")), headers = listOf("Allow" to "GET, HEAD, POST", NO_STORE))
         val body = try {
             Json.parseToJsonElement(request.body.toString(Charsets.UTF_8)) as? JsonObject
         } catch (e: Exception) {
@@ -480,6 +481,13 @@ class DrawGame(
     }
 
     /** Bringt den Raum auf den Stand von `now`: Abwesende raus, abgelaufene Phasen weiter. */
+    /** Für die Live-Leiste der Startseite: nur Anzahlen offener Räume und anwesender Spieler, keine Codes oder Namen. */
+    private fun status(now: Long): WebResponse {
+        sweep(now)
+        val present = rooms.values.map { room -> present(room, now).size }.filter { it > 0 }
+        return json(200, obj("rooms" to present.size, "players" to present.sum()))
+    }
+
     private fun tick(room: Room, now: Long) {
         val playing = room.phase != Phase.LOBBY && room.phase != Phase.FINAL
         val limit = if (playing) GONE_PLAYING_MS else GONE_LOBBY_MS

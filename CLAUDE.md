@@ -443,7 +443,7 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   und mach die ganzen Seiten etwas bunter“, Vorbild Codenames-Screenshot, animiert; jedes Spiel in eigenem Thread):
   `seiten/kritzeln.html` (im Repo, eine Datei ohne fremde Dateien/CDNs, kommt in den `seiten/`-Ordner neben der StatsWebsite.jar)
   + Server `web/DrawGame.kt` (`DrawRules` = reine Regeln, `DrawGame` = Räume nur im Speicher) und Wortlisten `web/DrawWords.kt`
-  (Wortpakete in zwei Gruppen: Deutsch – Alltag, Tiere, Essen, Among Us, Minecraft, Gaming, Chaos, Filme & Serien; English (14.11.2026, Kilian: „englische Minecraft Item Namen usw.“) – Minecraft Items, Minecraft Mobs & Blocks, Among Us, Video Games, Memes, Basics; Standard = deutsche Pakete außer Chaos/Filme, Lobby mit „alle/keine“ je Gruppe; Host kann eigene Wörter eintragen). API `POST /api/kritzel`
+  (Wortpakete in zwei Gruppen: Deutsch – Alltag, Tiere, Essen, Among Us, Minecraft, Gaming, Chaos, Filme & Serien; English (14.11.2026, Kilian: „englische Minecraft Item Namen usw.“) – Minecraft Items, Minecraft Mobs & Blocks, Among Us, Video Games, Memes, Basics; Standard = deutsche Pakete außer Chaos/Filme, Lobby mit „alle/keine“ je Gruppe; Host kann eigene Wörter eintragen). API `POST /api/kritzel` (GET = nur `{rooms, players}` für die Live-Leiste der Startseite)
   (Aktionen create/join/sync/say/start/pick/settings/kick/like/again/leave), kein WebSocket: der Browser fragt alle ~220 ms
   (Lobby 650 ms) per `sync` nach und schickt eigene Striche mit. Ohne Anmeldung, Raum-Code aus 4 Buchstaben, Token im
   localStorage (Neuladen = gleicher Platz), 2–12 Spieler. Server entscheidet alles: Wort geht nur an Zeichner/Erratene, wer das

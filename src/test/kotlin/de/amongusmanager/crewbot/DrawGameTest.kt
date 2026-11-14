@@ -326,7 +326,10 @@ class DrawGameTest {
             assertContains(res.body(), "\"code\"")
             assertEquals("no-store", res.headers().firstValue("Cache-Control").orElse(""))
             val get = client.send(HttpRequest.newBuilder(URI("$base${DrawGame.PATH}")).build(), HttpResponse.BodyHandlers.ofString())
-            assertEquals(405, get.statusCode())
+            assertEquals(200, get.statusCode())
+            assertEquals("""{"rooms":1,"players":1}""", get.body())
+            val code = Regex("\"code\":\"([A-Z]+)\"").find(res.body())!!.groupValues[1]
+            assertFalse(get.body().contains(code) || get.body().contains("Test"), "Status verrät keine Codes oder Namen")
         } finally {
             server.stop()
         }
