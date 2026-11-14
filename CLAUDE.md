@@ -451,7 +451,13 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   ballerbude, schiffe; Schach, CoreHold). `GET /api/pages?check=a.html,…` liefert die HTML-Dateien aus `seiten/` mit `<title>`/
   `<meta name="description">` (Kachel übernimmt sie), `exists` (welche der Namen es im Ordner oder im JAR unter `seiten/` gibt) +
   `corehold` (Bridge an); keine Datei = Kachel „Bald“,
-  unbekannte Dateien erscheinen als eigene Kachel „Neu“. Neue Spiele in `GAMES` anhängen. Link „Alle Spiele“ oben rechts in der
+  unbekannte Dateien erscheinen als eigene Kachel „Neu“. Neue Spiele in `GAMES` anhängen. **Live-Leiste mit Browserspielen** (14.11.2026, Kilian: „unter live sollen auch
+  laufende Browser games gezeigt werden“): Spiele mit `live` (Status-Adresse, GET/JSON) werden alle 10 s gefragt; `liveOf` liest
+  `players`/`online` (Arena) bzw. `rooms` (Zahl oder Liste, Raum-Spiele), > 0 → Karte „N spielen gerade“/„N Räume offen“ mit Link
+  zum Spiel (Raum-Codes nie öffentlich). Antwortet ein Spiel nicht mit JSON (z.B. nur POST), wird es pro Besuch nicht mehr gefragt.
+  Einflug: Seite bleibt unsichtbar, bis Lobbys/Übersicht/Seiten/Spiel-Status da sind (max. 1,5 s), dann fliegt alles in einer
+  GSAP-Zeitleiste herein; später Erscheinendes springt per `useAppear` einzeln herein. `st-entering` muss über React-State laufen
+  (sonst überschreibt `className` die Klasse und CSS-Transitions halten GSAP mitten im Flug an). Link „Alle Spiele“ oben rechts in der
   Stats-Website. Deploy: Proxy der Domain reicht **alle** Pfade unverändert an den Stats-Server, `WEB_TRUST_PROXY=true`,
   `WEB_PUBLIC_URL=https://spieleabend.timonso.de` (ohne /amongus → Discord-Redirect bleibt `/auth/callback`).
   Test: `StatsWebsiteTest` (Routen), `serverShowsOwnPagesFromFolder`.
