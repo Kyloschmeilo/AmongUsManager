@@ -319,6 +319,7 @@ class WebGuidesTest {
         assertContains(listed, "\"file\":\"schach.html\"")
         assertContains(listed, "\"title\":\"Neu\"")
         assertFalse("bild.svg" in listed)
+        assertContains(get("/api/pages?check=schach.html,gibtsnicht.html,.env,../x.html").body(), "\"exists\":[\"schach.html\"]")
 
         // ohne Ordner: 404 statt Fehler
         val plain = StatsServer(store, 0, "127.0.0.1")

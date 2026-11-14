@@ -1,11 +1,14 @@
-// Spiele der Startseite. Die Browserspiele sind eigene Dateien im Ordner seiten/ neben dem StatsWebsite.jar
-// (/seiten/<datei>); Titel und Beschreibung kommen, wenn vorhanden, aus der Seite selbst (/api/pages).
-// Fehlt eine Datei noch, zeigt die Kachel „Bald“. Neue Spiele hier anhängen.
+// Spiele der Startseite. Die Browserspiele sind eigene Seiten unter /seiten/<datei> (Ordner seiten/ neben dem StatsWebsite.jar
+// oder im JAR); Titel und Beschreibung kommen, wenn vorhanden, aus der Seite selbst (/api/pages).
+// Fehlt die Seite noch, zeigt die Kachel „Bald“. Neue Spiele hier anhängen.
 import type { ReactNode } from 'react';
 
 export interface Game {
-  /** Datei in seiten/ (oder null bei eigenen Adressen wie CoreHold). */
-  file: string | null;
+  /**
+   * Mögliche Dateien in seiten/ (oder im JAR), die erste vorhandene gewinnt – die Spiele-Threads geben ihren Seiten eigene
+   * Namen (z.B. ballerbude.html). Leer bei eigenen Adressen wie CoreHold, dann gilt [href].
+   */
+  files: string[];
   href: string;
   title: string;
   text: string;
@@ -23,7 +26,7 @@ const stroke = { stroke: '#120f24', strokeWidth: 3, strokeLinejoin: 'round' as c
 
 export const GAMES: Game[] = [
   {
-    file: 'schiffe.html', href: '/seiten/schiffe.html', title: 'Schiffe versenken', tag: 'Strategie',
+    files: ['schiffe.html', 'schiffeversenken.html', 'schiffe-versenken.html'], href: '/seiten/schiffe.html', title: 'Schiffe versenken', tag: 'Strategie',
     text: 'Mit sieben Kommandeuren und ihren Spezialangriffen.',
     color: '#2f7cf6', ink: '#ffffff', accent: '#ffd23f',
     icon: (
@@ -35,7 +38,7 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    file: 'skribbl.html', href: '/seiten/skribbl.html', title: 'Zeichnen & Raten', tag: 'Party',
+    files: ['kritzeln.html', 'skribbl.html'], href: '/seiten/kritzeln.html', title: 'Kritzelkiste', tag: 'Party',
     text: 'Einer malt, alle raten – je schneller, desto mehr Punkte.',
     color: '#ffc928', ink: '#120f24', accent: '#ff4f81',
     icon: (
@@ -47,7 +50,7 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    file: 'gartic.html', href: '/seiten/gartic.html', title: 'Stille Post', tag: 'Party',
+    files: ['kritzelpost.html', 'gartic.html'], href: '/seiten/kritzelpost.html', title: 'Kritzelpost', tag: 'Party',
     text: 'Satz, Bild, Satz, Bild – was kommt am Ende raus?',
     color: '#ff6fae', ink: '#120f24', accent: '#3ad0ff',
     icon: (
@@ -61,7 +64,7 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    file: 'codenames.html', href: '/seiten/codenames.html', title: 'Geheime Wörter', tag: 'Teams',
+    files: ['codenames.html', 'decknamen.html'], href: '/seiten/codenames.html', title: 'Geheime Wörter', tag: 'Teams',
     text: 'Zwei Teams, ein Hinweis, viele Wörter – rot gegen blau.',
     color: '#ef3b3b', ink: '#ffffff', accent: '#2f6cf6',
     icon: (
@@ -74,7 +77,7 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    file: 'agar.html', href: '/seiten/agar.html', title: 'Zellen-Arena', tag: 'Arena',
+    files: ['agar.html'], href: '/seiten/agar.html', title: 'Zellen-Arena', tag: 'Arena',
     text: 'Fressen, wachsen, teilen – und bloß nicht gefressen werden.',
     color: '#2fd27a', ink: '#120f24', accent: '#ff7a1a',
     icon: (
@@ -87,7 +90,7 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    file: 'slither.html', href: '/seiten/slither.html', title: 'Schlangen', tag: 'Arena',
+    files: ['nudelsalat.html', 'slither.html'], href: '/seiten/nudelsalat.html', title: 'Nudelsalat', tag: 'Arena',
     text: 'Leuchtpunkte sammeln, lang werden, die anderen ausbremsen.',
     color: '#8b5cff', ink: '#ffffff', accent: '#b8ff3a',
     icon: (
@@ -101,7 +104,7 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    file: 'diep.html', href: '/seiten/diep.html', title: 'Panzer-Arena', tag: 'Arena',
+    files: ['ballerbude.html', 'diep.html'], href: '/seiten/ballerbude.html', title: 'Ballerbude', tag: 'Arena',
     text: 'Formen abschießen, aufleveln, den eigenen Panzer ausbauen.',
     color: '#16b9e8', ink: '#120f24', accent: '#ff4f5e',
     icon: (
@@ -113,7 +116,7 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    file: 'schach.html', href: '/seiten/schach.html', title: 'Schach-Analyse', tag: 'Werkzeug',
+    files: ['schach.html'], href: '/seiten/schach.html', title: 'Schach-Analyse', tag: 'Werkzeug',
     text: 'Eigene chess.com-Partien mit Stockfish auswerten.',
     color: '#f4e3c1', ink: '#120f24', accent: '#6b4a2b',
     icon: (
@@ -124,7 +127,7 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    file: null, href: '/corehold/', title: 'CoreHold', tag: 'Minecraft', wide: true,
+    files: [], href: '/corehold/', title: 'CoreHold', tag: 'Minecraft', wide: true,
     text: 'Teams, PvP-Tierliste und alle Special Items mit Rezept.',
     color: '#5cb85c', ink: '#120f24', accent: '#8a5a2b',
     icon: (

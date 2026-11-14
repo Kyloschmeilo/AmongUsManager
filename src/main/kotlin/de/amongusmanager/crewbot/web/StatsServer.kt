@@ -283,8 +283,12 @@ class StatsServer(
         if (parts == listOf("pages")) {
             // Startseite: welche Spiele/Seiten im Ordner seiten/ liegen (fehlende zeigt sie als „Bald“)
             val html = pages?.htmlPages().orEmpty()
+            // ?check=a.html,b.html: welche dieser Seiten es gibt (Ordner seiten/ oder im JAR mitgeliefert unter seiten/)
+            val check = query["check"].orEmpty().split(',').map { it.trim() }.filter { Pages.offered(it) }.distinct().take(40)
+            val exists = check.filter { pages?.file(it) != null || javaClass.classLoader.getResource("seiten/$it") != null }
             val body = bytes(obj(
                 "pages" to html.map { obj("file" to it.file, "title" to it.title, "description" to it.description) },
+                "exists" to exists,
                 "corehold" to (coreHold != null),
             ))
             return respond(exchange, 200, TYPE_JSON, body, cache = "no-cache")

@@ -9,7 +9,7 @@ import { GAMES, type Game } from './games';
 const APP = '/amongus';
 
 interface PageInfo { file: string; title: string | null; description: string | null }
-interface PagesResponse { pages: PageInfo[]; corehold: boolean }
+interface PagesResponse { pages: PageInfo[]; exists?: string[]; corehold: boolean }
 
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(path, { headers: { Accept: 'application/json' }, cache: 'no-store', credentials: 'same-origin' });
@@ -30,6 +30,21 @@ function usePoll<T>(path: string, ms: number): { data: T | null; failed: boolean
   return state;
 }
 
+/** Startseiten-Infos zu seiten/ – inkl. Frage, welche der möglichen Spiel-Dateien es gibt (Ordner oder im JAR). */
+const PAGES_URL = `/api/pages?check=${encodeURIComponent(GAMES.flatMap((g) => g.files).join(','))}`;
+
+/** Je Spiel die erste vorhandene Datei: Kachel-Adresse → Dateiname; null solange noch gefragt wird. */
+function foundPages(data: PagesResponse | null): Map<string, string> | null {
+  if (!data) return null;
+  const exists = new Set(data.exists ?? []);
+  const map = new Map<string, string>();
+  for (const game of GAMES) {
+    const file = game.files.find((f) => exists.has(f));
+    if (file) map.set(game.href, file);
+  }
+  return map;
+}
+
 function ago(iso: string | null | undefined): string {
   if (!iso) return '';
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
@@ -47,7 +62,7 @@ const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matc
 export function Start() {
   const lobbies = usePoll<LobbiesResponse>('/api/lobbies', 5000);
   const overview = usePoll<Overview>('/api/overview', 60000);
-  const pages = usePoll<PagesResponse>('/api/pages', 0);
+  const pages = usePoll<PagesResponse>(PAGES_URL, 0);
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,8 +79,9 @@ export function Start() {
   }, []);
 
   const live = lobbies.data?.lobbies ?? [];
+  const found = useMemo(() => foundPages(pages.data), [pages.data]);
   const known = useMemo(() => new Map((pages.data?.pages ?? []).map((p) => [p.file, p])), [pages.data]);
-  const extra = (pages.data?.pages ?? []).filter((p) => !GAMES.some((g) => g.file === p.file));
+  const extra = (pages.data?.pages ?? []).filter((p) => !GAMES.some((g) => g.files.includes(p.file)));
 
   return (
     <div className="st" ref={root}>
@@ -83,13 +99,17 @@ export function Start() {
         <section className="st-grid" aria-label="Alle Spiele">
           <AmongUsTile overview={overview.data} live={live} />
           {GAMES.map((game) => {
-            const page = game.file ? known.get(game.file) : undefined;
-            const ready = game.file ? !!page : pages.data?.corehold !== false;
-            return <GameTile key={game.href} game={game} page={page} ready={pages.data ? ready : true} />;
+            if (!game.files.length) {
+              return <GameTile key={game.href} game={game} ready={pages.data?.corehold !== false} />;
+            }
+            const file = found?.get(game.href);
+            const page = file ? known.get(file) : undefined;
+            const href = file ? `/seiten/${file}` : game.href;
+            return <GameTile key={game.href} game={{ ...game, href }} page={page} ready={found ? !!file : true} />;
           })}
           {extra.map((p) => (
             <GameTile key={p.file} page={p} ready game={{
-              file: p.file, href: `/seiten/${encodeURIComponent(p.file)}`, title: p.file.replace(/\.html?$/, ''), text: '', tag: 'Neu',
+              files: [p.file], href: `/seiten/${encodeURIComponent(p.file)}`, title: p.file.replace(/\.html?$/, ''), text: '', tag: 'Neu',
               color: '#ffffff', ink: '#120f24', accent: '#ff4f81',
               icon: <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6l7 17 18 2-14 12 4 18-15-9-15 9 4-18L7 25l18-2z" fill="#ffd23f" stroke="#120f24" strokeWidth="3" strokeLinejoin="round" /></svg>,
             }} />

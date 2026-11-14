@@ -447,8 +447,10 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Adressen (`/amongus/api/…` = `/api/…`; CrewStats ruft `/api/mod|voice` direkt auf), Frontend ruft weiter `/api/…`. Alte App-Adressen
   ohne Punkt (`/spieler/x`, `/runden` …) → 302 nach `/amongus/…` (mit Query). Startseite: oben „Live“ (Among-Us-Lobbys aus `/api/lobbies`,
   sonst letzte Runde), dann Kacheln – **Among Us immer die größte Kachel vorne** (2×3), dann `GAMES` in `web/src/start/games.tsx`
-  (Browserspiele als `seiten/<spiel>.html` der Spiele-Threads, Schach, CoreHold). `GET /api/pages` liefert die HTML-Dateien aus
-  `seiten/` mit `<title>`/`<meta name="description">` (Kachel übernimmt sie) + `corehold` (Bridge an); fehlende Datei = Kachel „Bald“,
+  (Browserspiele der Spiele-Threads unter `/seiten/…`: je Spiel mögliche Dateinamen in `files`, z.B. kritzeln, kritzelpost, nudelsalat,
+  ballerbude, schiffe; Schach, CoreHold). `GET /api/pages?check=a.html,…` liefert die HTML-Dateien aus `seiten/` mit `<title>`/
+  `<meta name="description">` (Kachel übernimmt sie), `exists` (welche der Namen es im Ordner oder im JAR unter `seiten/` gibt) +
+  `corehold` (Bridge an); keine Datei = Kachel „Bald“,
   unbekannte Dateien erscheinen als eigene Kachel „Neu“. Neue Spiele in `GAMES` anhängen. Link „Alle Spiele“ oben rechts in der
   Stats-Website. Deploy: Proxy der Domain reicht **alle** Pfade unverändert an den Stats-Server, `WEB_TRUST_PROXY=true`,
   `WEB_PUBLIC_URL=https://spieleabend.timonso.de` (ohne /amongus → Discord-Redirect bleibt `/auth/callback`).
