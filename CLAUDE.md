@@ -464,6 +464,28 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Aufdecken blättert der Host für alle, Emoji-Reaktionen fliegen bei allen hoch, am Ende Galerie + „Buch als Bild“ (PNG). Host-Wechsel nach
   30 s Abwesenheit. Eigenes buntes Design (Sticker-Look, Verlauf, kein Standard-Design). Tests: `KritzelpostTest`; mit drei Chromium-Browsern
   durchgespielt.
+- **Startseite + /amongus** (14.11.2026, Kilian: „Mach die aktuelle Seite zu https://spieleabend.timonso.de/amongus und auf der
+  https://spieleabend.timonso.de sieht man oben eine Live auswahl und alle Games aber die weiterleitung zu Amongus soll immer noch im
+  Vordergrund stehen“; buntere Gestaltung erlaubt): Stats-Website liegt unter **`/amongus/`** (Vite `base`, Router-`basename`,
+  `StatsServer.APP_BASE`), `/` ist die **Spiele-Startseite** (zweiter Vite-Einstieg `web/start.html` + `web/src/start/`, eigenes buntes
+  Design mit Lilita One, dicken Konturen, harten Schatten, GSAP-Einflug). API, `/auth`, `/downloads`, `/seiten` gehen unter beiden
+  Adressen (`/amongus/api/…` = `/api/…`; CrewStats ruft `/api/mod|voice` direkt auf), Frontend ruft weiter `/api/…`. Alte App-Adressen
+  ohne Punkt (`/spieler/x`, `/runden` …) → 302 nach `/amongus/…` (mit Query). Startseite: oben „Live“ (Among-Us-Lobbys aus `/api/lobbies`,
+  sonst letzte Runde), dann Kacheln – **Among Us immer die größte Kachel vorne** (2×3), dann `GAMES` in `web/src/start/games.tsx`
+  (Browserspiele der Spiele-Threads unter `/seiten/…`: je Spiel mögliche Dateinamen in `files`, z.B. kritzeln, kritzelpost, nudelsalat,
+  ballerbude, schiffe; Schach, CoreHold). `GET /api/pages?check=a.html,…` liefert die HTML-Dateien aus `seiten/` mit `<title>`/
+  `<meta name="description">` (Kachel übernimmt sie), `exists` (welche der Namen es im Ordner oder im JAR unter `seiten/` gibt) +
+  `corehold` (Bridge an); keine Datei = Kachel „Bald“,
+  unbekannte Dateien erscheinen als eigene Kachel „Neu“. Neue Spiele in `GAMES` anhängen. **Live-Leiste mit Browserspielen** (14.11.2026, Kilian: „unter live sollen auch
+  laufende Browser games gezeigt werden“): Spiele mit `live` (Status-Adresse, GET/JSON) werden alle 10 s gefragt; `liveOf` liest
+  `players`/`online` (Arena) bzw. `rooms` (Zahl oder Liste, Raum-Spiele), > 0 → Karte „N spielen gerade“/„N Räume offen“ mit Link
+  zum Spiel (Raum-Codes nie öffentlich). Antwortet ein Spiel nicht mit JSON (z.B. nur POST), wird es pro Besuch nicht mehr gefragt.
+  Einflug: Seite bleibt unsichtbar, bis Lobbys/Übersicht/Seiten/Spiel-Status da sind (max. 1,5 s), dann fliegt alles in einer
+  GSAP-Zeitleiste herein; später Erscheinendes springt per `useAppear` einzeln herein. `st-entering` muss über React-State laufen
+  (sonst überschreibt `className` die Klasse und CSS-Transitions halten GSAP mitten im Flug an). Link „Alle Spiele“ oben rechts in der
+  Stats-Website. Deploy: Proxy der Domain reicht **alle** Pfade unverändert an den Stats-Server, `WEB_TRUST_PROXY=true`,
+  `WEB_PUBLIC_URL=https://spieleabend.timonso.de` (ohne /amongus → Discord-Redirect bleibt `/auth/callback`).
+  Test: `StatsWebsiteTest` (Routen), `serverShowsOwnPagesFromFolder`.
 - **CoreHold-Website im selben Server** (05.11.2026, Kilian: „ich kann keinen neuen [Pelican-Server] machen, wie geht es das wir es auf dem selben machen“):
   Eigenes Programm (nicht im Repo, Quelltext in /mnt/project-files/corehold-website/): Teams, PvP-Tierliste, Special Items mit
   Rezepten des Minecraft-Servers CoreHold unter `/corehold`, Admin-Login per Passwort (`ADMIN_PASSWORD`). Ein Java-Egg startet nur
