@@ -125,6 +125,11 @@ class DrawGameTest {
             assertTrue(category.words.size >= 50, "${category.id} hat nur ${category.words.size} Wörter")
             for (word in category.words) assertTrue(word.length in 2..30 && DrawRules.normalize(word).isNotEmpty(), word)
         }
+        val english = DrawWords.CATEGORIES.filter { it.group == "English" }.map { it.id }
+        assertTrue(english.containsAll(listOf("minecraft_en", "minecraft_mobs_en", "amongus_en", "games_en", "memes_en", "basics_en")), english.toString())
+        assertTrue(DrawWords.DEFAULT.none { it in english }, "Standard bleibt deutsch")
+        assertTrue("Totem of Undying" in DrawWords.pool(setOf("minecraft_en")))
+        assertTrue(DrawRules.matches("totem of undying", "Totem of Undying") && DrawRules.matches("jack o lantern", "Jack o'Lantern"))
     }
 
     @Test

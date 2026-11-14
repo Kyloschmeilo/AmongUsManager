@@ -165,6 +165,9 @@ main { position: relative; z-index: 1; min-height: 100%; }
 .chip.on { background: var(--blue); color: #fff; box-shadow: 0 3px 0 var(--blue-d); }
 .chip:not(:disabled):hover { transform: translateY(-2px) rotate(-2deg); }
 .chip small { opacity: .7; font-weight: 700; }
+.cat-groups { display: grid; gap: 10px; }
+.cat-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+.cat-all { border: 0; background: none; color: var(--blue-d); font-weight: 800; text-decoration: underline; cursor: pointer; padding: 0; font-size: 12px; }
 textarea.field { resize: vertical; min-height: 70px; font-size: 15px; }
 .lobby-chat { margin-top: 14px; }
 @media (max-width: 900px) { .lobby { grid-template-columns: 1fr; } .set-row { grid-template-columns: 1fr; } }
@@ -404,7 +407,7 @@ textarea.field { resize: vertical; min-height: 70px; font-size: 15px; }
           <div class="set-row"><span>Runden</span><div class="seg" id="setRounds"></div></div>
           <div class="set-row"><span>Zeit zum Malen</span><div class="seg" id="setSeconds"></div></div>
           <div class="set-row"><span>Tipps</span><div class="seg" id="setHints"></div></div>
-          <div class="set-row"><span>Wörter</span><div class="chips" id="setCats"></div></div>
+          <div class="set-row"><span>Wörter</span><div class="cat-groups" id="setCats"></div></div>
           <div class="set-row" id="customRow"><span>Eigene Wörter</span>
             <div>
               <textarea class="field" id="setCustom" placeholder="Insider, Namen, Memes … durch Komma getrennt"></textarea>
@@ -800,12 +803,27 @@ textarea.field { resize: vertical; min-height: 70px; font-size: 15px; }
     seg($("setSeconds"), [30, 45, 60, 80, 100, 120, 180], st.seconds, (v) => v + " s", "seconds");
     seg($("setHints"), [0, 1, 2, 3, 4], st.hints, (v) => v === 0 ? "keine" : v, "hints");
     const cats = s.categories || [];
-    const catsChanged = setHTML($("setCats"), cats.map((c) => `<button type="button" class="chip${st.cats.includes(c.id) ? " on" : ""}" ${host ? "" : "disabled"} data-cat="${c.id}">${esc(c.label)} <small>${c.count}</small></button>`).join(""));
-    if (host && catsChanged) $("setCats").querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => {
-      const set = new Set(state.settings.cats);
-      set.has(b.dataset.cat) ? set.delete(b.dataset.cat) : set.add(b.dataset.cat);
-      sendSettings({ cats: [...set] });
-    }));
+    const groups = [...new Set(cats.map((c) => c.group || "Deutsch"))];
+    const chip = (c) => `<button type="button" class="chip${st.cats.includes(c.id) ? " on" : ""}" ${host ? "" : "disabled"} data-cat="${c.id}">${esc(c.label)} <small>${c.count}</small></button>`;
+    const catsChanged = setHTML($("setCats"), groups.map((g) => {
+      const list = cats.filter((c) => (c.group || "Deutsch") === g);
+      const all = list.every((c) => st.cats.includes(c.id));
+      return `<div class="cat-group"><div class="cat-head"><b>${g === "English" ? "🇬🇧 English" : "🇩🇪 Deutsch"}</b>${host ? `<button type="button" class="cat-all" data-group="${esc(g)}">${all ? "keine" : "alle"}</button>` : ""}</div><div class="chips">${list.map(chip).join("")}</div></div>`;
+    }).join(""));
+    if (host && catsChanged) {
+      $("setCats").querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => {
+        const set = new Set(state.settings.cats);
+        set.has(b.dataset.cat) ? set.delete(b.dataset.cat) : set.add(b.dataset.cat);
+        sendSettings({ cats: [...set] });
+      }));
+      $("setCats").querySelectorAll(".cat-all").forEach((b) => b.addEventListener("click", () => {
+        const ids = (state.categories || []).filter((c) => (c.group || "Deutsch") === b.dataset.group).map((c) => c.id);
+        const set = new Set(state.settings.cats);
+        const all = ids.every((id) => set.has(id));
+        ids.forEach((id) => all ? set.delete(id) : set.add(id));
+        sendSettings({ cats: [...set] });
+      }));
+    }
     const ta = $("setCustom");
     $("customRow").querySelector("div").style.display = "";
     ta.disabled = !host; $("setCustomOnly").disabled = !host;

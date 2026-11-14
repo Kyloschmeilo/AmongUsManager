@@ -2,7 +2,8 @@
 package de.amongusmanager.crewbot.web
 
 object DrawWords {
-    class Category(val id: String, val label: String, val words: List<String>)
+    /** [group] ordnet die Pakete in der Lobby (Deutsch, English). */
+    class Category(val id: String, val label: String, val words: List<String>, val group: String = "Deutsch")
 
     private fun words(text: String): List<String> = text.split(',', '\n').map { it.trim() }.filter { it.isNotEmpty() }.distinct()
 
@@ -105,6 +106,132 @@ object DrawWords {
                 Elefant im Porzellanladen, Nadel im Heuhaufen, Sturm im Wasserglas, Eulen nach Athen tragen, Zwei linke Hände
                 """,
             ),
+        ),
+        Category(
+            "filme", "Filme & Serien",
+            words(
+                """
+                Titanic, Harry Potter, Herr der Ringe, Star Wars, Spider-Man, Batman, Superman, Hulk, Iron Man, Thor, Avengers,
+                Shrek, Findet Nemo, Toy Story, König der Löwen, Die Eiskönigin, Cars, Minions, Ice Age, Madagaskar, Kung Fu Panda,
+                Jurassic Park, King Kong, Godzilla, Der weiße Hai, E.T., Zurück in die Zukunft, Ghostbusters, Matrix, Terminator,
+                Fluch der Karibik, Indiana Jones, James Bond, Mission Impossible, Fast and Furious, Transformers, Pokémon, SpongeBob,
+                Die Simpsons, Peppa Wutz, Biene Maja, Pumuckl, Die Sendung mit der Maus, Sesamstraße, Stranger Things, Squid Game,
+                Game of Thrones, Breaking Bad, Wednesday, Barbie, Oppenheimer, Avatar, Ratatouille, Oben, Alles steht Kopf, Coco,
+                Vaiana, Rapunzel, Aladdin, Arielle, Schneewittchen, Dornröschen, Pinocchio, Bambi, Dschungelbuch, Tarzan, Mulan,
+                Die Unglaublichen, Monster AG, WALL-E, Paddington, Wallace und Gromit, Asterix, Lucky Luke, Tatort, Wer wird Millionär
+                """,
+            ),
+        ),
+        Category(
+            "minecraft_en", "Minecraft Items",
+            words(
+                """
+                Diamond Sword, Diamond Pickaxe, Netherite Axe, Iron Shovel, Golden Hoe, Wooden Sword, Stone Pickaxe, Bow, Crossbow,
+                Arrow, Trident, Shield, Fishing Rod, Flint and Steel, Shears, Bucket, Water Bucket, Lava Bucket, Milk Bucket, Compass,
+                Clock, Map, Spyglass, Lead, Name Tag, Saddle, Elytra, Totem of Undying, Ender Pearl, Eye of Ender, Blaze Rod,
+                Ghast Tear, Slimeball, Gunpowder, Redstone Dust, Glowstone Dust, Lapis Lazuli, Emerald, Diamond, Gold Ingot,
+                Iron Ingot, Copper Ingot, Netherite Ingot, Coal, Charcoal, Stick, String, Feather, Leather, Bone, Bone Meal, Book,
+                Enchanted Book, Book and Quill, Paper, Sugar Cane, Wheat, Bread, Cake, Cookie, Pumpkin Pie, Apple, Golden Apple,
+                Enchanted Golden Apple, Golden Carrot, Carrot, Potato, Baked Potato, Poisonous Potato, Melon Slice, Glistering Melon,
+                Beetroot Soup, Mushroom Stew, Rabbit Stew, Cooked Porkchop, Steak, Rotten Flesh, Spider Eye, Pufferfish,
+                Tropical Fish, Honey Bottle, Potion, Splash Potion, Glass Bottle, Experience Bottle, Firework Rocket, Snowball, Egg,
+                Turtle Helmet, Iron Chestplate, Diamond Boots, Leather Cap, Chainmail Leggings, Carved Pumpkin, Jack o'Lantern,
+                Torch, Lantern, Soul Lantern, Campfire, Bed, Chest, Ender Chest, Shulker Box, Barrel, Crafting Table, Furnace,
+                Blast Furnace, Smoker, Anvil, Enchanting Table, Brewing Stand, Cauldron, Composter, Beacon, Conduit, Jukebox,
+                Music Disc, Note Block, Hopper, Dropper, Dispenser, Observer, Piston, Sticky Piston, Lever, Button, Tripwire Hook,
+                Pressure Plate, Redstone Torch, Redstone Lamp, Repeater, Comparator, Daylight Detector, TNT, Rail, Powered Rail,
+                Minecart, Boat, Armor Stand, Item Frame, Painting, Flower Pot, Bell, Lightning Rod, Respawn Anchor, Lodestone,
+                Recovery Compass, Echo Shard, Heart of the Sea, Nautilus Shell, Nether Star, Dragon Egg, Dragon Head, Creeper Head,
+                Wither Skeleton Skull, Goat Horn, Bundle, Brush, Mace, Wind Charge, Trial Key, Heavy Core
+                """,
+            ),
+            group = "English",
+        ),
+        Category(
+            "minecraft_mobs_en", "Minecraft Mobs & Blocks",
+            words(
+                """
+                Creeper, Zombie, Skeleton, Spider, Cave Spider, Enderman, Ender Dragon, Wither, Witch, Slime, Magma Cube, Ghast,
+                Blaze, Piglin, Zombified Piglin, Hoglin, Strider, Phantom, Drowned, Husk, Stray, Pillager, Vindicator, Evoker,
+                Ravager, Vex, Guardian, Elder Guardian, Shulker, Silverfish, Endermite, Warden, Breeze, Iron Golem, Snow Golem,
+                Villager, Wandering Trader, Allay, Axolotl, Bee, Cat, Chicken, Cow, Mooshroom, Pig, Sheep, Horse, Donkey, Llama,
+                Wolf, Fox, Panda, Parrot, Rabbit, Turtle, Dolphin, Squid, Glow Squid, Frog, Tadpole, Goat, Camel, Sniffer,
+                Armadillo, Bat, Polar Bear, Ocelot, Grass Block, Dirt, Cobblestone, Oak Log, Oak Planks, Sand, Gravel, Glass,
+                Obsidian, Bedrock, Netherrack, Soul Sand, End Stone, Sponge, Ice, Snow Block, Cactus, Bamboo, Kelp, Cobweb,
+                Diamond Ore, Gold Ore, Iron Ore, Coal Ore, Mob Spawner, Nether Portal, End Portal, Ladder, Door, Trapdoor, Fence,
+                Lily Pad, Sunflower, Poppy, Dandelion, Sweet Berry Bush, Scaffolding, Honey Block, Slime Block, Glowstone,
+                Sea Lantern, Magma Block, Amethyst Cluster, Sculk Sensor, Mud, Moss Block, Dripstone, Pointed Dripstone, Hay Bale
+                """,
+            ),
+            group = "English",
+        ),
+        Category(
+            "amongus_en", "Among Us",
+            words(
+                """
+                Impostor, Crewmate, Emergency Meeting, Dead Body, Report, Vent, Sabotage, Reactor Meltdown, Oxygen Depleted,
+                Lights Out, Comms Sabotaged, Door Lock, Kill Cooldown, Ejected, Skip Vote, Voting Screen, Task Bar, Card Swipe,
+                Fix Wiring, Empty Garbage, Clear Asteroids, Download Data, Upload Data, Fuel Engines, Align Engine Output,
+                Calibrate Distributor, Chart Course, Clean O2 Filter, Divert Power, Inspect Sample, Prime Shields, Stabilize Steering,
+                Start Reactor, Submit Scan, Unlock Manifolds, Admin Table, Security Cameras, Vitals, Door Log, Cafeteria,
+                Medbay, Electrical, Navigation, Storage, Weapons, Shields, Lower Engine, Upper Engine, Ghost, Guardian Angel,
+                Shapeshifter, Scientist, Engineer, Tracker, Noisemaker, Phantom, Mini Crewmate, Pet, Hat, Visor, Skin, Lobby,
+                Game Code, Freeplay, Kill Animation, Sus, Self Report, Third Impostor, Double Kill, Victory, Defeat
+                """,
+            ),
+            group = "English",
+        ),
+        Category(
+            "games_en", "Video Games",
+            words(
+                """
+                Minecraft, Fortnite, Among Us, Roblox, Mario Kart, Super Mario, Zelda, Pokémon, Tetris, Pac-Man, Space Invaders,
+                Pong, Sonic, Donkey Kong, Kirby, Pikachu, Yoshi, Bowser, Luigi, Princess Peach, Link, Master Chief, Lara Croft,
+                Kratos, Steve, Creeper, Fall Guys, Rocket League, League of Legends, Counter-Strike, Valorant, Overwatch,
+                Call of Duty, GTA, Red Dead Redemption, The Sims, Animal Crossing, Stardew Valley, Terraria, Portal, Half-Life,
+                Doom, Pokéball, Angry Birds, Candy Crush, Flappy Bird, Subway Surfers, Clash of Clans, Clash Royale, Geometry Dash,
+                Five Nights at Freddy's, Undertale, Hollow Knight, Celeste, Cuphead, Dark Souls, Elden Ring, Skyrim, Fallout,
+                Pokémon Go, Wii Sports, Just Dance, Guitar Hero, Rayman, Crash Bandicoot, Spyro, Pinball, Game Boy, Joystick,
+                Controller, Headset, Gaming Chair, Respawn, Boss Fight, Speedrun, Lag, Rage Quit, Loot Box, Level Up, Game Over,
+                High Score, Save Point, Extra Life, Power-Up, Checkpoint, Easter Egg, Final Boss, Health Bar, Mana Potion
+                """,
+            ),
+            group = "English",
+        ),
+        Category(
+            "memes_en", "Memes & Internet",
+            words(
+                """
+                Rickroll, Doge, Grumpy Cat, Nyan Cat, Trollface, Pepe, Stonks, This is fine, Distracted Boyfriend, Shrek,
+                Big Chungus, Amogus, Sus, Skibidi Toilet, Gigachad, Sigma, Rizz, Ohio, Bonk, Cheems, Harambe, Surprised Pikachu,
+                Woman yelling at cat, Hide the Pain Harold, Success Kid, Bad Luck Brian, Ermahgerd, Keyboard Cat, Dramatic Chipmunk,
+                Grumpy Baby, Dancing Baby, Leeroy Jenkins, Planking, Ice Bucket Challenge, Harlem Shake, Gangnam Style, Floss Dance,
+                Dab, Fidget Spinner, Bottle Flip, Mannequin Challenge, Tide Pod, Area 51, Big Brain, Galaxy Brain, Facepalm, Thumbs Up,
+                OK Boomer, Karen, NPC, Main Character, Touch Grass, Clickbait, Influencer, Livestream, Unboxing, Selfie Stick,
+                Ring Light, Like Button, Subscribe, Notification Bell, Hashtag, Emoji, Thumbnail, Reaction Video, Mukbang, ASMR,
+                Podcast, Vlog, Meme Lord, Cat Video, Dog Filter, Duck Face, Photobomb, Lag Spike, Buffering, Error 404, Wi-Fi,
+                Loading Bar, Captcha, Cookie Banner, Spam, Troll, Noob, Pro Gamer, GG, AFK
+                """,
+            ),
+            group = "English",
+        ),
+        Category(
+            "basics_en", "English Basics",
+            words(
+                """
+                House, Tree, Car, Bike, Bus, Train, Plane, Ship, Rocket, Moon, Sun, Star, Cloud, Rain, Snow, Rainbow, Lightning,
+                Mountain, River, Island, Beach, Volcano, Desert, Forest, Bridge, Castle, Tower, Church, School, Hospital,
+                Library, Garden, Fountain, Lighthouse, Windmill, Tent, Ladder, Umbrella, Glasses, Hat, Shoe, Sock, Shirt, Dress,
+                Crown, Ring, Watch, Key, Lock, Door, Window, Chair, Table, Bed, Lamp, Clock, Mirror, Toothbrush, Pillow, Blanket,
+                Phone, Laptop, Camera, Television, Guitar, Piano, Drum, Trumpet, Microphone, Headphones, Book, Pencil, Scissors,
+                Glue, Paintbrush, Envelope, Balloon, Gift, Candle, Cake, Pizza, Burger, Hot Dog, Ice Cream, Donut, Popcorn,
+                Banana, Apple, Cherry, Strawberry, Pineapple, Watermelon, Carrot, Corn, Egg, Cheese, Sandwich, Coffee, Teapot,
+                Dog, Cat, Horse, Cow, Pig, Sheep, Chicken, Duck, Frog, Snake, Shark, Whale, Octopus, Crab, Turtle, Elephant,
+                Giraffe, Lion, Tiger, Monkey, Penguin, Owl, Bee, Butterfly, Spider, Snail, Dragon, Unicorn, Ghost, Robot, Alien,
+                Pirate, Wizard, Witch, Vampire, Mermaid, Superhero, Ninja, Knight, Princess, Snowman, Scarecrow, Skeleton
+                """,
+            ),
+            group = "English",
         ),
     )
 

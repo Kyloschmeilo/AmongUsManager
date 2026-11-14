@@ -574,7 +574,7 @@ class DrawGame(
             "customOnly" to s.customOnly, "custom" to if (me.id == room.host) s.custom.joinToString(", ") else null,
         )
         if (room.phase == Phase.LOBBY) {
-            out["categories"] = DrawWords.CATEGORIES.map { obj("id" to it.id, "label" to it.label, "count" to it.words.size) }
+            out["categories"] = DrawWords.CATEGORIES.map { obj("id" to it.id, "label" to it.label, "group" to it.group, "count" to it.words.size) }
         }
         val since = body.int("c") ?: 0
         out["chat"] = room.chat.filter { it.n > since && (it.to == 0 || it.to == me.id || (it.to == KNOWING && (knows || room.phase != Phase.DRAW))) }
