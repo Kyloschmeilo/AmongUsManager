@@ -430,6 +430,19 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   ausgeliefert, wenn die Dateien noch im Ordner liegen. CrewStats + TOR-Version: GitHub-API `releases/latest` alle 30 min
   im Hintergrund (ohne Token; Fehler → alte Infos, Links `…/releases/latest/download/<Datei>` gehen immer). CrewStats-Dateien
   lädt der Browser direkt von GitHub. `StatsWebsite.zip` enthält deshalb `downloads/` mit dem Installer.
+- **Geheimfunk – Wort-Ratespiel** (14.11.2026, Kilian: Codenames-artiges Teamspiel, „lass ein bisschen von dem Design-System los
+  und mach die Seiten etwas bunter … alles auch gerne animiert“; eigener Name/Look statt Codenames-Nachbau): Seite
+  **`/spiele/geheimfunk`** (Dateien `src/main/resources/web-spiele/`: `geheimfunk.html|css|js`, Schrift Fredoka (OFL) selbst
+  gehostet; nur im Website-JAR, nicht im React-Build). Server `web/WordGame.kt` (`WordRoom` = Regeln, `WordGame` = HTTP/SSE),
+  Wortpakete `web/WordGameWords.kt` (Klassisch, Zocken & Internet, Futter & Quatsch + eigene Wörter des Hosts). Ohne Anmeldung:
+  Raum-Code (4 Buchstaben) bzw. Link `…#CODE`, Platz hängt an einem geheimen token im localStorage (Neuladen = gleicher Platz).
+  Teams Flamingo (pink) / Lagune (türkis), je Funker (sieht Farben, max. 2) + Spürnasen; 25 Karten 9/8/7 Passanten/1 Bombe,
+  Hinweis 0 oder ∞ = beliebig viele Versuche, sonst n+1. Antippen (alle sehen es) → ✓ aufdecken. Wer in einer Runde Funker war,
+  darf bis zum Rundenende nicht raten. Reaktions-Emojis, Sprüche, Konfetti, Bomben-Wackeln. Farben gehen nur an Funker (und nach
+  dem Ende an alle). Alles im Speicher (≤ 60 Räume, ≤ 24 Spieler), Lobby-Leichen nach 2 min, im Spiel 20 min, Host-Wechsel nach
+  45 s weg, leere Räume nach 30 min. **SSE ohne Server-Thread**: der Handler setzt das Attribut `detached`, `StatsServer` schließt
+  den Exchange dann nicht, geschrieben wird aus 4 Threads des Spiels. Test: `WordGameTest` (Regeln + HTTP/SSE); mit 5 echten
+  Chromium-Browsern (Desktop + Handy) durchgespielt.
 - **CoreHold-Website im selben Server** (05.11.2026, Kilian: „ich kann keinen neuen [Pelican-Server] machen, wie geht es das wir es auf dem selben machen“):
   Eigenes Programm (nicht im Repo, Quelltext in /mnt/project-files/corehold-website/): Teams, PvP-Tierliste, Special Items mit
   Rezepten des Minecraft-Servers CoreHold unter `/corehold`, Admin-Login per Passwort (`ADMIN_PASSWORD`). Ein Java-Egg startet nur

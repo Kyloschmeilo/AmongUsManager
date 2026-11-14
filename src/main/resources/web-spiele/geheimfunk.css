@@ -252,7 +252,7 @@ body[data-phase="over"] .card:not(.revealed) { opacity: .8; }
   background: var(--yellow); color: var(--ink); font-weight: 700; font-size: 20px; box-shadow: 0 4px 0 rgba(0, 0, 0, .3);
   transform: scale(0); transition: transform .25s cubic-bezier(.2, 1.8, .4, 1); z-index: 3;
 }
-.card.can.tipped-me .go { transform: scale(1); animation: nudge 1.2s ease-in-out infinite; }
+.card.can.tipped-me .go { transform: scale(1); animation: ring 1.2s ease-out infinite; }
 .go:hover { background: #fff; }
 
 /* Hinweis-Leiste */
@@ -342,6 +342,7 @@ body.shake { animation: shake .6s; }
 @keyframes bob { 50% { transform: translateY(-4px) rotate(-8deg); } }
 @keyframes wiggle { 25% { transform: rotate(-2deg) scale(1.04); } 75% { transform: rotate(2deg) scale(1.04); } }
 @keyframes nudge { 50% { transform: scale(1.04); } }
+@keyframes ring { 0% { box-shadow: 0 4px 0 rgba(0, 0, 0, .3), 0 0 0 0 rgba(255, 210, 63, .8); } 100% { box-shadow: 0 4px 0 rgba(0, 0, 0, .3), 0 0 0 14px rgba(255, 210, 63, 0); } }
 @keyframes blink { 50% { opacity: .45; } }
 @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
 @keyframes float-up { 0% { transform: translate(0, 0) scale(.6); opacity: 0; } 15% { opacity: 1; transform: translate(0, -60px) scale(1.1); } 100% { transform: translate(var(--sway), -70vh) scale(1); opacity: 0; } }
