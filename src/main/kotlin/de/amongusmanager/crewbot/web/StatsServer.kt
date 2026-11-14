@@ -48,12 +48,14 @@ class StatsServer(
     private val noodles: NoodleGame? = null,
     /** Kritzelkiste: Zeichnen und Raten (/api/kritzel, Seite seiten/kritzeln.html), null = aus. */
     private val drawGame: DrawGame? = null,
+    /** MAMPF!-Spiel (/api/mampf, Seite seiten/mampf.html), null = aus. */
+    private val mampf: MampfGame? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
     /** Feste Grundlast + je Echtzeit-Spiel ein Thread pro offenem Stream (SSE hält den Thread). */
     private val executor: ExecutorService = Executors.newFixedThreadPool(
-        16 + VoiceChat.MAX_MEMBERS + 8 + Ballerbude.MAX_PLAYERS + NoodleGame.MAX_CLIENTS,
+        16 + VoiceChat.MAX_MEMBERS + 8 + Ballerbude.MAX_PLAYERS + NoodleGame.MAX_CLIENTS + MampfGame.MAX_PLAYERS,
     ) { task -> Thread(task, "web").apply { isDaemon = true } }
     private val static = StaticFiles("web")
 
@@ -91,6 +93,7 @@ class StatsServer(
             if (kritzelpost != null && kritzelpost.handles(path)) return kritzelpost(exchange, method, path, kritzelpost)
             if (path == NoodleGame.PATH || path.startsWith(NoodleGame.PATH + "/")) return noodles(exchange, method, path)
             if (path == DrawGame.PATH) return drawGame(exchange, method, path)
+            if (path == MampfGame.PATH || path.startsWith(MampfGame.PATH + "/")) return mampf(exchange, method, path)
             if (method != "GET" && method != "HEAD") {
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
@@ -261,6 +264,28 @@ class StatsServer(
             if (name.equals("Cache-Control", ignoreCase = true)) continue
             exchange.responseHeaders.add(name, value)
         }
+        respond(exchange, response.status, response.type, response.body, cache = "no-store")
+    }
+
+    // ---------- MAMPF! ----------
+
+    private fun mampf(exchange: HttpExchange, method: String, path: String) {
+        val game = mampf ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
+        if (path == MampfGame.STREAM_PATH && method == "GET") {
+            val session = game.session(parseQuery(exchange.requestURI.rawQuery)["t"])
+                ?: return respond(exchange, 410, TYPE_JSON, bytes(obj("error" to "Sitzung abgelaufen", "gone" to true)), cache = "no-store")
+            exchange.responseHeaders.add("Content-Type", "text/event-stream; charset=utf-8")
+            exchange.responseHeaders.add("Cache-Control", "no-store, no-transform")
+            exchange.responseHeaders.add("X-Accel-Buffering", "no")
+            exchange.responseHeaders.add("X-Content-Type-Options", "nosniff")
+            exchange.sendResponseHeaders(200, 0)
+            exchange.responseBody.use { out -> game.pump(session, out) }
+            return
+        }
+        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
+        val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
+        val response = game.handle(WebRequest(method, path, emptyMap(), headers, body), client)
         respond(exchange, response.status, response.type, response.body, cache = "no-store")
     }
 
