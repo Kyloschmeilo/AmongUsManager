@@ -95,7 +95,7 @@ data class LobbyEvent(
 /** Ein Spieler in der Lobby: Ingame-Name, Friendcode (nur intern, nie an den Browser), Spielfarbe (-1 = unbekannt). */
 data class LobbyPlayer(val name: String, val friendCode: String, val colorId: Int)
 
-const val MAX_LOBBY_PLAYERS = 20
+const val MAX_LOBBY_PLAYERS = 24 // The Other Roles: bis zu 24 Spieler
 
 typealias LobbyEmbedBuilder = (LobbyEvent, String) -> MessageEmbed
 

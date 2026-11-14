@@ -240,6 +240,12 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   nicht). ICE: `VOICE_ICE_SERVERS` (JSON wie `iceServers`, Standard STUN `stun.cloudflare.com`), ohne TURN klappt nicht jede
   Verbindung. Discord-Voice/Auto-Mute unverändert. Tests: `VoiceChatTest`; zwei echte Chromium-Browser gegeneinander geprüft
   (Verbinden, Nähe, Meeting, Seitenwechsel). Im echten Spiel ungetestet.
+- **Mehr als 15 Spieler** (13.11.2026, Kilian: „dass man mit mehr als 15 Leuten spielen kann“): kann **TheOtherRoles GMIA
+  selbst** – auf eigenen Servern (Modded NA) Lobby-Größe 4–24 beim Erstellen bzw. `/size N` im Lobby-Chat als Host (TOR
+  `DynamicLobbies.cs`, Server-Lobby immer 24), Meeting-Layout + 24 Zusatzfarben (ColorId 18–41, `CustomColors.cs`) inklusive.
+  Offizielle Server: hart 15. CrewStats 1.11.0 + Bot heben ihre Grenzen auf 24 (`MAX_INFO_PLAYERS`, `MAX_LOBBY_PLAYERS`,
+  `VoiceReport.MAX_PLAYERS`, Mod `PlayerInfoRules.MaxPlayers`), Website/Crewmate-Bilder kennen die TOR-Farben (`colors.ts`,
+  `Cosmetics.BODY/SHADOW`, Reihenfolge wie GMIA 1.4.1); Profilfarbe bleibt bei den 18 Spielfarben. Mit > 15 im echten Spiel ungetestet.
 - **Spieler-Anfragen über die Website** (03.11.2026, Kilian: „mehr die Website nutzen als Webhooks, außer wenn es per
   Webhook schneller ist“; CrewStats 1.8.0): Auto-Join, Stats und Verknüpfungs-Code (Frage/Antwort) gehen an
   `POST <WEB_PUBLIC_URL>/api/mod/<Schlüssel>` der Stats-Website (`web/ModApi.kt`, gemeinsam `services/ModApi.kt`) – eine

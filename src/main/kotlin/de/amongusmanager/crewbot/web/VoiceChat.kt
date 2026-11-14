@@ -113,7 +113,7 @@ data class VoiceReport(val host: String, val code: String, val phase: VoiceRules
     companion object {
         const val KIND = "voice"
         const val REPLY = "voice-reply"
-        const val MAX_PLAYERS = 20
+        const val MAX_PLAYERS = 24 // The Other Roles: bis zu 24 Spieler
 
         fun isReport(text: String): Boolean = text.contains("\"crewstats\"") && text.contains("\"$KIND\"") &&
             (runCatching { ((parseJson(text) as? JsonObject)?.get("crewstats") as? JsonPrimitive)?.contentOrNull }.getOrNull() == KIND)

@@ -302,7 +302,11 @@ open class StatsWebsiteTest {
         assertEquals(Cosmetics.FRAME_HEIGHT, image.height)
         assertNull(Cosmetics.render(0, CrewLook("hat_gibtsnicht", null, null, null)))
         assertNull(Cosmetics.render(0, CrewLook(null, null, null, "hat_paperhat"))) // falsche Art
-        assertNull(Cosmetics.render(18, CrewLook(null, null, null, null)))
+        assertNull(Cosmetics.render(42, CrewLook(null, null, null, null)))
+        // Zusatzfarben von The Other Roles (18–41, ab 19 Spielern): Körper in der TOR-Farbe
+        val plain = CrewLook(null, null, null, null)
+        assertFalse(assertNotNull(Cosmetics.render(27, plain)).contentEquals(assertNotNull(Cosmetics.render(0, plain))))
+        assertNotNull(Cosmetics.render(41, plain))
         assertNotNull(Cosmetics.render(17, CrewLook("hat_NoHat", "visor_EmptyVisor", "skin_None", "pet_EmptyPet")))
         assertEquals("Cheese", Cosmetics.displayName("hat_pk05_Cheese"))
         assertEquals("Security1", Cosmetics.displayName("visor_pk01_Security1Visor").replace(" ", ""))
