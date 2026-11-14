@@ -332,6 +332,7 @@ class WordGame(
         private val state = AtomicReference<String?>(null)
         private val extra = ConcurrentLinkedQueue<String>()
         private val busy = AtomicBoolean(false)
+        private val closing = AtomicBoolean(false)
         val closed = AtomicBoolean(false)
 
         fun pushState(text: String) {
@@ -341,6 +342,13 @@ class WordGame(
 
         fun push(text: String) {
             if (extra.size < 40) extra += text
+            wake()
+        }
+
+        /** Letzte Nachricht schicken, danach schließen. */
+        fun closeAfter(text: String) {
+            push(text)
+            closing.set(true)
             wake()
         }
 
@@ -362,12 +370,13 @@ class WordGame(
                     out.write(next.toByteArray(Charsets.UTF_8))
                     out.flush()
                 }
+                if (closing.get()) close()
             } catch (e: Exception) {
                 close()
             } finally {
                 busy.set(false)
             }
-            if (!closed.get() && (state.get() != null || extra.isNotEmpty())) wake()
+            if (!closed.get() && (closing.get() || state.get() != null || extra.isNotEmpty())) wake()
         }
 
         fun close() {
@@ -513,10 +522,7 @@ class WordGame(
             }
         }
         if (problem != null) return json(409, obj("error" to problem))
-        for (client in kicked) {
-            client.push(event("bye", obj("reason" to "removed")))
-            client.close()
-        }
+        for (client in kicked) client.closeAfter(event("bye", obj("reason" to "removed")))
         val fx = effect
         if (fx != null) clientsOf(room).forEach { it.push(fx) } else broadcast(room)
         return json(200, obj("ok" to true))
@@ -543,14 +549,12 @@ class WordGame(
                 val tooMany = if (player.clients.size >= STREAMS_PER_PLAYER) player.clients.removeAt(0) else null
                 player.clients += client
                 player.offlineSince = null
-                if (room.hostId.isEmpty() || room.players[room.hostId]?.online != true) room.pickHost()
+                // Host-Wechsel nur über tick() (Host länger weg) – ein kurzes Neuladen kostet den Host nicht
+                if (room.players[room.hostId] == null) room.pickHost()
                 listOfNotNull(tooMany)
             }
         }
-        if (old == null) {
-            client.push(event("bye", obj("reason" to "removed")))
-            return client.close()
-        }
+        if (old == null) return client.closeAfter(event("bye", obj("reason" to "removed")))
         synchronized(rooms) { streams++ }
         old.forEach { it.close() }
         client.push(": " + " ".repeat(2048) + "\n\n") // Polster für Proxys, die erst ab ein paar KB weiterreichen
