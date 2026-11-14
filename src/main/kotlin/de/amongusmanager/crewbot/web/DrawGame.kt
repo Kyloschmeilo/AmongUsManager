@@ -181,12 +181,13 @@ class DrawGame(
             else -> {
                 val room = rooms[body.str("room")?.uppercase() ?: ""]
                     ?: return json(200, obj("ok" to false, "gone" to true, "error" to "Den Raum gibt es nicht mehr."))
-                tick(room, now)
                 val token = body.str("token") ?: ""
                 val player = room.players.values.firstOrNull { it.token == token && token.isNotEmpty() }
                     ?: return json(200, obj("ok" to false, "gone" to true, "error" to "Du bist nicht mehr in diesem Raum."))
                 player.lastSeen = now
                 room.active = now
+                tick(room, now)
+                if (room.players[player.id] == null) return json(200, obj("ok" to false, "gone" to true, "error" to "Du bist nicht mehr in diesem Raum."))
                 var error: String? = null
                 when (action) {
                     "sync" -> {
