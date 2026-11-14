@@ -505,6 +505,20 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   (Warteschlange > 200) oder 5 min im Menü steht, fliegt raus. Ewige Bestenliste (Top 10 je Name) in `data/nudelsalat-bestenliste.json`.
   Seite: Canvas, 12 Skins, Wackelaugen, Kill-Cam, Kill-Feed, Minimap, Handy mit BOOST-Knopf. Eigener bunter Stil (nicht das
   Standard-Design). Tests: `NoodleGameTest`; mit zwei Chromium-Fenstern + Handy-Ansicht gegen den echten Server geprüft.
+- **Kritzelkiste – Zeichnen & Raten** (14.11.2026, Kilian: Skribbl.io-artiges Spiel, „Lass ein bisschen von dem Design system los
+  und mach die ganzen Seiten etwas bunter“, Vorbild Codenames-Screenshot, animiert; jedes Spiel in eigenem Thread):
+  `seiten/kritzeln.html` (im Repo, eine Datei ohne fremde Dateien/CDNs, kommt in den `seiten/`-Ordner neben der StatsWebsite.jar)
+  + Server `web/DrawGame.kt` (`DrawRules` = reine Regeln, `DrawGame` = Räume nur im Speicher) und Wortlisten `web/DrawWords.kt`
+  (Wortpakete in zwei Gruppen: Deutsch – Alltag, Tiere, Essen, Among Us, Minecraft, Gaming, Chaos, Filme & Serien; English (14.11.2026, Kilian: „englische Minecraft Item Namen usw.“) – Minecraft Items, Minecraft Mobs & Blocks, Among Us, Video Games, Memes, Basics; Standard = deutsche Pakete außer Chaos/Filme, Lobby mit „alle/keine“ je Gruppe; Host kann eigene Wörter eintragen). API `POST /api/kritzel` (GET = nur `{rooms, players}` für die Live-Leiste der Startseite)
+  (Aktionen create/join/sync/say/start/pick/settings/kick/like/again/leave), kein WebSocket: der Browser fragt alle ~220 ms
+  (Lobby 650 ms) per `sync` nach und schickt eigene Striche mit. Ohne Anmeldung, Raum-Code aus 4 Buchstaben, Token im
+  localStorage (Neuladen = gleicher Platz), 2–12 Spieler. Server entscheidet alles: Wort geht nur an Zeichner/Erratene, wer das
+  Wort kennt, schreibt nur für Eingeweihte, „knapp daneben“ sieht nur der Ratende, Punkte 100–500 nach Restzeit (+50 Erster),
+  Zeichner = Durchschnitt aller Ratenden, Tipps (Buchstaben) über die Zeit, ab 8 s ohne Abfrage „offline“, Zeichner nach 15 s weg
+  → Zug vorbei, nach 20 s (Lobby) bzw. 60 s (Spiel) raus, leere Räume nach 10 min weg; 20 Räume/min je IP, max. 200 Räume,
+  Striche begrenzt. Eigenes buntes Design (Codenames-Farben, Pfirsich-Karten mit braunem Schild, Blob-Avatare aus Farbe/Augen/Mund),
+  Sounds per WebAudio (abschaltbar), Konfetti, `prefers-reduced-motion` beachtet. Tests: `DrawGameTest`; mit drei Chromium-Browsern
+  (Desktop + Handy) eine ganze Partie gespielt.
 - **CoreHold-Website im selben Server** (05.11.2026, Kilian: „ich kann keinen neuen [Pelican-Server] machen, wie geht es das wir es auf dem selben machen“):
   Eigenes Programm (nicht im Repo, Quelltext in /mnt/project-files/corehold-website/): Teams, PvP-Tierliste, Special Items mit
   Rezepten des Minecraft-Servers CoreHold unter `/corehold`, Admin-Login per Passwort (`ADMIN_PASSWORD`). Ein Java-Egg startet nur

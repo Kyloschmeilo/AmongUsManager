@@ -130,6 +130,7 @@ fun main() {
             arena = Ballerbude(),
             kritzelpost = Kritzelpost(),
             noodles = noodles,
+            drawGame = DrawGame(),
         )
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)
