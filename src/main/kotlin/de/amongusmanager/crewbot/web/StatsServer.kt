@@ -40,10 +40,12 @@ class StatsServer(
     private val voice: VoiceChat? = null,
     /** Eigene Seiten aus dem Ordner seiten/ (/seiten/<datei>, z.B. schach.html), null = ohne. */
     private val pages: Pages? = null,
+    /** Mitspiel-Arena „Nudelsalat“ (/api/nudelsalat, Seite seiten/slither.html), null = aus. */
+    private val noodles: NoodleGame? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
-    private val executor: ExecutorService = Executors.newFixedThreadPool(16 + VoiceChat.MAX_MEMBERS + 8) { task -> Thread(task, "web").apply { isDaemon = true } }
+    private val executor: ExecutorService = Executors.newFixedThreadPool(16 + VoiceChat.MAX_MEMBERS + 8 + NoodleGame.MAX_CLIENTS) { task -> Thread(task, "web").apply { isDaemon = true } }
     private val static = StaticFiles("web")
 
     init {
@@ -71,6 +73,7 @@ class StatsServer(
             if (path == LiveLobbies.PATH || path.startsWith(LiveLobbies.PATH + "/")) return lobbies(exchange, method, path)
             if (path == VoiceChat.PATH || path.startsWith(VoiceChat.PATH + "/")) return voice(exchange, method, path)
             if (path == CrackVoting.PATH || path.startsWith(CrackVoting.PATH + "/")) return crack(exchange, method, path)
+            if (path == NoodleGame.PATH || path.startsWith(NoodleGame.PATH + "/")) return noodles(exchange, method, path)
             if (method != "GET" && method != "HEAD") {
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
@@ -188,6 +191,31 @@ class StatsServer(
             return
         }
         val response = handler.handle(request)
+        for ((name, value) in response.headers) {
+            if (name.equals("Cache-Control", ignoreCase = true)) continue
+            exchange.responseHeaders.add(name, value)
+        }
+        respond(exchange, response.status, response.type, response.body, cache = "no-store")
+    }
+
+    // ---------- Nudelsalat (Mitspiel-Arena) ----------
+
+    private fun noodles(exchange: HttpExchange, method: String, path: String) {
+        val game = noodles ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
+        val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
+        if (path == NoodleGame.STREAM_PATH && method == "GET") {
+            val viewer = game.connect(client)
+                ?: return respond(exchange, 503, TYPE_JSON, error("Die Arena ist gerade voll – versuch es gleich nochmal."), cache = "no-store")
+            exchange.responseHeaders.add("Content-Type", "text/event-stream; charset=utf-8")
+            exchange.responseHeaders.add("Cache-Control", "no-store, no-transform")
+            exchange.responseHeaders.add("X-Accel-Buffering", "no") // nginx & Co.: nicht puffern
+            exchange.responseHeaders.add("X-Content-Type-Options", "nosniff")
+            exchange.sendResponseHeaders(200, 0)
+            exchange.responseBody.use { out -> game.pump(viewer, out) }
+            return
+        }
+        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val response = game.handle(WebRequest(method, path, emptyMap(), emptyMap(), body), client)
         for ((name, value) in response.headers) {
             if (name.equals("Cache-Control", ignoreCase = true)) continue
             exchange.responseHeaders.add(name, value)

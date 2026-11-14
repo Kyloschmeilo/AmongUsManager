@@ -86,6 +86,9 @@ fun main() {
     val pages = Pages(pagesDir)
     log.info("📄 Eigene Seiten: {} ({})", pagesDir, pages.files().joinToString().ifEmpty { "keine" })
 
+    // Mitspiel-Arena „Nudelsalat“ (seiten/slither.html): läuft im Speicher, nur die ewige Bestenliste liegt in data/
+    val noodles = NoodleGame(BotPaths.dataDir.resolve("nudelsalat-bestenliste.json"))
+
     val auth = WebAuth(accounts, store, discord, authConfig, sync)
     // Bot steuern (Events, Admin-Panel): eigene, beschreibbare Verbindung nur für die Auftrags-Tabelle des Bots
     val controlDb = if (db != null) openControlDatabase() else null
@@ -124,6 +127,7 @@ fun main() {
             crack = CrackVoting(crackVotes, auth, store),
             voice = voice,
             pages = pages,
+            noodles = noodles,
         )
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)
@@ -131,6 +135,7 @@ fun main() {
     }
     server.start()
     voice?.start()
+    noodles.start()
     if (coreHold != null) {
         coreHold.start()
         log.info("🧱 CoreHold-Website: {} wird mitgestartet, erreichbar unter /corehold", Env.get("COREHOLD_JAR").trim().ifEmpty { CoreHoldBridge.DEFAULT_JAR })
