@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Geheimfunk</title>
+<meta name="description" content="Geheimfunk: Wort-Ratespiel für zwei Teams. Ein Hinweis, viele Wörter, eine Bombe.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%A1%3C/text%3E%3C/svg%3E">
+<link rel="preload" href="/spiele/fredoka.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/spiele/geheimfunk.css">
+</head>
+<body>
+<div class="sky" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
+<!-- Start: Name, Figur, Raum -->
+<main id="start" class="start" hidden>
+  <h1 class="logo big"><span>GEHEIM</span><span>FUNK</span></h1>
+  <p class="tagline">Ein Hinweis. Viele Wörter. Eine Bombe. Was soll schon schiefgehen?</p>
+  <form id="start-form" class="sheet" autocomplete="off">
+    <label class="field">
+      <span>Dein Name</span>
+      <input id="name" maxlength="16" placeholder="z.B. Kylo" required>
+    </label>
+    <div class="field">
+      <span>Deine Figur</span>
+      <div id="avatars" class="avatars" role="radiogroup" aria-label="Figur"></div>
+    </div>
+    <div class="start-actions">
+      <button type="submit" id="create" class="btn btn-yellow">Raum aufmachen</button>
+      <div class="or">oder</div>
+      <div class="join-row">
+        <input id="code" maxlength="4" placeholder="CODE" aria-label="Raum-Code" spellcheck="false">
+        <button type="button" id="join" class="btn btn-white">Beitreten</button>
+      </div>
+    </div>
+    <p id="start-error" class="error" role="alert"></p>
+  </form>
+  <ol class="howto">
+    <li><b>Zwei Teams</b>, je ein Funker und beliebig viele Spürnasen.</li>
+    <li>Der <b>Funker</b> sieht, welche Wörter seinem Team gehören, und funkt <b>ein Wort + eine Zahl</b>.</li>
+    <li>Die <b>Spürnasen</b> raten. Fremde Farbe oder Passant: Zug vorbei. <b>Bombe</b>: sofort verloren.</li>
+  </ol>
+</main>
+
+<!-- Spiel -->
+<div id="game" class="game" hidden>
+  <header class="top">
+    <h1 class="logo"><span>GEHEIM</span><span>FUNK</span></h1>
+    <button id="share" class="chip" title="Einladungs-Link kopieren">Raum <b id="room-code">····</b> <span class="chip-ico">⧉</span></button>
+    <div id="reactions" class="reactions" aria-label="Reaktionen"></div>
+    <div class="top-right">
+      <button id="abort" class="link" hidden>Runde abbrechen</button>
+      <button id="leave" class="link">Verlassen</button>
+    </div>
+  </header>
+
+  <div class="table">
+    <aside id="team-a" class="team team-a"></aside>
+
+    <section class="middle">
+      <div id="status" class="status" aria-live="polite"></div>
+      <div id="lobby" class="lobby sheet" hidden></div>
+      <div id="board" class="board" hidden></div>
+      <div id="cluebar" class="cluebar" hidden></div>
+    </section>
+
+    <aside class="side">
+      <div id="team-b" class="team team-b"></div>
+      <div id="watchers" class="watchers"></div>
+      <div class="logbox">
+        <h2>Funkprotokoll</h2>
+        <ol id="log" class="log"></ol>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<div id="fx" class="fx" aria-hidden="true"></div>
+<script src="/spiele/geheimfunk.js"></script>
+</body>
+</html>
