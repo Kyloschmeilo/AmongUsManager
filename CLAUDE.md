@@ -430,6 +430,24 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   ausgeliefert, wenn die Dateien noch im Ordner liegen. CrewStats + TOR-Version: GitHub-API `releases/latest` alle 30 min
   im Hintergrund (ohne Token; Fehler → alte Infos, Links `…/releases/latest/download/<Datei>` gehen immer). CrewStats-Dateien
   lädt der Browser direkt von GitHub. `StatsWebsite.zip` enthält deshalb `downloads/` mit dem Installer.
+- **Eigene Seiten / Schach-Analyse** (12.11.2026, Kilian: Schach-Analyse als eine HTML-Datei, „die ich in den aktuellen Website-Server
+  reinlegen kann“): Ordner `seiten/` neben der StatsWebsite.jar (`WEB_PAGES_DIR`, `web/Pages.kt`) → `/seiten/<datei>`, wird angezeigt
+  statt heruntergeladen, nur Dateien direkt im Ordner mit bekannter Endung, ohne Neustart. HTML dort bekommt eine eigene, lockerere
+  CSP (`Pages.CSP`: CDN-Skripte, Inline-Skripte, fremde https-APIs, Blob-Worker, WebAssembly) – die Stats-Seite selbst bleibt streng.
+  Läuft unter derselben Adresse wie die Website (gleiche Anmeldung) → nur eigene Dateien. `schach.html` liegt **nicht im Repo**,
+  sondern in /mnt/project-files/schach-analyse/ (und im `StatsWebsite.zip` unter `seiten/`): chess.com-API, Stockfish 18 lite als
+  Blob-Worker (jsDelivr, Ersatz unpkg, alles mit SRI-Prüfsumme), chess.js 0.10.3, Figuren aus chessground-CSS, Standard-Design.
+  Erste Version ohne Statistik-Seite/Training. Mit echter Engine, aber nachgestellter chess.com-API getestet (Cloud erreicht
+  chess.com und die CDNs nicht). Test: `serverShowsOwnPagesFromFolder` in `WebGuidesTest`.
+- **Schiffe versenken** (14.11.2026, Kilian: Browserspiele auf der Website, jedes Spiel eine eigene Seite, „bunter“ im Stil von
+  Codenames, „alles gerne animiert“): `seiten/schiffe.html` **im Repo** (Ordner `seiten/` im Wurzelordner = Standard von
+  `WEB_PAGES_DIR` beim lokalen Start; aufs Panel in `seiten/` neben die JAR legen), eine Datei ohne Abhängigkeiten (Schrift Barlow
+  Condensed eingebettet, Porträts als SVG im Skript, Töne per Web Audio). 10×10, Schiffe 5/4/3/3/2, gegen den Computer. Sieben
+  Kommandeure (`COMMANDERS`: Euryleia Pfeilhagel 1+6 in der Nähe, Potier Surgical Strike, Wade Breitseite Kreuz aus 5, Astrid 6
+  zufällig, Ferrara 3×3, Schmidt Torpedo bis zum ersten Schiff, Karslake ganze Reihe/Spalte); die Fähigkeit lädt mit jedem normalen
+  Schuss (`cd`). Computer: Wahrscheinlichkeitskarte (`density`/`aiMove`), drei Stärken (ungenauer + Fähigkeit lädt 4/2/0 Schüsse
+  langsamer, `SKILL_SLOW`). Regeln ohne DOM unter `window.SV` (damit per Playwright simulierbar). Eigenes buntes Design, nicht das
+  Standard-Design. Kein Mehrspieler. Die Spiele-Startseite (Kacheln) baut ein anderer Thread; „Alle Spiele“ zeigt auf `/`.
 - **CoreHold-Website im selben Server** (05.11.2026, Kilian: „ich kann keinen neuen [Pelican-Server] machen, wie geht es das wir es auf dem selben machen“):
   Eigenes Programm (nicht im Repo, Quelltext in /mnt/project-files/corehold-website/): Teams, PvP-Tierliste, Special Items mit
   Rezepten des Minecraft-Servers CoreHold unter `/corehold`, Admin-Login per Passwort (`ADMIN_PASSWORD`). Ein Java-Egg startet nur
