@@ -19,6 +19,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* ---------- HUD ---------- */
 .hud { position: fixed; pointer-events: none; z-index: 5; }
+.hud[hidden] { display: none !important; }
 .hud > * { pointer-events: auto; }
 .box { background: color-mix(in srgb, var(--panel) 88%, transparent); border: 3px solid var(--line); border-radius: 16px; box-shadow: 0 6px 0 rgba(0,0,0,.35); }
 #top-left { top: 12px; left: 12px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
@@ -373,13 +374,14 @@ function showMe() {
   if (key !== shownChoices) {
     shownChoices = key;
     $('classes').hidden = !me.ch.length;
+    if (!me.ch.length) $('classes').replaceChildren();
     if (me.ch.length) {
       $('classes').innerHTML = '<h3>Neue Klasse wählen!</h3><div class="row">' + me.ch.map((id) => `<button data-cls="${id}"><canvas width="192" height="192"></canvas><b>${esc(conn.classes[id].name)}</b><small>${esc(conn.classes[id].desc)}</small></button>`).join('') + '</div>';
       for (const button of $('classes').querySelectorAll('button')) {
         const id = +button.dataset.cls, c = button.querySelector('canvas').getContext('2d');
         c.translate(96, 104); c.scale(1.5, 1.5);
         drawTank(c, { r: 22, cls: id, hue: tanks.get(me.id)?.hue ?? 0, hp: 100, kick: 0 }, -Math.PI / 2, 1000);
-        button.onclick = () => { commands.push({ c: id }); sfx.level(); toast(conn.classes[id].name + '!', conn.classes[id].desc); };
+        button.onclick = () => { commands.push({ c: id }); $('classes').hidden = true; $('classes').replaceChildren(); sfx.level(); toast(conn.classes[id].name + '!', conn.classes[id].desc); };
       }
     }
   }
