@@ -111,6 +111,12 @@ class NoodleGame(
         var wander = 0.0
         var boostUntil = 0L
         var skill = 1.0
+        var ateAt = 0L // Tick, in dem der Bot zuletzt etwas gefressen hat (oder einen Krümel aufgab)
+        val skip = HashMap<Int, Long>() // aufgegebene Krümel → bis Tick
+        val headings = DoubleArray(SPIN_SECONDS + 1) { Double.NaN } // Blickrichtung (nicht umgebrochen) je Sekunde
+        var spinSecond = -1L
+        var escapeUntil = 0L
+        var escapeAngle = 0.0
 
         val radius: Double get() = radiusOf(length)
     }
@@ -334,6 +340,7 @@ class NoodleGame(
             foods.remove(food.id)
             foodGone += intArrayOf(food.id, snake.id)
             snake.length = min(MAX_LENGTH, snake.length + food.value)
+            snake.ateAt = tickNo
         }
         if (snake.length > snake.best) snake.best = snake.length
     }
@@ -417,6 +424,7 @@ class NoodleGame(
         snake.target = snake.angle
         snake.wander = snake.angle
         snake.skill = 0.55 + random.nextDouble() * 0.45
+        snake.ateAt = tickNo
         snake.body.add(snake.x, snake.y)
         snakes[snake.id] = snake
         born += snake
@@ -507,19 +515,59 @@ class NoodleGame(
         }
         var desired: Double
         var tasty = false
+        // Kreis-Bremse: dreht sich der Bot in wenigen Sekunden mehr als anderthalbmal im Kreis, fährt er eine
+        // Weile geradeaus und lässt alle Krümel in der Gegend links liegen (sonst kreist er ewig um einen Krümel)
+        if (tickNo / TICKS != bot.spinSecond) {
+            bot.spinSecond = tickNo / TICKS
+            val slot = (bot.spinSecond % bot.headings.size).toInt()
+            val old = bot.headings[(slot + 1) % bot.headings.size]
+            bot.headings[slot] = bot.angle
+            if (!old.isNaN() && abs(bot.angle - old) > SPIN_LIMIT && tickNo >= bot.escapeUntil) {
+                for (food in foods.values) {
+                    if (hypot(food.x - bot.x, food.y - bot.y) < 320) bot.skip[food.id] = tickNo + 15 * TICKS
+                }
+                bot.escapeAngle = bot.angle
+                bot.escapeUntil = tickNo + 2 * TICKS
+                bot.headings.fill(Double.NaN)
+            }
+        }
         if (hypot(bot.x, bot.y) > RADIUS - 380) {
             desired = atan2(-bot.y, -bot.x)
+        } else if (tickNo < bot.escapeUntil) {
+            desired = bot.escapeAngle
         } else {
+            // Wendekreis: was im Kreis links/rechts neben dem Kopf liegt, ist gerade nicht erreichbar –
+            // sonst kreist der Bot ewig um den Krümel herum
+            val turnRadius = SPEED / (TURN_RATE / (1 + bot.radius / 60))
+            val reach = bot.radius + EAT_REACH
+            val lx = bot.x - sin(bot.angle) * turnRadius
+            val ly = bot.y + cos(bot.angle) * turnRadius
+            val rx = bot.x + sin(bot.angle) * turnRadius
+            val ry = bot.y - cos(bot.angle) * turnRadius
+            if (bot.skip.isNotEmpty()) bot.skip.values.removeIf { it <= tickNo }
             var best: Food? = null
             var bestWorth = 0.0
             for (food in foods.values) {
                 val dx = food.x - bot.x
                 val dy = food.y - bot.y
                 if (abs(dx) > 420 || abs(dy) > 420) continue
+                if (food.id in bot.skip) continue
+                // Krümel am Tellerrand lassen Bots liegen – sonst pendeln sie zwischen Krümel und Rückweg zur Mitte
+                if (hypot(food.x, food.y) > RADIUS - 420) continue
+                val limit = turnRadius - reach
+                if (limit > 0 && (hypot(food.x - lx, food.y - ly) < limit || hypot(food.x - rx, food.y - ry) < limit)) continue
                 val worth = food.value / (hypot(dx, dy) + 50)
                 if (worth > bestWorth) {
                     bestWorth = worth
                     best = food
+                }
+            }
+            if (best != null) {
+                // frisst er ein paar Sekunden lang nichts, obwohl er etwas jagt, gibt er das Ziel auf
+                // (sonst kreist er um Krümel, die er nicht erwischt – auch abwechselnd um zwei)
+                if (tickNo - bot.ateAt > 4 * TICKS) {
+                    bot.skip[best.id] = tickNo + 20 * TICKS
+                    bot.ateAt = tickNo
                 }
             }
             if (best != null) {
@@ -724,6 +772,8 @@ class NoodleGame(
         const val BOOST_SPEED = 340.0
         const val BOOST_COST = 16.0
         const val TURN_RATE = 4.0
+        const val SPIN_SECONDS = 4 // Bots: so viele Sekunden zurück wird aufs Kreisen geprüft
+        const val SPIN_LIMIT = 3 * PI // mehr als anderthalb Umdrehungen in der Zeit = Kreisen
         const val EAT_REACH = 16.0
         const val DEATH_FOOD_EVERY = 26.0
         const val DEATH_FOOD_VALUE = 14
