@@ -4,12 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Schiffe versenken</title>
-<meta name="description" content="Sieben Kommandeure, jeder mit eigener Spezialfähigkeit. Gegen den Computer.">
+<meta name="description" content="Sieben Kommandeure mit eigener Flotte und Spezialfähigkeit. Gegen den Computer oder zu zweit.">
 <meta name="theme-color" content="#16202b">
 <!--
   Schiffe versenken mit sieben Kommandeuren (14.11.2026). Eine einzige Datei ohne Abhängigkeiten:
   liegt im Ordner seiten/ neben der StatsWebsite.jar und ist unter /seiten/schiffe.html erreichbar.
   Aufbau des Skripts: Regeln (ohne DOM, per window.SV testbar) → Kommandeure → Computer-Gegner → Töne → Oberfläche.
+  15.11.2026: eigene Flotten mit Formen, Punkte, Sonar/Mine/Bombe und das Spiel zu zweit (Server: web/ShipGame.kt, /api/schiffe).
 -->
 <style>
 /* Barlow Condensed 700/800 (SIL Open Font License), eingebettet: keine Anfragen an fremde Server */
@@ -240,6 +241,86 @@ main { max-width: 1500px; margin: 0 auto; padding: 0 20px 40px; }
   .acts { justify-content: stretch; } .abtn { flex: 1; min-width: 0; }
   .grid { gap: 2px; } .cell { border-radius: 5px; }
 }
+/* ---------- Spielart, Raum, Punkte, Werkzeuge (15.11.2026) ---------- */
+.modes { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 0 0 14px; }
+.modes .btn { font-size: 22px; padding: 10px 22px; background: #ffffff1f; color: #fff; box-shadow: 0 4px 0 #0005; }
+.modes .btn.on { background: linear-gradient(180deg, #ffe27a, var(--gold)); color: #1d1500; box-shadow: 0 4px 0 #b58a12; }
+.online { max-width: 760px; margin: 0 auto 20px; background: #0d141c; border-radius: 18px; padding: 14px; box-shadow: 0 8px 20px #0006; }
+.online .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+.online input { font: 700 20px var(--display); letter-spacing: .04em; border: 0; border-radius: 12px; padding: 10px 14px; background: #fff; color: #17202a; min-width: 0; }
+.online #name { width: 210px; } .online #code { width: 110px; text-transform: uppercase; text-align: center; }
+.online .or { color: var(--muted); font-weight: 700; }
+.online .err { color: #ff9c8a; font-weight: 700; text-align: center; margin: 8px 0 0; min-height: 1.4em; }
+.roomcode { font: 800 34px/1 var(--display); letter-spacing: .12em; color: var(--gold); background: #ffffff14; border-radius: 10px; padding: 6px 12px; }
+.roomstate { flex-basis: 100%; text-align: center; font-weight: 700; margin-top: 4px; }
+.roomstate i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #3fc457; margin-right: 6px; animation: blink 1.2s ease-in-out infinite; }
+.roomline { display: flex; gap: 12px; align-items: center; justify-content: center; margin: 0 0 12px; color: var(--muted); font-weight: 700; }
+.roomline b { color: var(--gold); letter-spacing: .1em; }
+.roomline .off { color: #ff9c8a; }
+.cmds.locked .cmd { filter: saturate(.35) brightness(.8); }
+.cmd.on { outline: 5px solid var(--gold); outline-offset: 3px; transform: translateY(-5px); }
+.cmd .fleetrow { grid-column: 1 / -1; display: flex; gap: 9px; align-items: center; flex-wrap: wrap; background: #ffffff1c; border-radius: 12px; padding: 8px 10px; }
+.mini { display: inline-grid; gap: 2px; vertical-align: middle; }
+.mini i { width: 9px; height: 9px; border-radius: 2.5px; background: #fff; box-shadow: inset 0 -2px 0 #0003; }
+.mini i.e { visibility: hidden; }
+.ships li { min-height: 22px; }
+.ships .mini { min-width: 56px; justify-content: start; }
+.ships li.sunk .mini i { background: #2b2b2b; }
+
+.side .fb { position: relative; width: 112px; margin: 8px auto 6px; }
+.side .fb .face { margin: 0; }
+.coin { position: absolute; right: -14px; top: -8px; min-width: 40px; height: 40px; padding: 0 6px; border-radius: 20px; display: grid; place-items: center; background: linear-gradient(180deg, #ffe27a, var(--gold)); color: #1d1500; font: 800 24px/1 var(--display); border: 3px solid #fff; box-shadow: 0 3px 0 #b58a12; z-index: 2; }
+.coin.bump { animation: coin .45s cubic-bezier(.2, 1.6, .4, 1); }
+.chg { display: flex; gap: 4px; justify-content: center; align-items: center; margin-top: 8px; font-size: 12px; font-weight: 700; }
+.chg i { width: 14px; height: 7px; border-radius: 4px; background: #0005; }
+.chg i.on { background: var(--gold); }
+
+.bar { grid-template-columns: 1fr; }
+.acts { flex-wrap: wrap; justify-content: center; }
+.say { min-height: 50px; font-size: clamp(17px, 2.2vw, 26px); }
+.ptsbox { display: grid; place-items: center; align-content: center; min-width: 74px; padding: 4px 10px; border-radius: 12px; background: linear-gradient(180deg, #ffe27a, var(--gold)); color: #1d1500; box-shadow: 0 4px 0 #b58a12; }
+.ptsbox b { font: 800 34px/1 var(--display); } .ptsbox small { font: 700 11px var(--sans); text-transform: uppercase; letter-spacing: .05em; }
+.tool { position: relative; border: 0; border-radius: 12px; padding: 6px 12px 7px 46px; min-width: 112px; text-align: left; color: #fff; font: 700 19px/1.05 var(--display); text-transform: uppercase; background: linear-gradient(180deg, var(--k1), var(--k2)); box-shadow: 0 4px 0 var(--k3); }
+.tool small { display: block; font: 700 11.5px var(--sans); text-transform: none; opacity: .9; }
+.tool svg { position: absolute; left: 8px; top: 50%; width: 32px; height: 32px; margin-top: -16px; }
+.tool.sonar { --k1: #35d6c0; --k2: #119a8c; --k3: #0a5f57; } .tool.mine { --k1: #8a94a3; --k2: #56606e; --k3: #2f363f; } .tool.bomb { --k1: #f0705a; --k2: var(--red-d); --k3: var(--red-dd); }
+.tool:disabled { background: #46515d; color: #b8c3ce; box-shadow: 0 4px 0 #2a323b; cursor: not-allowed; }
+.tool:disabled svg { opacity: .5; }
+.tool.armed { box-shadow: 0 0 0 3px var(--gold), 0 4px 0 var(--k3); transform: translateY(-2px); }
+.tool:not(:disabled):hover { filter: brightness(1.1); }
+
+.cell.sonar::before { content: attr(data-n); position: absolute; right: -5px; top: -5px; width: 62%; height: 62%; border-radius: 50%; display: grid; place-items: center; z-index: 3; background: #1fe3c7; color: #03302a; font: 800 clamp(11px, 1.7vw, 17px)/1 var(--display); box-shadow: 0 0 0 2px #03302a, 0 2px 0 #0006; }
+.mine .cell.minec::before { content: ''; position: absolute; inset: 18%; background: #1b2026; clip-path: polygon(50% 0, 60% 22%, 85% 15%, 78% 40%, 100% 50%, 78% 60%, 85% 85%, 60% 78%, 50% 100%, 40% 78%, 15% 85%, 22% 60%, 0 50%, 22% 40%, 15% 15%, 40% 22%); }
+.mine .cell.minec::after { content: ''; position: absolute; inset: 40%; border-radius: 50%; background: var(--red); animation: blink 1.4s ease-in-out infinite; }
+.cell[data-s="4"] { background: radial-gradient(circle at 50% 50%, #ffb347 0 18%, #5b3a1c 42%, #1d2a36 75%) !important; box-shadow: inset 0 0 0 2px #ffb347 !important; }
+.cell[data-s="4"]::after { content: ''; position: absolute; inset: 16%; background: #1b2026; opacity: .85; clip-path: polygon(50% 0, 60% 22%, 85% 15%, 78% 40%, 100% 50%, 78% 60%, 85% 85%, 60% 78%, 50% 100%, 40% 78%, 15% 85%, 22% 60%, 0 50%, 22% 40%, 15% 15%, 40% 22%); }
+.theirs .cell.multi { box-shadow: inset 0 0 0 4px var(--red), 0 0 0 2px var(--gold); filter: brightness(1.15); z-index: 2; }
+.theirs.live.m-sonar .cell { cursor: help; }
+.theirs.live.m-sonar .cell[data-s="0"]:hover { transform: none; filter: none; }
+.theirs .cell.aim-sonar { box-shadow: inset 0 0 0 3px #1fe3c7, 0 0 0 2px #1fe3c7 !important; z-index: 2; }
+.mine.laying .cell { cursor: pointer; }
+.mine .cell.aim-mine { box-shadow: inset 0 0 0 3px var(--gold) !important; filter: brightness(1.2); }
+.ping { position: absolute; left: 0; top: 0; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; border: 3px solid #1fe3c7; animation: ping 1s ease-out forwards; }
+.placewait { text-align: center; font: 700 22px var(--display); text-transform: uppercase; color: var(--gold); margin-top: 12px; }
+
+@keyframes blink { 50% { opacity: .35; } }
+@keyframes coin { 40% { transform: scale(1.45) rotate(-8deg); } }
+@keyframes ping { from { transform: scale(.4); opacity: 1; } to { transform: scale(9); opacity: 0; } }
+
+@media (max-width: 1100px) {
+  .side .fb { width: 56px; margin: 0; grid-row: 1 / 3; grid-column: 1; }
+  .side .fb .face { width: 56px; height: 56px; }
+  .coin { min-width: 28px; height: 28px; font-size: 17px; right: -10px; top: -8px; border-width: 2px; }
+  .chg { display: none; }
+  .bar { grid-template-columns: 1fr; }
+  .acts { justify-content: center; }
+}
+@media (max-width: 760px) {
+  .tool { flex: 1; min-width: 96px; padding-left: 40px; font-size: 17px; }
+  .tool svg { width: 26px; height: 26px; margin-top: -13px; }
+  .abtn { flex-basis: 100%; }
+  .online #name { width: 100%; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
 }
@@ -255,13 +336,34 @@ main { max-width: 1500px; margin: 0 auto; padding: 0 20px 40px; }
   <section class="screen" id="pick">
     <div class="intro">
       <h2>Wähle deinen <span>Kommandeur</span></h2>
-      <p>Jeder hat eine Spezialfähigkeit, die sich mit jedem normalen Schuss auflädt. Dein Gegner bekommt auch einen. Fair ist das nicht immer, lustig schon.</p>
+      <p>Jeder hat eine eigene Flotte und eine Spezialfähigkeit, die sich mit jedem normalen Schuss auflädt. Mit Punkten kaufst du Sonar, Minen und Bomben.</p>
+    </div>
+    <div class="modes" id="modes" role="group" aria-label="Spielart">
+      <button class="btn" type="button" data-mode="ai">Gegen den Computer</button>
+      <button class="btn" type="button" data-mode="net">Gegen einen Menschen</button>
     </div>
     <div class="skills" id="skills" role="group" aria-label="Stärke des Gegners"></div>
+    <div class="online" id="online" hidden>
+      <div class="row" id="lobbyForm">
+        <input id="name" maxlength="16" placeholder="Dein Name" aria-label="Dein Name" autocomplete="nickname">
+        <button class="btn go" id="create" type="button">Raum eröffnen</button>
+        <span class="or">oder</span>
+        <input id="code" maxlength="4" placeholder="CODE" aria-label="Raum-Code" autocomplete="off">
+        <button class="btn" id="join" type="button">Beitreten</button>
+      </div>
+      <div class="row" id="roomBox" hidden>
+        <span>Raum</span><span class="roomcode" id="roomCode"></span>
+        <button class="btn" id="copy" type="button">Link kopieren</button>
+        <button class="btn" id="leave" type="button">Verlassen</button>
+        <div class="roomstate" id="roomState" role="status" aria-live="polite"></div>
+      </div>
+      <p class="err" id="err" role="alert"></p>
+    </div>
     <div class="cmds" id="cmds"></div>
   </section>
 
   <section class="screen" id="game" hidden>
+    <div class="roomline" id="roomline" hidden></div>
     <div class="table">
       <aside class="side you" id="sideYou"></aside>
       <div class="center">
@@ -275,11 +377,22 @@ main { max-width: 1500px; margin: 0 auto; padding: 0 20px 40px; }
             <button class="btn" id="rnd" type="button">Neu würfeln</button>
             <button class="btn go" id="go" type="button">Gefecht starten</button>
           </div>
-          <p class="hint">Schiff antippen, um es aufzunehmen, dann ein Feld antippen. R oder Rechtsklick dreht.</p>
+          <p class="hint" id="placeHint">Schiff antippen, um es aufzunehmen, dann ein Feld antippen. R oder Rechtsklick dreht und spiegelt.</p>
+          <p class="placewait" id="placeWait" hidden></p>
         </div>
         <div class="bar" id="bar" hidden>
           <div class="say" id="say" role="status" aria-live="polite"></div>
           <div class="acts">
+            <div class="ptsbox" title="2 Punkte zu Beginn jedes Zugs, 1 Punkt für jedes eigene Schiffsteil, das getroffen wird"><b id="pts">0</b><small>Punkte</small></div>
+            <button class="tool sonar" id="tSonar" type="button" data-m="sonar" title="Auf ein schon beschossenes Feld: zeigt, wie viele unentdeckte Schiffsteile in den acht Feldern drumherum liegen">
+              <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="#fff" stroke-width="2.5"/><circle cx="16" cy="16" r="7" fill="none" stroke="#fff" stroke-width="2" opacity=".7"/><path d="M16 16L25 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="16" r="2.5" fill="#fff"/></svg>
+              Sonar<small>3 Punkte</small></button>
+            <button class="tool mine" id="tMine" type="button" data-m="mine" title="Auf ein eigenes Wasserfeld: trifft der Gegner sie, schlagen bei ihm zwei zufällige Schüsse ein und sein Zug ist vorbei">
+              <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2v6M16 24v6M2 16h6M24 16h6M6 6l4 4M22 22l4 4M26 6l-4 4M10 22l-4 4" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="16" cy="16" r="9" fill="#1b2026" stroke="#fff" stroke-width="2.5"/><circle cx="13" cy="13" r="2.5" fill="#fff" opacity=".8"/></svg>
+              Mine<small>2 Punkte</small></button>
+            <button class="tool bomb" id="tBomb" type="button" data-m="bomb" title="Ein zusätzlicher Schuss auf 2×2 Felder, danach schießt du noch normal">
+              <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="14" cy="19" r="10" fill="#1b2026" stroke="#fff" stroke-width="2.5"/><path d="M20 11l4-4" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M26 2l1 3 3 1-3 1-1 3-1-3-3-1 3-1z" fill="#ffcf3f"/><circle cx="11" cy="16" r="2.5" fill="#fff" opacity=".8"/></svg>
+              Bombe<small>5 Punkte</small></button>
             <button class="obtn" id="orient" type="button" hidden></button>
             <button class="abtn" id="abil" type="button"></button>
           </div>
@@ -294,13 +407,12 @@ main { max-width: 1500px; margin: 0 auto; padding: 0 20px 40px; }
 <script>
 'use strict';
 /* =====================================================================
-   Regeln (ohne DOM)
+   Regeln (ohne DOM). Dieselben Regeln hat der Server für das Spiel zu zweit (web/ShipGame.kt);
+   der Block RULES muss zu ShipRules passen (prüft ShipGameTest).
    ===================================================================== */
+const RULES = /*RULES*/{"turn":2,"hit":1,"cost":{"sonar":3,"mine":2,"bomb":5},"maxMines":3,"mineShots":2,"shapes":{"I2":"00 01","I3":"00 01 02","I4":"00 01 02 03","I5":"00 01 02 03 04","L3":"00 10 11","L4":"00 10 20 21","T4":"00 01 02 11","S4":"01 02 10 11","O4":"00 01 10 11","V5":"00 10 20 21 22","T5":"00 01 02 11 21","P5":"00 01 10 11 20","U5":"00 02 10 11 12","Z5":"00 01 11 21 22","X5":"01 10 11 12 21"},"commanders":{"kallisto":{"cd":4,"fleet":["I5","I4","I3","I2","I2"]},"beaumont":{"cd":3,"fleet":["P5","O4","L3","I2","I2"]},"finch":{"cd":4,"fleet":["T5","T4","I3","I2","I2"]},"sigrun":{"cd":4,"fleet":["V5","L4","I3","I2","I2"]},"bellini":{"cd":5,"fleet":["U5","S4","L3","I2","I2"]},"petersen":{"cd":4,"fleet":["Z5","I4","I3","I2","I2"]},"pembroke":{"cd":6,"fleet":["X5","T4","L3","I2","I2"]}}}/*END*/;
 const N = 10;
-const FLEET = [
-  { len: 5, name: 'Schlachtschiff' }, { len: 4, name: 'Kreuzer' }, { len: 3, name: 'Zerstörer' },
-  { len: 3, name: 'U-Boot' }, { len: 2, name: 'Schnellboot' }
-];
+const SHIP_NAMES = ['Flaggschiff', 'Kreuzer', 'Zerstörer', 'Schnellboot', 'Beiboot'];
 const rc = (i) => [Math.floor(i / N), i % N];
 const at = (r, c) => (r >= 0 && c >= 0 && r < N && c < N ? r * N + c : -1);
 const cellName = (i) => 'ABCDEFGHIJ'[i % N] + (Math.floor(i / N) + 1);
@@ -310,17 +422,41 @@ function shuffle(list, rnd = Math.random) {
   return list;
 }
 
-/** Leeres Feld. grid: 0 = Wasser, sonst Schiffsnummer + 1. shots: 0 offen, 1 Wasser, 2 Treffer, 3 versenkt. */
-function newBoard() {
-  return { grid: new Int8Array(N * N), shots: new Uint8Array(N * N), ships: FLEET.map((f, id) => ({ id, len: f.len, name: f.name, cells: [], hits: 0, sunk: false })) };
+/** Alle Lagen einer Form (gedreht und gespiegelt), an die Ecke oben links geschoben, Felder sortiert. */
+function orientations(text) {
+  let cells = text.split(' ').map((s) => [+s[0], +s[1]]);
+  const out = [], seen = new Set();
+  for (let m = 0; m < 2; m++) {
+    for (let k = 0; k < 4; k++) {
+      const r0 = Math.min(...cells.map((c) => c[0])), c0 = Math.min(...cells.map((c) => c[1]));
+      const norm = cells.map(([r, c]) => [r - r0, c - c0]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      const key = norm.join('|');
+      if (!seen.has(key)) { seen.add(key); out.push(norm); }
+      cells = cells.map(([r, c]) => [c, -r]);
+    }
+    cells = cells.map(([r, c]) => [r, -c]);
+  }
+  return out;
 }
-function shipCells(start, len, vertical) {
-  const [r, c] = rc(start), cells = [];
-  for (let k = 0; k < len; k++) { const i = vertical ? at(r + k, c) : at(r, c + k); if (i < 0) return null; cells.push(i); }
-  return cells;
+const ORI = {};
+for (const [name, text] of Object.entries(RULES.shapes)) ORI[name] = orientations(text);
+
+/** Leeres Feld eines Kommandeurs. grid: 0 = Wasser, sonst Schiffsnummer + 1. shots: 0 offen, 1 Wasser, 2 Treffer, 3 versenkt, 4 Mine hochgegangen. */
+function newBoard(cmdId) {
+  return {
+    cmd: cmdId, grid: new Int8Array(N * N), shots: new Uint8Array(N * N), mines: new Set(),
+    ships: RULES.commanders[cmdId].fleet.map((shape, id) => ({ id, shape, len: ORI[shape][0].length, name: SHIP_NAMES[id], cells: [], o: 0, hits: 0, sunk: false }))
+  };
 }
-function canPlace(board, shipId, start, vertical) {
-  const cells = shipCells(start, board.ships[shipId].len, vertical);
+/** Felder einer Form in Lage o; ihr erstes Feld (oben links) liegt auf anchor. null = ragt aus dem Feld. */
+function shipCells(shape, o, anchor) {
+  const list = ORI[shape], cells = list[((o % list.length) + list.length) % list.length];
+  const [r0, c0] = rc(anchor), [fr, fc] = cells[0], out = [];
+  for (const [r, c] of cells) { const i = at(r0 + r - fr, c0 + c - fc); if (i < 0) return null; out.push(i); }
+  return out;
+}
+function canPlace(board, shipId, anchor, o) {
+  const cells = shipCells(board.ships[shipId].shape, o, anchor);
   return cells && cells.every((i) => board.grid[i] === 0 || board.grid[i] === shipId + 1) ? cells : null;
 }
 function lift(board, shipId) {
@@ -328,36 +464,24 @@ function lift(board, shipId) {
   ship.cells.forEach((i) => { board.grid[i] = 0; });
   ship.cells = [];
 }
-function place(board, shipId, start, vertical) {
-  const cells = canPlace(board, shipId, start, vertical);
-  if (!cells) return false;
+function setShip(board, shipId, cells, o = 0) {
   lift(board, shipId);
   const ship = board.ships[shipId];
-  ship.cells = cells; ship.vertical = vertical;
+  ship.cells = cells.slice(); ship.o = o;
   cells.forEach((i) => { board.grid[i] = shipId + 1; });
+}
+function place(board, shipId, anchor, o) {
+  const cells = canPlace(board, shipId, anchor, o);
+  if (!cells) return false;
+  setShip(board, shipId, cells, o);
   return true;
 }
 function placeRandom(board, rnd = Math.random) {
   board.ships.forEach((s) => lift(board, s.id));
   for (const ship of board.ships) {
-    for (;;) if (place(board, ship.id, Math.floor(rnd() * N * N), rnd() < 0.5)) break;
+    for (;;) if (place(board, ship.id, Math.floor(rnd() * N * N), Math.floor(rnd() * 8))) break;
   }
   return board;
-}
-/** Ein Schuss. Ergebnis: miss | hit | sunk | dup (Feld war schon beschossen). */
-function fire(board, i) {
-  if (board.shots[i]) return { i, result: 'dup' };
-  const id = board.grid[i] - 1;
-  if (id < 0) { board.shots[i] = 1; return { i, result: 'miss' }; }
-  const ship = board.ships[id];
-  ship.hits++;
-  if (ship.hits >= ship.len) {
-    ship.sunk = true;
-    ship.cells.forEach((k) => { board.shots[k] = 3; });
-    return { i, result: 'sunk', ship };
-  }
-  board.shots[i] = 2;
-  return { i, result: 'hit', ship };
 }
 const allSunk = (board) => board.ships.every((s) => s.sunk);
 const open = (board) => { const o = []; for (let i = 0; i < N * N; i++) if (!board.shots[i]) o.push(i); return o; };
@@ -366,24 +490,143 @@ function lineOf(i, vertical) {
   for (let k = 0; k < N; k++) cells.push(vertical ? at(k, c) : at(r, k));
   return cells;
 }
+function around(i, radius, self) {
+  const [r, c] = rc(i), out = [];
+  for (let dr = -radius; dr <= radius; dr++) for (let dc = -radius; dc <= radius; dc++) {
+    const k = at(r + dr, c + dc);
+    if (k >= 0 && (self || k !== i)) out.push(k);
+  }
+  return out;
+}
+/** Linke obere Ecke des 2×2-Felds einer Bombe (am Rand nach innen geschoben). */
+function bombCells(t) {
+  const [r, c] = rc(t), r0 = Math.min(r, N - 2), c0 = Math.min(c, N - 2);
+  return [at(r0, c0), at(r0, c0 + 1), at(r0 + 1, c0), at(r0 + 1, c0 + 1)];
+}
+
+/* ---------- Eine Partie: Seiten 0 und 1 ---------- */
+function newMatch(boards, first = 0, rnd = Math.random, slow = [0, 0]) {
+  const m = { boards, pts: [0, 0], charge: [0, 0], cd: boards.map((b, k) => RULES.commanders[b.cmd].cd + slow[k]), sonar: [new Set(), new Set()], turn: first, winner: -1, rnd };
+  m.pts[first] += RULES.turn;
+  return m;
+}
+/** Unentdeckte Schiffsteile in den acht Feldern um das Feld. */
+function sonarCount(board, cell) {
+  return around(cell, 1, false).filter((i) => board.grid[i] > 0 && !board.shots[i]).length;
+}
+function volleyOf(m, by, cells, kind, t, v) {
+  const board = m.boards[1 - by], res = [];
+  for (const i of cells) {
+    if (i < 0 || i >= N * N || board.shots[i]) continue;
+    if (board.mines.delete(i)) { board.shots[i] = 4; res.push({ i, r: 'mine' }); continue; }
+    const id = board.grid[i] - 1;
+    if (id < 0) { board.shots[i] = 1; res.push({ i, r: 'miss' }); continue; }
+    const ship = board.ships[id];
+    ship.hits++; m.pts[1 - by] += RULES.hit;
+    if (ship.hits >= ship.len) {
+      ship.sunk = true;
+      ship.cells.forEach((k) => { board.shots[k] = 3; });
+      res.push({ i, r: 'sunk', ship: id, cells: ship.cells.slice() });
+    } else { board.shots[i] = 2; res.push({ i, r: 'hit' }); }
+  }
+  return { e: 'volley', by, kind, t, v: !!v, res, pts: m.pts.slice() };
+}
+/** Felder, die die Fähigkeit beschießt (null = so nicht erlaubt). */
+function abilityCells(m, by, t, v, chosen) {
+  const board = m.boards[1 - by], inside = Number.isInteger(t) && t >= 0 && t < N * N;
+  let cells = null;
+  switch (m.boards[by].cmd) {
+    case 'kallisto':
+      if (inside && !board.shots[t]) cells = [t, ...shuffle(around(t, 2, false).filter((i) => !board.shots[i]), m.rnd).slice(0, 6)];
+      break;
+    case 'beaumont':
+      if (inside && !board.shots[t]) { const id = board.grid[t] - 1; cells = id < 0 ? [t] : [t, ...board.ships[id].cells.filter((i) => i !== t && !board.shots[i])]; }
+      break;
+    case 'finch': {
+      const list = [...new Set(chosen || [])];
+      if (list.length >= 1 && list.length <= 5 && list.every((i) => Number.isInteger(i) && i >= 0 && i < N * N && !board.shots[i])) cells = list;
+      break;
+    }
+    case 'sigrun': cells = shuffle(open(board), m.rnd).slice(0, 6); break;
+    case 'bellini': if (inside) cells = around(t, 1, true).filter((i) => !board.shots[i]); break;
+    case 'petersen':
+      if (inside) {
+        const line = lineOf(t, v), [r, c] = rc(t);
+        if ((v ? r : c) >= N / 2) line.reverse();
+        cells = [];
+        for (const i of line) { if (board.shots[i]) continue; cells.push(i); if (board.grid[i] || board.mines.has(i)) break; }
+      }
+      break;
+    case 'pembroke': if (inside) cells = lineOf(t, v).filter((i) => !board.shots[i]); break;
+  }
+  return cells && cells.length ? cells : null;
+}
+/** Eine Aktion { m: shot|abil|bomb|sonar|mine, t, v, cells } der Seite, die dran ist. Liefert { events } oder { error }. */
+function act(m, side, a) {
+  if (m.winner >= 0) return { error: 'Das Spiel ist vorbei.' };
+  if (side !== m.turn) return { error: 'Du bist nicht dran.' };
+  const enemy = m.boards[1 - side], own = m.boards[side], t = a.t, inside = Number.isInteger(t) && t >= 0 && t < N * N;
+  const events = [];
+  let endsTurn = true;
+  switch (a.m) {
+    case 'shot':
+      if (!inside || enemy.shots[t]) return { error: 'Das Feld ist schon beschossen.' };
+      m.charge[side] = Math.min(m.cd[side], m.charge[side] + 1);
+      events.push(volleyOf(m, side, [t], 'shot', t, false));
+      break;
+    case 'abil': {
+      if (m.charge[side] < m.cd[side]) return { error: 'Die Fähigkeit lädt noch.' };
+      const cells = abilityCells(m, side, t, !!a.v, a.cells);
+      if (!cells) return { error: 'Das geht hier nicht.' };
+      m.charge[side] = 0;
+      events.push(volleyOf(m, side, cells, 'abil', inside ? t : -1, !!a.v));
+      break;
+    }
+    case 'bomb': {
+      if (m.pts[side] < RULES.cost.bomb) return { error: 'Zu wenige Punkte.' };
+      if (!inside) return { error: 'Das geht hier nicht.' };
+      const all = bombCells(t), cells = all.filter((i) => !enemy.shots[i]);
+      if (!cells.length) return { error: 'Dort ist schon alles beschossen.' };
+      m.pts[side] -= RULES.cost.bomb;
+      events.push(volleyOf(m, side, cells, 'bomb', all[0], false));
+      endsTurn = false;
+      break;
+    }
+    case 'sonar':
+      if (m.pts[side] < RULES.cost.sonar) return { error: 'Zu wenige Punkte.' };
+      if (!inside || !enemy.shots[t]) return { error: 'Das Sonar braucht ein schon beschossenes Feld.' };
+      if (m.sonar[side].has(t)) return { error: 'Dort liegt schon ein Sonar.' };
+      m.pts[side] -= RULES.cost.sonar; m.sonar[side].add(t);
+      return { events: [{ e: 'sonar', by: side, t, n: sonarCount(enemy, t), pts: m.pts.slice() }] };
+    case 'mine':
+      if (m.pts[side] < RULES.cost.mine) return { error: 'Zu wenige Punkte.' };
+      if (!inside || own.grid[t] > 0 || own.shots[t] || own.mines.has(t)) return { error: 'Minen gehen nur auf freies Wasser.' };
+      if (own.mines.size >= RULES.maxMines) return { error: `Mehr als ${RULES.maxMines} Minen gleichzeitig gehen nicht.` };
+      m.pts[side] -= RULES.cost.mine; own.mines.add(t);
+      return { events: [{ e: 'laid', by: side, t, pts: m.pts.slice() }] };
+    default: return { error: 'Unbekannte Aktion' };
+  }
+  // Minen: je getroffener Mine zwei zufällige Schüsse auf das Feld des Schützen, sein Zug ist vorbei
+  const mines = events[events.length - 1].res.filter((r) => r.r === 'mine').length;
+  if (mines) {
+    const cells = shuffle(open(own), m.rnd).slice(0, mines * RULES.mineShots);
+    if (cells.length) events.push(volleyOf(m, 1 - side, cells, 'mine', -1, false));
+    endsTurn = true;
+  }
+  const won = allSunk(enemy) ? side : allSunk(own) ? 1 - side : -1;
+  if (won >= 0) { m.winner = won; events.push({ e: 'end', by: won, pts: m.pts.slice() }); return { events }; }
+  if (endsTurn) { m.turn = 1 - side; m.pts[m.turn] += RULES.turn; events.push({ e: 'turn', by: m.turn, pts: m.pts.slice() }); }
+  return { events };
+}
 
 /* =====================================================================
-   Kommandeure. cells(board, ziel, senkrecht, zufall) liefert die Felder, die beschossen werden, in Schussreihenfolge
-   (schon beschossene fehlen). needsOpen: das Ziel selbst muss ein offenes Feld sein. orient: Reihe/Spalte wählbar.
+   Kommandeure (Namen, Farben, Sprüche). Zahlen und Flotten stehen in RULES.
+   needsOpen: das Ziel muss ein offenes Feld sein. orient: Reihe/Spalte wählbar. anywhere: kein Ziel nötig. multi: fünf Felder wählen.
    ===================================================================== */
 const COMMANDERS = [
   {
-    id: 'euryleia', name: 'Königin Euryleia', fleet: 'Griechische Triremen und Bogenschützen', c: ['#39b7c9', '#147f93', '#0a4d5a'],
-    ability: 'Pfeilhagel', desc: 'Ein gezielter Schuss plus sechs Pfeile, die irgendwo in der Nähe landen.', cd: 4, fx: 'arrow', needsOpen: true,
-    cells(board, t, v, rnd) {
-      const [r, c] = rc(t), near = [];
-      for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) {
-        const i = at(r + dr, c + dc);
-        if (i >= 0 && i !== t && !board.shots[i]) near.push(i);
-      }
-      return [t, ...shuffle(near, rnd).slice(0, 6)];
-    },
-    area(t) { const [r, c] = rc(t), a = []; for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) { const i = at(r + dr, c + dc); if (i >= 0 && i !== t) a.push(i); } return a; },
+    id: 'kallisto', name: 'Königin Kallisto', fleet: 'Triremen und Bogenschützen', c: ['#39b7c9', '#147f93', '#0a4d5a'],
+    ability: 'Pfeilhagel', desc: 'Ein gezielter Schuss plus sechs Pfeile, die irgendwo in der Nähe landen.', fx: 'arrow', needsOpen: true,
     q: {
       start: 'Für Sparta! Äh, falsches Plakat. Egal: Feuer!', ability: ['PFEILHAGEL! Irgendeiner trifft schon.', 'Bogenschützen, gebt alles. Zielen ist optional.'],
       hit: ['Der Pfeil sitzt. Wie mein Lidstrich.', 'Athene hat mitgezielt.'], miss: ['Die Götter haben gepustet.', 'Das war ein Opfer an Poseidon. Absicht.'],
@@ -392,13 +635,8 @@ const COMMANDERS = [
     }
   },
   {
-    id: 'potier', name: 'Frédéric Potier', fleet: 'Französische Dampf-Schlachtschiffe', c: ['#5b7fe0', '#2c4cae', '#172b6b'],
-    ability: 'Surgical Strike', desc: 'Trifft dieser Schuss ein Schiff, sinkt es sofort komplett. Trifft er Wasser, war es teures Wasser.', cd: 3, fx: 'shell', needsOpen: true,
-    cells(board, t) {
-      const id = board.grid[t] - 1;
-      if (id < 0) return [t];
-      return [t, ...board.ships[id].cells.filter((i) => i !== t && !board.shots[i])];
-    },
+    id: 'beaumont', name: 'Admiral Beaumont', fleet: 'Dampf-Schlachtschiffe', c: ['#5b7fe0', '#2c4cae', '#172b6b'],
+    ability: 'Präzisionsschlag', desc: 'Trifft dieser Schuss ein Schiff, sinkt es sofort komplett. Trifft er Wasser, war es teures Wasser.', fx: 'shell', needsOpen: true,
     q: {
       start: 'Bonjour. Ich versenke dich jetzt, mit Stil.', ability: ['Chirurgisch. Präzise. Ohne Betäubung.', 'Skalpell, bitte. Das große.'],
       hit: ['Mon dieu, ein Treffer mit Eleganz.', 'Voilà!'], miss: ['Das war ein Warnschuss. Absichtlich.', 'Das Wasser hat provoziert.'],
@@ -407,23 +645,18 @@ const COMMANDERS = [
     }
   },
   {
-    id: 'wade', name: 'Sir Philip Wade', fleet: 'Fregatten Seiner Majestät', c: ['#e0a53a', '#b7741a', '#70430a'],
-    ability: 'Breitseite', desc: 'Fünf Kanonen feuern gleichzeitig: das Zielfeld und seine vier Nachbarn.', cd: 3, fx: 'ball',
-    cells(board, t) {
-      const [r, c] = rc(t);
-      return [t, at(r - 1, c), at(r + 1, c), at(r, c - 1), at(r, c + 1)].filter((i) => i >= 0 && !board.shots[i]);
-    },
+    id: 'finch', name: 'Lord Barnaby Finch', fleet: 'Fregatten Seiner Majestät', c: ['#e0a53a', '#b7741a', '#70430a'],
+    ability: 'Salve', desc: 'Fünf Kanonen, fünf frei gewählte Felder, ein Befehl: Feuer!', fx: 'ball', multi: true,
     q: {
-      start: 'Gentlemen, wir gewinnen das vor dem Tee.', ability: ['Volle Breitseite! Tee gibt es danach.', 'Fünf Kanonen, eine Meinung.'],
+      start: 'Gentlemen, wir gewinnen das vor dem Tee.', ability: ['Volle Salve! Tee gibt es danach.', 'Fünf Kanonen, eine Meinung.'],
       hit: ['Splendid!', 'Quite right. Genau dort hin.'], miss: ['Bloody Wellengang.', 'Der Kanonier wird degradiert. Zum Koch.'],
       sunk: ['Rule, Britannia. Eins weniger.', 'Das war nicht sehr seetüchtig, old chap.'], lost: ['Das ist höchst unsportlich.', 'Notiert das. Ich beschwere mich schriftlich.'],
       win: 'God save the King. Und meine Trefferquote.', lose: 'Ich nenne es einen taktischen Rückzug nach unten.'
     }
   },
   {
-    id: 'astrid', name: 'Astrid Stormur', fleet: 'Langschiffe aus dem Norden', c: ['#39c08a', '#178a5c', '#0b5236'],
-    ability: 'Odins Würfel', desc: 'Sechs Geschosse fliegen komplett zufällig über das ganze Feld. Zielen ist was für Leute ohne Axt.', cd: 4, fx: 'axe', anywhere: true,
-    cells(board, t, v, rnd) { return shuffle(open(board), rnd).slice(0, 6); },
+    id: 'sigrun', name: 'Sigrun Eisenhand', fleet: 'Langschiffe aus dem Norden', c: ['#39c08a', '#178a5c', '#0b5236'],
+    ability: 'Odins Würfel', desc: 'Sechs Geschosse fliegen komplett zufällig über das ganze Feld. Zielen ist was für Leute ohne Axt.', fx: 'axe', anywhere: true,
     q: {
       start: 'Ich habe keine Karte. Ich habe eine Axt.', ability: ['ODIN, ÜBERNIMM DAS ZIELEN!', 'Sechs Äxte, null Plan. Los!'],
       hit: ['Thor hat gezielt, ich habe nur geworfen.', 'HA! Mitten ins Holz!'], miss: ['Das Meer hatte es verdient.', 'Die Axt kommt wieder. Irgendwann.'],
@@ -432,13 +665,8 @@ const COMMANDERS = [
     }
   },
   {
-    id: 'ferrara', name: 'Giuseppe Ferrara', fleet: 'Italienische Regia Marina', c: ['#f08a3c', '#c2571a', '#75300a'],
-    ability: 'Bombardamento', desc: 'Ein Schuss deckt ein ganzes 3×3-Feld ein. Neun Felder, al dente.', cd: 5, fx: 'bomb',
-    cells(board, t) {
-      const [r, c] = rc(t), cells = [];
-      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) { const i = at(r + dr, c + dc); if (i >= 0 && !board.shots[i]) cells.push(i); }
-      return cells;
-    },
+    id: 'bellini', name: 'Capitano Bellini', fleet: 'Geschwader aus dem Süden', c: ['#f08a3c', '#c2571a', '#75300a'],
+    ability: 'Bombardamento', desc: 'Ein Schuss deckt ein ganzes 3×3-Feld ein. Neun Felder, al dente.', fx: 'bomb',
     q: {
       start: 'Ciao! Heute auf der Karte: versenkte Flotte.', ability: ['Bombardamento! Neun Stück, al dente!', 'Eine große Portion, bitte. Mit allem.'],
       hit: ['Mamma mia, voll drauf!', 'Bellissimo!'], miss: ['Das Wasser war zu weich gekocht.', 'Wer hat die Karte falsch herum gehalten?'],
@@ -447,21 +675,8 @@ const COMMANDERS = [
     }
   },
   {
-    id: 'schmidt', name: 'Johannes Schmidt', fleet: 'U-Boot-Flottille', c: ['#7f97a8', '#4b6577', '#283a47'],
-    ability: 'Torpedo', desc: 'Läuft vom Rand eine Reihe oder Spalte entlang, bis er das erste Schiff trifft.', cd: 4, fx: 'torp', orient: true,
-    cells(board, t, v) {
-      let line = lineOf(t, v);
-      const [r, c] = rc(t);
-      if ((v ? r : c) >= N / 2) line.reverse();
-      const cells = [];
-      for (const i of line) {
-        if (board.shots[i]) continue;
-        cells.push(i);
-        if (board.grid[i]) break;
-      }
-      return cells;
-    },
-    area(t, v) { return lineOf(t, v); },
+    id: 'petersen', name: 'Kaleun Petersen', fleet: 'U-Boot-Flottille', c: ['#7f97a8', '#4b6577', '#283a47'],
+    ability: 'Torpedo', desc: 'Läuft vom Rand eine Reihe oder Spalte entlang, bis er das erste Schiff trifft.', fx: 'torp', orient: true,
     q: {
       start: 'Alle Mann auf Tauchstation. Der Kaffee auch.', ability: ['Rohr eins: los. Stoppuhr läuft.', 'Torpedo unterwegs. Bitte nicht winken.'],
       hit: ['Treffer. Wie berechnet.', 'Das Echolot lügt nie.'], miss: ['Der Aal schwimmt noch. Irgendwo.', 'Messfehler. Passiert den Besten.'],
@@ -470,9 +685,8 @@ const COMMANDERS = [
     }
   },
   {
-    id: 'karslake', name: 'William Karslake', fleet: 'Trägerflotte mit Luftunterstützung', c: ['#8fc24a', '#5b8f1c', '#33540c'],
-    ability: 'Luftangriff', desc: 'Ein Geschwader bombardiert eine komplette Reihe oder Spalte auf einmal.', cd: 6, fx: 'plane', orient: true,
-    cells(board, t, v) { return lineOf(t, v).filter((i) => !board.shots[i]); },
+    id: 'pembroke', name: 'Commander Pembroke', fleet: 'Trägerflotte mit Luftunterstützung', c: ['#8fc24a', '#5b8f1c', '#33540c'],
+    ability: 'Luftangriff', desc: 'Ein Geschwader bombardiert eine komplette Reihe oder Spalte auf einmal.', fx: 'plane', orient: true,
     q: {
       start: 'Tally-ho! Motoren warm, Schnurrbart sitzt.', ability: ['Tally-ho! Bomben frei!', 'Geschwader im Anflug. Bitte lächeln.'],
       hit: ['Jolly good show!', 'Volltreffer, alter Junge!'], miss: ['Fische bombardiert. Auch eine Leistung.', 'Das war die Aufwärmrunde.'],
@@ -481,66 +695,88 @@ const COMMANDERS = [
     }
   }
 ];
-const NORMAL = { fx: 'ball', cells: (board, t) => (board.shots[t] ? [] : [t]) };
+COMMANDERS.forEach((c) => { c.cd = RULES.commanders[c.id].cd; c.ships = RULES.commanders[c.id].fleet; });
+const cmdOf = (id) => COMMANDERS.find((c) => c.id === id);
 
 /* =====================================================================
-   Computer-Gegner: Wahrscheinlichkeitskarte aus allen noch möglichen Schiffslagen
+   Computer-Gegner: Wahrscheinlichkeitskarte aus allen noch möglichen Schiffslagen.
+   Er liest vom Feld des Menschen nur die Schüsse und welche Schiffe versenkt sind.
    ===================================================================== */
 function density(board) {
   const d = new Float64Array(N * N);
   for (const ship of board.ships) {
     if (ship.sunk) continue;
-    for (let start = 0; start < N * N; start++) for (const v of [false, true]) {
-      const cells = shipCells(start, ship.len, v);
-      if (!cells || cells.some((i) => board.shots[i] === 1 || board.shots[i] === 3)) continue;
-      const hits = cells.filter((i) => board.shots[i] === 2).length;
-      const weight = hits ? Math.pow(30, hits) : 1;
-      for (const i of cells) if (!board.shots[i]) d[i] += weight;
+    for (const cellsOf of ORI[ship.shape]) {
+      const h = Math.max(...cellsOf.map((c) => c[0])), w = Math.max(...cellsOf.map((c) => c[1]));
+      for (let r = 0; r + h < N; r++) for (let c = 0; c + w < N; c++) {
+        let hits = 0, ok = true;
+        for (const [dr, dc] of cellsOf) { const s = board.shots[(r + dr) * N + c + dc]; if (s === 2) hits++; else if (s) { ok = false; break; } }
+        if (!ok) continue;
+        const weight = hits ? Math.pow(30, hits) : 1;
+        for (const [dr, dc] of cellsOf) { const i = (r + dr) * N + c + dc; if (!board.shots[i]) d[i] += weight; }
+      }
     }
   }
   return d;
 }
-/** Zug des Computers: { ability, target, vertical }. skill 0–2 = Stärke. board = Feld des Menschen (der Computer liest nur shots und versenkte Schiffe). */
-function aiMove(board, cmd, ready, rnd = Math.random, skill = 2) {
+/** Wie gern der Computer je Stärke eine Bombe kauft, wenn er sie sich leisten kann (Anteil der Züge). */
+const AI_BUY = [0.08, 0.3, 1];
+/** Nächste Aktion des Computers (Seite side): erst vielleicht Mine oder Bombe, dann Schuss oder Fähigkeit. skill 0–2. */
+function aiAction(m, side, skill = 2, rnd = Math.random) {
+  const board = m.boards[1 - side], own = m.boards[side], cmd = own.cmd, pts = m.pts[side];
+  if (pts >= RULES.cost.mine && own.mines.size < 2 && rnd() < 0.22) {
+    const free = []; for (let i = 0; i < N * N; i++) if (!own.grid[i] && !own.shots[i] && !own.mines.has(i)) free.push(i);
+    if (free.length) return { m: 'mine', t: pick(free, rnd) };
+  }
   const d = density(board);
   // Stärke: 0 schießt blind, bis er etwas trifft; 1 schätzt grob; 2 rechnet genau
   for (let i = 0; i < d.length; i++) {
     if (skill === 0) d[i] = (d[i] >= 30 ? d[i] : d[i] > 0 ? 1 : 0) * (0.5 + rnd());
     else d[i] *= skill === 1 ? 0.45 + rnd() * 1.1 : 0.9 + rnd() * 0.2;
   }
+  const val = (i) => (board.shots[i] ? 0 : d[i]);
+  const sum = (cells) => cells.reduce((a, i) => a + val(i), 0);
   const best = (score) => {
     let top = -1, list = [];
     for (let i = 0; i < N * N; i++) for (const v of [false, true]) {
       const s = score(i, v);
-      if (s > top + 1e-9) { top = s; list = [{ target: i, vertical: v }]; } else if (Math.abs(s - top) <= 1e-9) list.push({ target: i, vertical: v });
+      if (s > top + 1e-9) { top = s; list = [{ t: i, v }]; } else if (Math.abs(s - top) <= 1e-9) list.push({ t: i, v });
     }
     return top > 0 ? pick(list, rnd) : null;
   };
-  const single = best((i, v) => (v || board.shots[i] ? 0 : d[i]));
-  if (!ready) return { ability: false, ...single };
-  const sum = (cells) => cells.reduce((a, i) => a + (board.shots[i] ? 0 : d[i]), 0);
+  if (pts >= RULES.cost.bomb && rnd() < AI_BUY[skill]) {
+    const spot = best((i, v) => { const [r, c] = rc(i); return v || r > N - 2 || c > N - 2 ? 0 : sum(bombCells(i)); });
+    if (spot && bombCells(spot.t).filter((i) => !board.shots[i]).length >= 2) return { m: 'bomb', t: spot.t };
+  }
+  const single = best((i, v) => (v ? 0 : val(i))) || { t: open(board)[0], v: false };
+  const shot = { m: 'shot', t: single.t };
+  if (m.charge[side] < m.cd[side]) return shot;
   let move = null;
-  switch (cmd.id) {
-    case 'astrid': move = { target: 0, vertical: false }; break;
-    case 'potier': move = single; break;
-    case 'euryleia': move = best((i, v) => {
+  switch (cmd) {
+    case 'sigrun': move = { t: 0, v: false }; break;
+    case 'beaumont': move = single; break;
+    case 'finch': {
+      const cells = open(board).sort((a, b) => d[b] - d[a]).slice(0, 5);
+      return cells.length ? { m: 'abil', t: cells[0], cells } : shot;
+    }
+    case 'kallisto': move = best((i, v) => {
       if (v || board.shots[i]) return 0;
-      const near = cmd.area(i).filter((k) => !board.shots[k]);
+      const near = around(i, 2, false).filter((k) => !board.shots[k]);
       return d[i] + (near.length ? sum(near) * Math.min(1, 6 / near.length) : 0);
     }); break;
-    case 'schmidt': case 'karslake': move = best((i, v) => {
+    case 'bellini': move = best((i, v) => (v ? 0 : sum(around(i, 1, true)))); break;
+    case 'petersen': case 'pembroke': move = best((i, v) => {
       const [r, c] = rc(i);
       // jede Linie nur einmal bewerten (an ihren beiden Enden), sonst zählt die Mitte mehrfach
       if (v ? (r !== 0 && r !== N - 1) : (c !== 0 && c !== N - 1)) return 0;
       const line = lineOf(i, v);
-      return cmd.id === 'karslake' ? sum(line) : Math.max(...line.map((k) => (board.shots[k] ? 0 : d[k])));
+      return cmd === 'pembroke' ? sum(line) : Math.max(...line.map(val));
     }); break;
-    default: move = best((i, v) => (v ? 0 : sum(cmd.cells(board, i, false, rnd))));
   }
-  return move ? { ability: true, ...move } : { ability: false, ...single };
+  return move ? { m: 'abil', t: move.t, v: move.v } : shot;
 }
 
-window.SV = { N, FLEET, COMMANDERS, newBoard, place, placeRandom, canPlace, fire, allSunk, open, aiMove, density, NORMAL };
+window.SV = { N, RULES, ORI, COMMANDERS, newBoard, shipCells, place, placeRandom, canPlace, setShip, newMatch, act, aiAction, density, sonarCount, allSunk, open };
 
 /* =====================================================================
    Porträts (SVG, selbst gezeichnet)
@@ -549,33 +785,33 @@ function portrait(id) {
   const base = (bg, coat, skin, shade) => `<rect width="100" height="100" fill="${bg}"/><path d="M8 100C10 80 30 73 50 73s40 7 42 27z" fill="${coat}"/><rect x="43" y="58" width="14" height="19" rx="5" fill="${shade}"/><ellipse cx="50" cy="47" rx="17" ry="20" fill="${skin}"/>`;
   const eyes = (y = 46) => `<circle cx="43" cy="${y}" r="2.3" fill="#231d1a"/><circle cx="57" cy="${y}" r="2.3" fill="#231d1a"/><circle cx="43.8" cy="${y - .8}" r=".8" fill="#fff"/><circle cx="57.8" cy="${y - .8}" r=".8" fill="#fff"/>`;
   const art = {
-    euryleia: () => `<path d="M30 46C26 70 30 86 36 90L64 90C70 86 74 70 70 46z" fill="#3b2418"/>${base('#8fdcec', '#f4f1ea', '#e0a273', '#c98758')}
+    kallisto: () => `<path d="M30 46C26 70 30 86 36 90L64 90C70 86 74 70 70 46z" fill="#3b2418"/>${base('#8fdcec', '#f4f1ea', '#e0a273', '#c98758')}
       <path d="M8 100C10 86 20 79 32 76L46 100z" fill="#2f7fd0"/><path d="M31 44C29 19 71 19 69 44L63 38 50 35 37 38z" fill="#e9b93b"/><path d="M31 44l4 14 3-17zM69 44l-4 14-3-17z" fill="#c9962a"/>
       <path d="M50 6C68 6 79 22 76 42 72 27 63 17 50 17c-6 0-11 2-14 5 3-10 7-16 14-16z" fill="#d8362c"/><path d="M48 35h4v10h-4z" fill="#c9962a"/>
       ${eyes()}<path d="M39 41q4-3 8 0M53 41q4-3 8 0" stroke="#3b2418" stroke-width="1.6" fill="none"/><path d="M44 56q6 5 12 0" stroke="#8a2f25" stroke-width="2.2" fill="none" stroke-linecap="round"/>`,
-    potier: () => `${base('#9db4f2', '#22346b', '#f0c9a4', '#d9ab82')}<path d="M44 76l6 9 6-9z" fill="#fff"/><ellipse cx="18" cy="84" rx="12" ry="5" fill="#e9b93b"/><ellipse cx="82" cy="84" rx="12" ry="5" fill="#e9b93b"/>
+    beaumont: () => `${base('#9db4f2', '#22346b', '#f0c9a4', '#d9ab82')}<path d="M44 76l6 9 6-9z" fill="#fff"/><ellipse cx="18" cy="84" rx="12" ry="5" fill="#e9b93b"/><ellipse cx="82" cy="84" rx="12" ry="5" fill="#e9b93b"/>
       <circle cx="50" cy="90" r="2" fill="#e9b93b"/><path d="M12 36C24 8 76 8 88 36 72 28 28 28 12 36z" fill="#15181f"/><path d="M12 36C28 27 72 27 88 36" stroke="#e9b93b" stroke-width="2.5" fill="none"/>
       <circle cx="50" cy="20" r="5" fill="#d8362c"/><circle cx="50" cy="20" r="3.2" fill="#fff"/><circle cx="50" cy="20" r="1.6" fill="#2c4cae"/>
       ${eyes()}<path d="M38 41l9 2M62 41l-9 2" stroke="#3a2a1c" stroke-width="1.8"/><path d="M50 55c-3-3-8-3-12 1-3 0-4-2-4-3 1 5 6 7 10 6 3 0 5-2 6-3 1 1 3 3 6 3 4 1 9-1 10-6 0 1-1 3-4 3-4-4-9-4-12-1z" fill="#3a2a1c"/><path d="M46 61q4 2 8 0" stroke="#8a4a3a" stroke-width="1.8" fill="none" stroke-linecap="round"/>`,
-    wade: () => `${base('#f7d98a', '#c2362f', '#f3cdb0', '#dcae8c')}<circle cx="29" cy="48" r="7" fill="#f4f4f0"/><circle cx="28" cy="59" r="6.5" fill="#f4f4f0"/><circle cx="71" cy="48" r="7" fill="#f4f4f0"/><circle cx="72" cy="59" r="6.5" fill="#f4f4f0"/>
+    finch: () => `${base('#f7d98a', '#c2362f', '#f3cdb0', '#dcae8c')}<circle cx="29" cy="48" r="7" fill="#f4f4f0"/><circle cx="28" cy="59" r="6.5" fill="#f4f4f0"/><circle cx="71" cy="48" r="7" fill="#f4f4f0"/><circle cx="72" cy="59" r="6.5" fill="#f4f4f0"/>
       <path d="M41 75l9 13 9-13-9 4z" fill="#fff"/><path d="M26 82h6v10h-6zM68 82h6v10h-6z" fill="#e9b93b"/><path d="M12 36L50 12l38 24C72 30 28 30 12 36z" fill="#15181f"/><path d="M12 36L50 12l38 24" stroke="#e9b93b" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
       <path d="M33 36q17-6 34 0l-1 4q-16-5-32 0z" fill="#f4f4f0"/>${eyes()}<path d="M38 40q5-3 9 0M53 40q4-3 9 0" stroke="#8b8b85" stroke-width="1.8" fill="none"/>
       <path d="M45 57q5 3 10 0" stroke="#8a4a3a" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="60" cy="46" r="5" fill="none" stroke="#e9b93b" stroke-width="1.6"/><path d="M65 47l3 12" stroke="#e9b93b" stroke-width="1"/>`,
-    astrid: () => `<path d="M28 44C24 64 26 80 30 90h40c4-10 6-26 2-46z" fill="#f2cf5b"/>${base('#a9ecd0', '#7a5230', '#f1c7a5', '#d9a582')}<path d="M10 92C16 78 30 73 50 73s34 5 40 19c-8-8-22-11-40-11s-32 3-40 11z" fill="#c9a77c"/>
+    sigrun: () => `<path d="M28 44C24 64 26 80 30 90h40c4-10 6-26 2-46z" fill="#f2cf5b"/>${base('#a9ecd0', '#7a5230', '#f1c7a5', '#d9a582')}<path d="M10 92C16 78 30 73 50 73s34 5 40 19c-8-8-22-11-40-11s-32 3-40 11z" fill="#c9a77c"/>
       <path d="M31 50l-5 34 8 2 3-30zM69 50l5 34-8 2-3-30z" fill="#e6bd3c"/><path d="M27 62l8 1M26 70l8 1M26 78l8 1M73 62l-8 1M74 70l-8 1M74 78l-8 1" stroke="#b98c1c" stroke-width="1.6"/>
       <path d="M30 42C28 16 72 16 70 42z" fill="#aab6c2"/><path d="M29 40h42v5H29z" fill="#7d8b99"/><path d="M47 40h6v13l-3 3-3-3z" fill="#7d8b99"/><path d="M31 30C20 30 12 20 14 8c4 9 10 13 19 13zM69 30C80 30 88 20 86 8c-4 9-10 13-19 13z" fill="#f4ecd8"/>
       ${eyes(48)}<path d="M60 52l6 5M61 55l5 4" stroke="#2f7fd0" stroke-width="2" stroke-linecap="round"/><path d="M42 57q8 8 16 0z" fill="#7a2a22"/><path d="M44 57h12v2H44z" fill="#fff"/>`,
-    ferrara: () => `<path d="M32 40c-3 10-1 18 2 24l4-22zM68 40c3 10 1 18-2 24l-4-22z" fill="#1d1a1a"/>${base('#ffc48a', '#f6f4ee', '#d9a070', '#bf8556')}<path d="M44 76l6 8 6-8z" fill="#1d1a1a"/>
+    bellini: () => `<path d="M32 40c-3 10-1 18 2 24l4-22zM68 40c3 10 1 18-2 24l-4-22z" fill="#1d1a1a"/>${base('#ffc48a', '#f6f4ee', '#d9a070', '#bf8556')}<path d="M44 76l6 8 6-8z" fill="#1d1a1a"/>
       <circle cx="50" cy="88" r="2" fill="#e9b93b"/><circle cx="50" cy="95" r="2" fill="#e9b93b"/><path d="M8 100C9 90 14 84 22 80l8 20z" fill="#2f9a4f"/><path d="M92 100c-1-10-6-16-14-20l-8 20z" fill="#d8362c"/>
       <path d="M26 30C26 10 74 10 74 30z" fill="#f6f4ee"/><path d="M28 30h44v5H28z" fill="#22346b"/><path d="M29 35C40 41 60 41 71 35l1 3C60 46 40 46 28 38z" fill="#15181f"/><circle cx="50" cy="24" r="4" fill="#e9b93b"/>
       <rect x="35" y="42" width="13" height="9" rx="3.5" fill="#15181f"/><rect x="52" y="42" width="13" height="9" rx="3.5" fill="#15181f"/><path d="M48 45h4M35 45l-4-2M65 45l4-2" stroke="#15181f" stroke-width="2"/><path d="M38 44l5 0" stroke="#fff" stroke-width="1.2" opacity=".6"/>
       <path d="M41 57q9-4 18 0-9 2-18 0z" fill="#1d1a1a"/><path d="M45 61q6 4 11-1" stroke="#7a2a22" stroke-width="2" fill="none" stroke-linecap="round"/>`,
-    schmidt: () => `${base('#b9c8d2', '#5f6b73', '#eec5a2', '#d2a27d')}<path d="M36 70h28v12H36z" fill="#76838c"/><path d="M36 74h28M36 78h28" stroke="#5f6b73" stroke-width="1.4"/>
+    petersen: () => `${base('#b9c8d2', '#5f6b73', '#eec5a2', '#d2a27d')}<path d="M36 70h28v12H36z" fill="#76838c"/><path d="M36 74h28M36 78h28" stroke="#5f6b73" stroke-width="1.4"/>
       <path d="M32 48C31 74 69 74 68 48 63 57 57 59 50 59s-13-2-18-11z" fill="#6b4a2c"/><path d="M27 31C25 12 75 12 73 31 60 26 40 26 27 31z" fill="#f1efe8"/><path d="M28 31q22-7 44 0v4q-22-7-44 0z" fill="#2b3340"/>
       <path d="M29 35C40 39 60 39 71 35l1 3C60 45 40 45 28 38z" fill="#15181f"/><path d="M46 21l4-4 4 4-4 4z" fill="#e9b93b"/>
       ${eyes(47)}<path d="M38 43h9M53 43h9" stroke="#4a321c" stroke-width="2.2"/><path d="M44 60h12" stroke="#3a2516" stroke-width="2" stroke-linecap="round"/>
       <path d="M55 60l16 5" stroke="#3a2516" stroke-width="3" stroke-linecap="round"/><path d="M68 60h9v8h-9z" fill="#5a3a20"/><path d="M71 58q2-5-1-8" stroke="#fff" stroke-width="1.6" fill="none" opacity=".7"/>`,
-    karslake: () => `${base('#d5ee9a', '#4d6a8c', '#f2c9a8', '#d9a983')}<path d="M34 72c8 6 24 6 32 0l4 12c-12 8-28 8-40 0z" fill="#f6f4ee"/><path d="M58 80l10 18h-9z" fill="#e7e3d8"/>
+    pembroke: () => `${base('#d5ee9a', '#4d6a8c', '#f2c9a8', '#d9a983')}<path d="M34 72c8 6 24 6 32 0l4 12c-12 8-28 8-40 0z" fill="#f6f4ee"/><path d="M58 80l10 18h-9z" fill="#e7e3d8"/>
       <path d="M30 52C25 16 75 16 70 52l-4 10-3-16C59 34 41 34 37 46l-3 16z" fill="#7a4a26"/><path d="M33 34q17-7 34 0" stroke="#5a3418" stroke-width="2" fill="none"/>
       <rect x="33" y="24" width="15" height="11" rx="5" fill="#bfe6ff" stroke="#3a2516" stroke-width="2.5"/><rect x="52" y="24" width="15" height="11" rx="5" fill="#bfe6ff" stroke="#3a2516" stroke-width="2.5"/><path d="M48 29h4" stroke="#3a2516" stroke-width="2.5"/>
       <path d="M36 27l5 4M55 27l5 4" stroke="#fff" stroke-width="1.5" opacity=".8"/>${eyes(47)}<path d="M38 42q5-2 9 0M53 42q4-2 9 0" stroke="#a8562a" stroke-width="1.8" fill="none"/>
@@ -588,7 +824,7 @@ function portrait(id) {
    Töne (Web Audio, alles erzeugt, keine Dateien)
    ===================================================================== */
 const Sound = (() => {
-  let ctx = null, muted = localStorage.getItem('sv.mute') === '1';
+  let ctx = null, muted = (() => { try { return localStorage.getItem('sv.mute') === '1'; } catch (e) { return false; } })();
   const ready = () => {
     if (muted) return null;
     try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) { return null; }
@@ -612,12 +848,13 @@ const Sound = (() => {
   }
   return {
     get muted() { return muted; },
-    toggle() { muted = !muted; localStorage.setItem('sv.mute', muted ? '1' : '0'); return muted; },
+    toggle() { muted = !muted; try { localStorage.setItem('sv.mute', muted ? '1' : '0'); } catch (e) { /* privater Modus */ } return muted; },
     shoot() { noise(0.12, 900, 'lowpass', 0.18); tone(260, 90, 0.12, 'square', 0.05); },
     splash() { noise(0.35, 2600, 'highpass', 0.12); tone(520, 180, 0.25, 'sine', 0.06); },
     boom() { noise(0.45, 420, 'lowpass', 0.5); tone(150, 38, 0.45, 'sine', 0.4); },
     sunk() { noise(0.8, 300, 'lowpass', 0.5); [392, 330, 262, 196].forEach((f, i) => tone(f, f * 0.94, 0.22, 'sawtooth', 0.09, 0.1 + i * 0.16)); },
     power() { tone(180, 900, 0.5, 'sawtooth', 0.09); tone(360, 1800, 0.5, 'square', 0.04); },
+    ping() { tone(1400, 1350, 0.5, 'sine', 0.12); tone(1400, 1350, 0.4, 'sine', 0.05, 0.35); },
     click() { tone(660, 880, 0.06, 'triangle', 0.08); },
     win() { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, f, 0.2, 'square', 0.08, i * 0.14)); },
     lose() { [311, 294, 277, 196].forEach((f, i) => tone(f, f * 0.9, 0.45, 'sawtooth', 0.1, i * 0.38)); }
@@ -626,30 +863,43 @@ const Sound = (() => {
 
 /* =====================================================================
    Oberfläche
+   Beide Spielarten laufen über dieselben Ereignisse (volley, sonar, laid, turn, end; by 0 = ich, 1 = Gegner):
+   gegen den Computer erzeugt sie das Skript oben, zu zweit schickt sie der Server.
    ===================================================================== */
 const $ = (id) => document.getElementById(id);
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const wait = (ms) => new Promise((r) => setTimeout(r, calm ? Math.min(ms, 60) : ms));
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const store = (key, value) => { try { if (value === undefined) return localStorage.getItem(key); localStorage.setItem(key, value); } catch (e) { /* privater Modus */ } return null; };
 
 const G = {
-  phase: 'pick', me: null, foe: null, mine: null, theirs: null,
-  charge: { me: 0, foe: 0 }, armed: false, vertical: false, busy: false,
-  sel: null, selVertical: false, turns: 0, shots: 0, hits: 0, hover: -1,
-  skill: Math.min(2, Math.max(0, parseInt(localStorage.getItem('sv.skill') ?? '1', 10) || 0))
+  online: false, phase: 'pick', me: null, foe: null, foeName: 'Gegner', mine: null, match: null, D: null,
+  pts: [0, 0], charge: [0, 0], cd: [1, 1], myTurn: false, mode: 'shot', vertical: false, multi: [], busy: false,
+  sel: null, selO: 0, hover: -1, ready: false, seq: 0, left: [], myPick: '', turns: 0, shots: 0, hits: 0,
+  skill: Math.min(2, Math.max(0, parseInt(store('sv.skill') ?? '1', 10) || 0))
 };
 const SKILLS = ['Leichtmatrose', 'Kapitän', 'Seebär'];
 /** So viele Schüsse braucht der Computer je Stärke länger zum Aufladen seiner Fähigkeit. */
 const SKILL_SLOW = [4, 2, 0];
-const stats = (() => { try { return JSON.parse(localStorage.getItem('sv.stats')) || {}; } catch (e) { return {}; } })();
+const stats = (() => { try { return JSON.parse(store('sv.stats')) || {}; } catch (e) { return {}; } })();
 
-/* ---------- Kommandeur-Auswahl ---------- */
+/** Kleine Zeichnung einer Schiffsform (quer). */
+function mini(shape) {
+  const o = ORI[shape].reduce((a, b) => (Math.max(...b.map((c) => c[0])) < Math.max(...a.map((c) => c[0])) ? b : a));
+  const h = Math.max(...o.map((c) => c[0])) + 1, w = Math.max(...o.map((c) => c[1])) + 1, has = new Set(o.map(([r, c]) => r * w + c));
+  return `<span class="mini" style="grid-template-columns:repeat(${w},auto)">${Array.from({ length: h * w }, (_, i) => `<i${has.has(i) ? '' : ' class="e"'}></i>`).join('')}</span>`;
+}
+
+/* ---------- Startseite: Spielart, Raum, Kommandeure ---------- */
 function renderPick() {
+  const locked = G.online && !Online.code;
+  $('cmds').classList.toggle('locked', locked);
   $('cmds').innerHTML = COMMANDERS.map((c, i) => {
     const s = stats[c.id];
-    return `<button class="cmd" type="button" data-id="${c.id}" style="--c1:${c.c[0]};--c2:${c.c[1]};--c3:${c.c[2]};--i:${i}">
+    return `<button class="cmd${G.online && G.myPick === c.id ? ' on' : ''}" type="button" data-id="${c.id}" aria-pressed="${G.online && G.myPick === c.id}" style="--c1:${c.c[0]};--c2:${c.c[1]};--c3:${c.c[2]};--i:${i}">
       <span class="face">${portrait(c.id)}</span>
       <span><h3>${esc(c.name)}</h3><span class="fleet">${esc(c.fleet)}</span></span>
+      <span class="fleetrow" aria-label="Flotte">${c.ships.map(mini).join('')}</span>
       <span class="abil"><span class="cd">lädt ${c.cd} Schüsse</span><b>${esc(c.ability)}</b>${esc(c.desc)}</span>
       ${s ? `<span class="rec">Deine Bilanz: ${s.w || 0} Siege, ${s.l || 0} Niederlagen</span>` : ''}</button>`;
   }).join('');
@@ -657,16 +907,150 @@ function renderPick() {
 $('cmds').addEventListener('click', (e) => {
   const b = e.target.closest('.cmd'); if (!b) return;
   Sound.click();
-  startPlacement(COMMANDERS.find((c) => c.id === b.dataset.id));
+  if (!G.online) return startLocal(cmdOf(b.dataset.id));
+  if (!Online.code) { $('err').textContent = 'Erst einen Raum eröffnen oder einem beitreten.'; $('name').focus(); return; }
+  G.myPick = G.myPick === b.dataset.id ? '' : b.dataset.id;
+  renderPick();
+  Online.do({ a: 'pick', cmd: G.myPick });
 });
 
-function renderSkills() {
+function renderModes() {
+  for (const b of $('modes').children) { const on = (b.dataset.mode === 'net') === G.online; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }
+  $('skills').hidden = G.online; $('online').hidden = !G.online;
   $('skills').innerHTML = '<span>Gegner:</span>' + SKILLS.map((s, i) => `<button type="button" class="pill${i === G.skill ? ' on' : ''}" data-k="${i}" aria-pressed="${i === G.skill}">${s}</button>`).join('');
+  $('lobbyForm').hidden = !!Online.code; $('roomBox').hidden = !Online.code;
+  $('roomCode').textContent = Online.code;
 }
+$('modes').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  const net = b.dataset.mode === 'net';
+  if (net === G.online) return;
+  Sound.click();
+  if (!net && Online.code) Online.leave();
+  G.online = net; $('err').textContent = '';
+  renderModes(); renderPick();
+});
 $('skills').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
-  G.skill = +b.dataset.k; localStorage.setItem('sv.skill', G.skill); Sound.click(); renderSkills();
+  G.skill = +b.dataset.k; store('sv.skill', G.skill); Sound.click(); renderModes();
 });
+function showPick() {
+  G.phase = 'pick'; G.busy = false;
+  $('end').hidden = true; $('game').hidden = true; $('pick').hidden = false;
+  renderModes(); renderPick(); window.scrollTo(0, 0);
+}
+
+/* ---------- Zu zweit: Raum auf dem Server ---------- */
+const Online = {
+  code: '', token: '', chain: Promise.resolve(), applying: Promise.resolve(), timer: 0,
+  call(body) {
+    return fetch('/api/schiffe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then((r) => r.json()).catch(() => ({ ok: false, offline: true, error: 'Keine Verbindung zum Server.' }));
+  },
+  /** Anfragen laufen nacheinander, damit die Antworten in der richtigen Reihenfolge ankommen. */
+  send(body) {
+    const run = () => this.call(Object.assign({ room: this.code, token: this.token, since: G.seq }, body));
+    return (this.chain = this.chain.then(run));
+  },
+  /** Anfrage schicken und die Antwort anwenden (auch nacheinander, weil Ereignisse abgespielt werden). */
+  do(body) {
+    return this.send(body).then((s) => (this.applying = this.applying.then(() => onState(s)).catch((e) => console.error(e))));
+  },
+  async enter(body) {
+    const name = $('name').value.trim();
+    if (!name && !body.token) { $('err').textContent = 'Bitte gib einen Namen ein.'; $('name').focus(); return; }
+    store('sv.name', name);
+    const s = await this.call(Object.assign({ name }, body));
+    if (!s.ok) { $('err').textContent = s.error || 'Das hat nicht geklappt.'; return; }
+    $('err').textContent = '';
+    this.code = s.code; this.token = s.token; G.seq = 0;
+    try { sessionStorage.setItem('sv.room', JSON.stringify({ code: s.code, token: s.token })); } catch (e) { /* egal */ }
+    history.replaceState(null, '', '?raum=' + s.code);
+    await (this.applying = this.applying.then(() => onState(s)));
+    this.poll();
+  },
+  poll() {
+    clearTimeout(this.timer);
+    const tick = async () => {
+      if (!this.code) return;
+      if (!G.busy) await this.do({ a: 'sync' });
+      this.timer = setTimeout(tick, G.phase === 'battle' && G.myTurn ? 1500 : 800);
+    };
+    this.timer = setTimeout(tick, 800);
+  },
+  leave(message) {
+    if (this.code) this.call({ a: 'leave', room: this.code, token: this.token });
+    clearTimeout(this.timer);
+    this.code = ''; this.token = ''; G.myPick = ''; G.seq = 0;
+    try { sessionStorage.removeItem('sv.room'); } catch (e) { /* egal */ }
+    history.replaceState(null, '', location.pathname);
+    showPick();
+    $('err').textContent = message || '';
+  }
+};
+$('create').addEventListener('click', () => Online.enter({ a: 'create' }));
+$('join').addEventListener('click', () => {
+  const code = $('code').value.trim().toUpperCase();
+  if (code.length !== 4) { $('err').textContent = 'Der Code hat vier Buchstaben.'; $('code').focus(); return; }
+  Online.enter({ a: 'join', room: code });
+});
+$('code').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('join').click(); });
+$('name').addEventListener('keydown', (e) => { if (e.key === 'Enter') ($('code').value.trim() ? $('join') : $('create')).click(); });
+$('leave').addEventListener('click', () => Online.leave());
+$('copy').addEventListener('click', async () => {
+  const link = location.origin + location.pathname + '?raum=' + Online.code;
+  try { await navigator.clipboard.writeText(link); $('copy').textContent = 'Kopiert!'; } catch (e) { $('roomState').textContent = link; }
+  setTimeout(() => { $('copy').textContent = 'Link kopieren'; }, 1600);
+});
+
+/** Antwort des Servers anwenden: Phase wechseln, neue Ereignisse abspielen, dann den Stand übernehmen. */
+async function onState(s) {
+  if (!G.online || !Online.code || !s) return;
+  if (s.gone) return Online.leave(s.error);
+  if (s.offline) { if (G.phase === 'battle') say(s.error); else $('roomState').textContent = s.error; return; }
+  G.foeName = s.foe ? s.foe.name : 'Gegner';
+  const line = $('roomline');
+  line.innerHTML = `Raum <b>${esc(s.code)}</b><span>gegen ${esc(G.foeName)}${s.foe && !s.foe.online ? ' <span class="off">(gerade nicht verbunden)</span>' : ''}</span>`;
+  if (s.phase === 'lobby') {
+    if (G.phase !== 'pick') showPick();
+    if (G.myPick !== s.me.cmd && !G.busy) { G.myPick = s.me.cmd; renderPick(); }
+    renderModes();
+    const who = s.foe ? esc(s.foe.name) : '';
+    $('roomState').innerHTML = (s.note ? esc(s.note) + ' ' : '') + (!s.foe ? '<i></i>Warte auf deinen Gegner. Schick ihm den Link oder den Code.'
+      : !s.me.cmd ? `${who} ist da${s.foe.picked ? ' und hat schon gewählt' : ''}. Wähle deinen Kommandeur.`
+      : s.foe.picked ? 'Gleich geht es los …' : `<i></i>${who} überlegt noch.`);
+    return;
+  }
+  if (!s.foe && G.phase === 'pick') return Online.leave('Dein Gegner ist gegangen.');
+  if (s.phase === 'place') {
+    if (G.phase !== 'place') setupTable(cmdOf(s.me.cmd), cmdOf(s.foe.cmd));
+    G.ready = s.me.ready;
+    updatePlaceUi(s.foe.ready);
+    return;
+  }
+  // Gefecht oder Ende
+  const fresh = G.phase !== 'place' && G.phase !== 'battle' && G.phase !== 'end';
+  if (fresh) { setupTable(cmdOf(s.me.cmd), cmdOf(s.foe.cmd)); G.seq = s.seq; }
+  if (G.phase === 'place') {
+    s.mine.ships.forEach((cells, id) => setShip(G.mine, id, cells));
+    beginBattle();
+  }
+  if (s.error) { say(s.error); nope($('boxTheirs')); }
+  G.left = s.theirs.left || [];
+  const was = G.busy; G.busy = true;
+  for (const ev of s.events) { if (ev.seq > G.seq) { G.seq = ev.seq; await play(ev); } }
+  G.busy = was;
+  if (!G.online) return;
+  // Stand übernehmen
+  for (let i = 0; i < N * N; i++) { G.D.mine[i] = +s.mine.shots[i]; G.D.theirs[i] = +s.theirs.shots[i]; }
+  G.D.mines = new Set(s.mine.mines);
+  G.D.sonar = new Map(s.theirs.sonar.map((x) => [x.t, x.n]));
+  G.D.sunk = new Map(s.theirs.sunk.map((x) => [x.id, x.cells]));
+  G.pts = s.pts; G.charge = s.charge; G.cd = s.cd;
+  paint('mine'); paint('theirs'); updateSide('me'); updateSide('foe');
+  if (s.phase === 'end') { if (G.phase !== 'end') finish(!!s.won, false, s.note); }
+  else if (fresh || G.myTurn !== s.myTurn) setTurn(s.myTurn); else updateBar();
+}
 
 /* ---------- Felder aufbauen ---------- */
 function buildGrid(wrap, key) {
@@ -675,28 +1059,49 @@ function buildGrid(wrap, key) {
     <div class="grid" id="grid-${key}">${Array.from({ length: N * N }, (_, i) => `<button class="cell" type="button" data-i="${i}" data-s="0" aria-label="${cellName(i)}"></button>`).join('')}<div class="fx" id="fx-${key}"></div></div>`;
 }
 const cellEl = (key, i) => $('grid-' + key).children[i];
-const STATE = ['offen', 'Wasser', 'Treffer', 'versenkt'];
+const STATE = ['offen', 'Wasser', 'Treffer', 'versenkt', 'Mine explodiert'];
 function paint(key) {
-  const board = key === 'mine' ? G.mine : G.theirs;
+  const shots = G.D[key];
   for (let i = 0; i < N * N; i++) {
-    const el = cellEl(key, i), s = board.shots[i];
+    const el = cellEl(key, i), s = shots[i];
     el.dataset.s = s;
-    el.classList.toggle('ship', key === 'mine' && board.grid[i] > 0);
-    el.classList.toggle('sel', key === 'mine' && G.phase === 'place' && G.sel !== null && board.grid[i] === G.sel + 1);
-    el.setAttribute('aria-label', `${cellName(i)}, ${key === 'mine' && board.grid[i] && !s ? 'eigenes Schiff' : STATE[s]}`);
+    if (key === 'mine') {
+      const ship = G.mine.grid[i] > 0, mine = G.D.mines.has(i);
+      el.classList.toggle('ship', ship);
+      el.classList.toggle('minec', mine);
+      el.classList.toggle('sel', G.phase === 'place' && G.sel !== null && G.mine.grid[i] === G.sel + 1);
+      el.setAttribute('aria-label', `${cellName(i)}, ${mine ? 'eigene Mine' : ship && !s ? 'eigenes Schiff' : STATE[s]}`);
+    } else {
+      const n = G.D.sonar.get(i);
+      el.classList.toggle('sonar', n !== undefined);
+      if (n !== undefined) el.dataset.n = n; else delete el.dataset.n;
+      el.classList.toggle('multi', G.multi.includes(i));
+      el.setAttribute('aria-label', `${cellName(i)}, ${STATE[s]}${n !== undefined ? `, Sonar: ${n} Schiffsteile in der Nähe` : ''}`);
+    }
   }
 }
-function sidePanel(el, cmd, label, board, key) {
-  el.innerHTML = `<div class="lab">${label}</div><div class="nm">${esc(cmd.name)}</div><div class="face">${portrait(cmd.id)}</div>
+function sidePanel(el, cmd, label, key) {
+  el.innerHTML = `<div class="lab">${esc(label)}</div><div class="nm">${esc(cmd.name)}</div>
+    <div class="fb"><div class="face">${portrait(cmd.id)}</div><div class="coin" id="coin-${key}" title="Punkte">0</div></div>
     <div class="slot"><div class="fl">${esc(cmd.fleet)}</div><div class="bubble" id="bubble-${key}" hidden></div></div>
-    <div class="score" id="score-${key}">${board.ships.filter((s) => !s.sunk).length}<small>Schiffe übrig</small></div>
-    <ul class="ships" id="ships-${key}">${board.ships.map((s) => `<li data-id="${s.id}"><span class="pips">${'<i></i>'.repeat(s.len)}</span>${s.name}</li>`).join('')}</ul>`;
+    <div class="score" id="score-${key}">5<small>Schiffe übrig</small></div>
+    ${key === 'foe' ? `<div class="chg" id="chg-foe" title="${esc(cmd.ability)}"></div>` : ''}
+    <ul class="ships" id="ships-${key}">${cmd.ships.map((shape, id) => `<li data-id="${id}">${mini(shape)}${SHIP_NAMES[id]}</li>`).join('')}</ul>`;
+}
+function sunkIds(key) {
+  if (key === 'foe') return [...G.D.sunk.keys()];
+  return G.mine.ships.filter((s) => s.cells.length && G.D.mine[s.cells[0]] === 3).map((s) => s.id);
 }
 function updateSide(key) {
-  const board = key === 'me' ? G.mine : G.theirs;
-  $('score-' + key).firstChild.nodeValue = board.ships.filter((s) => !s.sunk).length;
-  board.ships.forEach((s) => $('ships-' + key).children[s.id].classList.toggle('sunk', s.sunk));
+  const sunk = sunkIds(key), k = key === 'me' ? 0 : 1;
+  $('score-' + key).firstChild.nodeValue = 5 - sunk.length;
+  [...$('ships-' + key).children].forEach((li, id) => li.classList.toggle('sunk', sunk.includes(id)));
+  const coin = $('coin-' + key);
+  if (coin.textContent !== String(G.pts[k])) { coin.textContent = G.pts[k]; coin.classList.remove('bump'); void coin.offsetWidth; coin.classList.add('bump'); }
+  if (key === 'foe') $('chg-foe').innerHTML = `${esc(G.foe.ability)} ` + Array.from({ length: G.cd[1] }, (_, i) => `<i class="${i < G.charge[1] ? 'on' : ''}"></i>`).join('');
+  else $('pts').textContent = G.pts[0];
 }
+function setPts(pts) { if (!pts) return; G.pts = pts.slice(); updateSide('me'); updateSide('foe'); updateBar(); }
 let bubbleTimer = {};
 function speak(key, text) {
   const el = $('bubble-' + key); if (!el) return;
@@ -712,153 +1117,271 @@ function banner(text, sub, bad) {
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 1200);
 }
+function nope(box) { box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); }
 
 /* ---------- Aufstellen ---------- */
-function startPlacement(cmd) {
-  G.me = cmd;
-  G.foe = pick(COMMANDERS.filter((c) => c.id !== cmd.id));
-  G.mine = placeRandom(newBoard()); G.theirs = placeRandom(newBoard());
-  Object.assign(G, { phase: 'place', charge: { me: 0, foe: 0 }, armed: false, vertical: false, busy: false, sel: null, turns: 0, shots: 0, hits: 0 });
+function startLocal(cmd) {
+  const foe = pick(COMMANDERS.filter((c) => c.id !== cmd.id));
+  G.foeName = 'Gegner';
+  setupTable(cmd, foe);
+}
+/** Tisch für eine neue Partie: Felder, Seitenleisten, zufällige Aufstellung zum Umstellen. */
+function setupTable(me, foe) {
+  G.me = me; G.foe = foe;
+  G.mine = placeRandom(newBoard(me.id));
+  G.match = null;
+  G.D = { mine: new Uint8Array(N * N), theirs: new Uint8Array(N * N), mines: new Set(), sonar: new Map(), sunk: new Map() };
+  Object.assign(G, { phase: 'place', pts: [0, 0], charge: [0, 0], cd: [me.cd, foe.cd + (G.online ? 0 : SKILL_SLOW[G.skill])], myTurn: false, mode: 'shot', vertical: false, multi: [], busy: false, sel: null, ready: false, left: [], turns: 0, shots: 0, hits: 0 });
   $('pick').hidden = true; $('game').hidden = false; $('end').hidden = true;
   $('game').classList.remove('battle');
-  $('placeUi').hidden = false; $('bar').hidden = true;
+  $('placeUi').hidden = false; $('bar').hidden = true; $('roomline').hidden = !G.online;
   buildGrid($('wrapMine'), 'mine'); buildGrid($('wrapTheirs'), 'theirs');
-  sidePanel($('sideYou'), G.me, 'Du', G.mine, 'me'); sidePanel($('sideFoe'), G.foe, 'Gegner', G.theirs, 'foe');
-  $('boxMine').classList.add('placing'); $('boxTheirs').classList.remove('live');
+  sidePanel($('sideYou'), me, 'Du', 'me'); sidePanel($('sideFoe'), foe, G.online ? G.foeName : 'Gegner', 'foe');
+  $('boxMine').classList.add('placing'); $('boxMine').classList.remove('laying'); $('boxTheirs').className = 'boardbox theirs';
   $('sideYou').classList.remove('active'); $('sideFoe').classList.remove('active');
-  paint('mine'); paint('theirs'); updateGo();
-  speak('me', G.me.q.start); setTimeout(() => speak('foe', G.foe.q.start), 900);
+  paint('mine'); paint('theirs'); updateSide('me'); updateSide('foe'); updatePlaceUi(false);
+  speak('me', me.q.start); setTimeout(() => speak('foe', foe.q.start), 900);
   window.scrollTo(0, 0);
 }
-function updateGo() { $('go').disabled = G.sel !== null; }
-function clearGhost() { for (const el of $('grid-mine').children) el.classList.remove('ghost-ok', 'ghost-bad'); }
+function updatePlaceUi(foeReady) {
+  $('go').disabled = G.sel !== null || G.ready; $('rot').disabled = G.ready; $('rnd').disabled = G.ready;
+  $('boxMine').classList.toggle('placing', !G.ready);
+  $('placeHint').hidden = G.ready;
+  $('placeWait').hidden = !G.online || !(G.ready || foeReady);
+  $('placeWait').textContent = G.ready ? `Warte auf ${G.foeName} …` : `${G.foeName} ist fertig und wartet auf dich.`;
+}
+function clearGhost() { for (const el of $('grid-mine').children) el.classList.remove('ghost-ok', 'ghost-bad', 'aim-mine'); }
 function ghost(i) {
   clearGhost();
   if (G.phase !== 'place' || G.sel === null || i < 0) return;
-  const ok = canPlace(G.mine, G.sel, i, G.selVertical);
-  const cells = ok || (shipCells(i, G.mine.ships[G.sel].len, G.selVertical) || [i]);
+  const ok = canPlace(G.mine, G.sel, i, G.selO);
+  const cells = ok || (shipCells(G.mine.ships[G.sel].shape, G.selO, i) || [i]);
   cells.forEach((k) => cellEl('mine', k).classList.add(ok ? 'ghost-ok' : 'ghost-bad'));
 }
 function placeClick(i) {
-  if (G.phase !== 'place') return;
+  if (G.phase !== 'place' || G.ready) return;
   if (G.sel === null) {
     const id = G.mine.grid[i] - 1; if (id < 0) return;
-    G.sel = id; G.selVertical = !!G.mine.ships[id].vertical; G.selBack = { start: G.mine.ships[id].cells[0], vertical: G.selVertical };
+    G.sel = id; G.selO = G.mine.ships[id].o;
     lift(G.mine, id); Sound.click();
-  } else if (place(G.mine, G.sel, i, G.selVertical)) { G.sel = null; Sound.splash(); }
-  else { $('boxMine').classList.remove('shake'); void $('boxMine').offsetWidth; $('boxMine').classList.add('shake'); }
-  paint('mine'); ghost(G.sel === null ? -1 : i); updateGo();
+  } else if (place(G.mine, G.sel, i, G.selO)) { G.sel = null; Sound.splash(); }
+  else nope($('boxMine'));
+  paint('mine'); ghost(G.sel === null ? -1 : i); updatePlaceUi(false);
 }
 function rotate() {
   if (G.phase === 'place') {
-    if (G.sel === null) return;
-    G.selVertical = !G.selVertical; ghost(G.hover); Sound.click();
-  } else if (G.phase === 'battle' && G.armed && G.me.orient) { G.vertical = !G.vertical; updateBar(); aim(G.hover); Sound.click(); }
+    if (G.sel === null || G.ready) return;
+    G.selO = (G.selO + 1) % ORI[G.mine.ships[G.sel].shape].length; ghost(G.hover); Sound.click();
+  } else if (G.phase === 'battle' && G.mode === 'abil' && G.me.orient) { G.vertical = !G.vertical; updateBar(); aim(G.hover); Sound.click(); }
 }
 $('rot').addEventListener('click', rotate);
-$('rnd').addEventListener('click', () => { G.sel = null; placeRandom(G.mine); paint('mine'); clearGhost(); updateGo(); Sound.splash(); });
-$('go').addEventListener('click', startBattle);
-document.addEventListener('keydown', (e) => { if (e.key === 'r' || e.key === 'R') rotate(); if (e.key === 'Escape' && G.armed) { G.armed = false; updateBar(); aim(-1); } });
-$('wrapMine').addEventListener('click', (e) => { const c = e.target.closest('.cell'); if (c) placeClick(+c.dataset.i); });
+$('rnd').addEventListener('click', () => { if (G.ready) return; G.sel = null; placeRandom(G.mine); paint('mine'); clearGhost(); updatePlaceUi(false); Sound.splash(); });
+$('go').addEventListener('click', () => {
+  if (G.sel !== null || G.ready || G.phase !== 'place') return;
+  if (G.online) { G.ready = true; updatePlaceUi(false); Sound.click(); Online.do({ a: 'place', ships: G.mine.ships.map((s) => s.cells) }); return; }
+  const theirs = placeRandom(newBoard(G.foe.id));
+  G.match = newMatch([G.mine, theirs], 0, Math.random, [0, SKILL_SLOW[G.skill]]);
+  beginBattle();
+  play({ e: 'turn', by: 0, pts: G.match.pts.slice() });
+});
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'r' || e.key === 'R') rotate();
+  if (e.key === 'Escape' && G.mode !== 'shot') setMode('shot');
+});
+$('wrapMine').addEventListener('click', (e) => {
+  const c = e.target.closest('.cell'); if (!c) return;
+  if (G.phase === 'place') placeClick(+c.dataset.i);
+  else if (G.phase === 'battle' && G.mode === 'mine') doAction({ m: 'mine', t: +c.dataset.i });
+});
 $('wrapMine').addEventListener('contextmenu', (e) => { if (G.phase === 'place') { e.preventDefault(); rotate(); } });
-$('wrapMine').addEventListener('pointerover', (e) => { const c = e.target.closest('.cell'); G.hover = c ? +c.dataset.i : -1; if (G.phase === 'place') ghost(G.hover); });
-$('wrapMine').addEventListener('pointerleave', () => { if (G.phase === 'place') clearGhost(); });
+$('wrapMine').addEventListener('pointerover', (e) => {
+  const c = e.target.closest('.cell'), i = c ? +c.dataset.i : -1;
+  if (G.phase === 'place') { G.hover = i; ghost(i); }
+  else if (G.phase === 'battle' && G.mode === 'mine') { clearGhost(); if (i >= 0 && !G.mine.grid[i] && !G.D.mine[i] && !G.D.mines.has(i)) c.classList.add('aim-mine'); }
+});
+$('wrapMine').addEventListener('pointerleave', clearGhost);
 
 /* ---------- Gefecht ---------- */
-function startBattle() {
-  if (G.sel !== null) return;
-  G.phase = 'battle';
+function beginBattle() {
+  G.phase = 'battle'; G.sel = null;
   $('game').classList.add('battle');
   $('placeUi').hidden = true; $('bar').hidden = false;
   $('boxMine').classList.remove('placing'); clearGhost(); paint('mine');
   Sound.power(); banner('Feuer frei!');
-  setTurn(true);
 }
 function setTurn(mine) {
-  G.myTurn = mine;
+  G.myTurn = mine; G.mode = 'shot'; G.multi = [];
   $('sideYou').classList.toggle('active', mine); $('sideFoe').classList.toggle('active', !mine);
-  $('boxTheirs').classList.toggle('live', mine);
-  say(mine ? 'Du bist dran. Such dir ein Feld aus.' : `${G.foe.name} zielt …`);
-  updateBar();
+  say(mine ? 'Du bist dran. Such dir ein Feld aus.' : G.online ? `${G.foeName} ist dran …` : `${G.foe.name} zielt …`);
+  updateBar(); paint('theirs');
+}
+const HINT = {
+  shot: 'Du bist dran. Such dir ein Feld aus.',
+  sonar: 'Sonar: tippe ein schon beschossenes Feld beim Gegner an.',
+  mine: 'Mine: tippe ein freies Wasserfeld in deiner Flotte an.',
+  bomb: 'Bombe: wähle die Ecke für 2×2 Felder. Danach schießt du noch normal.'
+};
+function setMode(mode) {
+  if (G.phase !== 'battle' || !G.myTurn || G.busy) return;
+  G.mode = G.mode === mode ? 'shot' : mode; G.multi = [];
+  Sound.click();
+  say(G.mode === 'abil' ? (G.me.anywhere ? 'Tippe irgendwo ins Feld. Odin macht den Rest.' : G.me.multi ? 'Salve: wähle fünf Felder.' : `${G.me.ability}: Ziel wählen`) : HINT[G.mode]);
+  updateBar(); paint('theirs'); aim(G.hover);
 }
 function updateBar() {
-  const c = G.me, ready = G.charge.me >= c.cd, b = $('abil');
-  b.disabled = !ready || !G.myTurn || G.busy;
-  b.classList.toggle('ready', ready && G.myTurn && !G.armed && !G.busy);
-  b.classList.toggle('armed', G.armed);
-  b.setAttribute('aria-pressed', G.armed);
-  b.innerHTML = `${esc(c.ability)}<small>${G.armed ? 'Ziel wählen (Esc bricht ab)' : ready ? 'Bereit! Antippen zum Scharfmachen' : `lädt: noch ${c.cd - G.charge.me} ${c.cd - G.charge.me === 1 ? 'Schuss' : 'Schüsse'}`}</small>
-    <span class="pp">${Array.from({ length: c.cd }, (_, i) => `<i class="${i < G.charge.me ? 'on' : ''}"></i>`).join('')}</span>`;
+  if (G.phase !== 'battle' && G.phase !== 'end') return;
+  const c = G.me, ready = G.charge[0] >= G.cd[0], can = G.myTurn && !G.busy && G.phase === 'battle', b = $('abil'), armed = G.mode === 'abil';
+  b.disabled = !ready || !can;
+  b.classList.toggle('ready', ready && can && !armed);
+  b.classList.toggle('armed', armed);
+  b.setAttribute('aria-pressed', armed);
+  const left = G.cd[0] - G.charge[0];
+  b.innerHTML = `${esc(c.ability)}<small>${armed ? 'Ziel wählen (Esc bricht ab)' : ready ? 'Bereit! Antippen zum Scharfmachen' : `lädt: noch ${left} ${left === 1 ? 'Schuss' : 'Schüsse'}`}</small>
+    <span class="pp">${Array.from({ length: G.cd[0] }, (_, i) => `<i class="${i < G.charge[0] ? 'on' : ''}"></i>`).join('')}</span>`;
+  for (const [id, m] of [['tSonar', 'sonar'], ['tMine', 'mine'], ['tBomb', 'bomb']]) {
+    const t = $(id);
+    t.disabled = !can || G.pts[0] < RULES.cost[m] || (m === 'mine' && G.D.mines.size >= RULES.maxMines);
+    t.classList.toggle('armed', G.mode === m); t.setAttribute('aria-pressed', G.mode === m);
+  }
+  $('pts').textContent = G.pts[0];
   const o = $('orient');
-  o.hidden = !(G.armed && c.orient);
-  o.textContent = G.vertical ? 'Spalte ↕' : 'Reihe ↔';
+  o.hidden = !(armed && (c.orient || c.multi));
+  o.textContent = c.multi ? `Feuer! (${G.multi.length}/5)` : G.vertical ? 'Spalte ↕' : 'Reihe ↔';
+  o.disabled = c.multi && !G.multi.length;
+  $('boxTheirs').className = 'boardbox theirs' + (can && G.mode !== 'mine' ? ' live' : '') + ' m-' + G.mode;
+  $('boxMine').classList.toggle('laying', can && G.mode === 'mine');
 }
-$('abil').addEventListener('click', () => {
-  if (G.busy || !G.myTurn || G.charge.me < G.me.cd) return;
-  G.armed = !G.armed; Sound.click(); updateBar(); aim(G.hover);
-  if (G.armed) say(G.me.anywhere ? 'Tippe irgendwo ins Feld. Odin macht den Rest.' : `${G.me.ability}: Ziel wählen`);
-  else say('Du bist dran. Such dir ein Feld aus.');
-});
-$('orient').addEventListener('click', rotate);
+$('abil').addEventListener('click', () => { if (G.charge[0] >= G.cd[0]) setMode('abil'); });
+for (const id of ['tSonar', 'tMine', 'tBomb']) $(id).addEventListener('click', (e) => setMode(e.currentTarget.dataset.m));
+$('orient').addEventListener('click', () => { if (G.me.multi) { if (G.multi.length) doAction({ m: 'abil', t: G.multi[0], cells: G.multi.slice() }); } else rotate(); });
 
 function aim(i) {
-  for (const el of $('grid-theirs').children) el.classList.remove('aim', 'aim-soft');
-  if (G.phase !== 'battle' || !G.myTurn || G.busy || i < 0) return;
-  const mark = (list, cls) => list.forEach((k) => { if (!G.theirs.shots[k]) cellEl('theirs', k).classList.add(cls); });
-  if (!G.armed) return mark([i], 'aim');
+  for (const el of $('grid-theirs').children) el.classList.remove('aim', 'aim-soft', 'aim-sonar');
+  if (G.phase !== 'battle' || !G.myTurn || G.busy || i < 0 || G.mode === 'mine') return;
+  const openOnly = (list) => list.filter((k) => !G.D.theirs[k]);
+  const mark = (list, cls) => list.forEach((k) => cellEl('theirs', k).classList.add(cls));
+  if (G.mode === 'sonar') { if (G.D.theirs[i] && !G.D.sonar.has(i)) { mark(around(i, 1, false), 'aim-soft'); mark([i], 'aim-sonar'); } return; }
+  if (G.mode === 'bomb') return mark(openOnly(bombCells(i)), 'aim');
+  if (G.mode === 'shot') return mark(openOnly([i]), 'aim');
   const c = G.me;
-  if (c.anywhere) return mark(open(G.theirs), 'aim-soft');
-  if (c.id === 'euryleia') { mark(c.area(i), 'aim-soft'); return mark([i], 'aim'); }
-  if (c.id === 'schmidt') { mark(c.area(i, G.vertical), 'aim-soft'); return mark([i], 'aim'); }
-  if (c.id === 'potier') return mark([i], 'aim');
-  mark(c.cells(G.theirs, i, G.vertical), 'aim');
+  if (c.anywhere) return mark(openOnly([...Array(N * N).keys()]), 'aim-soft');
+  if (c.id === 'kallisto') { mark(openOnly(around(i, 2, false)), 'aim-soft'); return mark(openOnly([i]), 'aim'); }
+  if (c.id === 'petersen') { mark(openOnly(lineOf(i, G.vertical)), 'aim-soft'); return mark([i], 'aim'); }
+  if (c.id === 'pembroke') return mark(openOnly(lineOf(i, G.vertical)), 'aim');
+  if (c.id === 'bellini') return mark(openOnly(around(i, 1, true)), 'aim');
+  mark(openOnly([i]), 'aim');
 }
 $('wrapTheirs').addEventListener('pointerover', (e) => { const c = e.target.closest('.cell'); G.hover = c ? +c.dataset.i : -1; aim(G.hover); });
 $('wrapTheirs').addEventListener('pointerleave', () => { G.hover = -1; aim(-1); });
 $('wrapTheirs').addEventListener('focusin', (e) => { const c = e.target.closest('.cell'); if (c) aim(+c.dataset.i); });
-$('wrapTheirs').addEventListener('click', (e) => {
-  const c = e.target.closest('.cell'); if (!c) return;
-  playerShoot(+c.dataset.i);
-});
+$('wrapTheirs').addEventListener('click', (e) => { const c = e.target.closest('.cell'); if (c) targetClick(+c.dataset.i); });
 
-function nope(box) { box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); }
-
-async function playerShoot(target) {
+function targetClick(t) {
   if (G.phase !== 'battle' || !G.myTurn || G.busy) return;
-  const useAbility = G.armed, weapon = useAbility ? G.me : NORMAL;
-  if ((!useAbility || weapon.needsOpen) && G.theirs.shots[target]) return nope($('boxTheirs'));
-  const cells = weapon.cells(G.theirs, target, G.vertical);
-  if (!cells.length) return nope($('boxTheirs'));
-  G.busy = true; G.armed = false; aim(-1);
-  if (useAbility) { G.charge.me = 0; await announce('me', G.me); } else G.charge.me = Math.min(G.me.cd, G.charge.me + 1);
-  updateBar();
-  const res = await volley('theirs', cells, weapon.fx, { target, vertical: G.vertical });
-  G.turns++; G.shots += res.length; G.hits += res.filter((r) => r.result !== 'miss').length;
-  react('me', res, true);
-  updateSide('foe');
-  if (allSunk(G.theirs)) return finish(true);
-  await wait(450);
-  setTurn(false);
-  await wait(650);
-  await foeTurn();
+  const openCell = !G.D.theirs[t], bad = () => nope($('boxTheirs'));
+  switch (G.mode) {
+    case 'mine': return say(HINT.mine);
+    case 'sonar': return G.D.theirs[t] && !G.D.sonar.has(t) ? doAction({ m: 'sonar', t }) : bad();
+    case 'bomb': return bombCells(t).some((i) => !G.D.theirs[i]) ? doAction({ m: 'bomb', t }) : bad();
+    case 'shot': return openCell ? doAction({ m: 'shot', t }) : bad();
+  }
+  const c = G.me;
+  if (c.multi) {
+    if (!openCell) return bad();
+    const at = G.multi.indexOf(t);
+    if (at >= 0) G.multi.splice(at, 1); else G.multi.push(t);
+    Sound.click();
+    let free = 0; for (let i = 0; i < N * N; i++) if (!G.D.theirs[i]) free++;
+    if (G.multi.length >= Math.min(5, free)) return doAction({ m: 'abil', t: G.multi[0], cells: G.multi.slice() });
+    updateBar(); paint('theirs');
+    return;
+  }
+  if (c.needsOpen && !openCell) return bad();
+  doAction({ m: 'abil', t, v: G.vertical });
 }
 
-async function foeTurn() {
-  const foeCd = G.foe.cd + SKILL_SLOW[G.skill], ready = G.charge.foe >= foeCd;
-  const move = aiMove(G.mine, G.foe, ready, Math.random, G.skill);
-  const weapon = move.ability ? G.foe : NORMAL;
-  const cells = weapon.cells(G.mine, move.target, move.vertical);
-  if (move.ability) { G.charge.foe = 0; await announce('foe', G.foe); } else G.charge.foe = Math.min(foeCd, G.charge.foe + 1);
-  const res = await volley('mine', cells, weapon.fx, { target: move.target, vertical: move.vertical });
-  react('foe', res, false);
-  updateSide('me');
-  if (res.some((r) => r.result !== 'miss')) nope($('boxMine'));
-  if (allSunk(G.mine)) return finish(false);
-  await wait(500);
+/** Eine eigene Aktion ausführen: zu zweit über den Server, sonst direkt und danach zieht der Computer. */
+async function doAction(a) {
+  if (G.busy || G.phase !== 'battle' || !G.myTurn) return;
+  G.busy = true; G.mode = 'shot'; G.multi = []; aim(-1); clearGhost(); updateBar(); paint('theirs');
+  if (a.m === 'shot' || a.m === 'abil') G.turns++;
+  if (G.online) await Online.do(Object.assign({ a: 'act' }, a));
+  else {
+    const r = act(G.match, 0, a);
+    if (r.error) { say(r.error); nope($('boxTheirs')); }
+    else { await playAll(r.events); await computerTurn(); }
+  }
   G.busy = false;
-  setTurn(true);
+  if (G.phase === 'battle') { updateBar(); if (G.myTurn && G.mode === 'shot' && a.m !== 'shot' && a.m !== 'abil') say(HINT.shot); }
+}
+async function playAll(events) {
+  for (const ev of events) await play(ev);
+  syncLocal();
+}
+/** Gegen den Computer: Anzeige mit der Partie abgleichen (Ladung, Sonar-Zahlen). */
+function syncLocal() {
+  const m = G.match; if (!m) return;
+  G.charge = m.charge.slice(); G.cd = m.cd.slice(); G.pts = m.pts.slice();
+  for (const t of m.sonar[0]) G.D.sonar.set(t, sonarCount(m.boards[1], t));
+  paint('theirs'); updateSide('me'); updateSide('foe'); updateBar();
+}
+async function computerTurn() {
+  const m = G.match;
+  while (m.winner < 0 && m.turn === 1 && G.phase === 'battle') {
+    await wait(650);
+    const r = act(m, 1, aiAction(m, 1, G.skill));
+    if (r.error) { console.error(r.error); break; }
+    await playAll(r.events);
+  }
 }
 
+/* ---------- Ereignisse abspielen ---------- */
+async function play(ev) {
+  if (G.phase !== 'battle') return;
+  const mine = ev.by === 0, key = mine ? 'me' : 'foe', cmd = mine ? G.me : G.foe, who = G.online ? G.foeName : G.foe.name;
+  switch (ev.e) {
+    case 'volley': {
+      const boardKey = mine ? 'theirs' : 'mine';
+      let fx = 'ball';
+      if (ev.kind === 'abil') { fx = cmd.fx; await announce(key, cmd); }
+      else if (ev.kind === 'bomb') { fx = 'bomb'; Sound.power(); banner('Bombe!', mine ? null : who, !mine); say(mine ? 'Bombe ist unterwegs.' : `${who} wirft eine Bombe.`); await wait(550); }
+      else if (ev.kind === 'mine') { fx = 'bomb'; Sound.boom(); banner('Mine!', mine ? `${who} ist reingefahren` : 'Das war eine Falle', !mine); say(mine ? 'Deine Mine geht hoch: zwei Einschläge beim Gegner.' : 'Mine erwischt! Zwei Einschläge bei dir, dein Zug ist vorbei.'); await wait(750); }
+      if (ev.res.length) await volley(boardKey, ev.res, fx, ev);
+      if (mine && ev.kind !== 'mine') { G.shots += ev.res.length; G.hits += ev.res.filter((r) => r.r === 'hit' || r.r === 'sunk').length; }
+      if (ev.kind !== 'mine') react(key, ev.res, mine);
+      if (!mine && ev.res.some((r) => r.r === 'hit' || r.r === 'sunk')) nope($('boxMine'));
+      setPts(ev.pts);
+      await wait(350);
+      break;
+    }
+    case 'sonar': {
+      Sound.ping();
+      const [x, y] = centerOf(mine ? 'theirs' : 'mine', ev.t), p = spawn(mine ? 'theirs' : 'mine', 'ping', x, y, null, true);
+      setTimeout(() => p.remove(), 1050);
+      if (mine) { G.D.sonar.set(ev.t, ev.n); paint('theirs'); say(ev.n ? `Sonar bei ${cellName(ev.t)}: ${ev.n} ${ev.n === 1 ? 'Schiffsteil' : 'Schiffsteile'} in der Nähe.` : `Sonar bei ${cellName(ev.t)}: nichts in der Nähe.`); }
+      else say(`${who} horcht mit dem Sonar bei ${cellName(ev.t)}.`);
+      setPts(ev.pts);
+      await wait(mine ? 250 : 900);
+      break;
+    }
+    case 'laid':
+      Sound.splash();
+      if (mine) { G.D.mines.add(ev.t); paint('mine'); say('Mine gelegt. Jetzt heißt es warten.'); }
+      else { say(`${who} hat irgendwo eine Mine gelegt.`); speak('foe', 'Ich habe da was vorbereitet.'); }
+      setPts(ev.pts);
+      await wait(mine ? 150 : 900);
+      break;
+    case 'turn':
+      setPts(ev.pts);
+      setTurn(mine);
+      break;
+    case 'end':
+      setPts(ev.pts);
+      finish(mine, !!ev.left);
+      break;
+  }
+}
 async function announce(key, cmd) {
   Sound.power();
   banner(cmd.ability, cmd.name, key === 'foe');
@@ -870,16 +1393,16 @@ async function announce(key, cmd) {
 const WORDS = { miss: ['Platsch', 'Daneben', 'Nur Wasser', 'Blubb', 'Knapp vorbei'], hit: ['Treffer!', 'Boom!', 'Autsch!', 'Zack!', 'Sitzt!'] };
 function react(key, res, mine) {
   const cmd = key === 'me' ? G.me : G.foe, other = key === 'me' ? 'foe' : 'me', otherCmd = key === 'me' ? G.foe : G.me;
-  const sunk = res.filter((r) => r.result === 'sunk'), hits = res.filter((r) => r.result !== 'miss').length;
+  const sunk = res.filter((r) => r.r === 'sunk').map((r) => SHIP_NAMES[r.ship]), hits = res.filter((r) => r.r === 'hit' || r.r === 'sunk').length;
   if (sunk.length) {
-    banner(sunk.length > 1 ? `${sunk.length}× versenkt!` : 'Versenkt!', sunk.map((r) => r.ship.name).join(' + '), !mine);
+    banner(sunk.length > 1 ? `${sunk.length}× versenkt!` : 'Versenkt!', sunk.join(' + '), !mine);
     speak(key, pick(cmd.q.sunk)); setTimeout(() => speak(other, pick(otherCmd.q.lost)), 700);
-    say(mine ? `Versenkt: ${sunk.map((r) => r.ship.name).join(', ')}` : `Dein ${sunk[0].ship.name} ist weg.`);
+    say(mine ? `Versenkt: ${sunk.join(', ')}` : `Dein ${sunk[0]} ist weg.`);
   } else if (hits) {
     if (hits >= 3) banner(`${hits}× Treffer!`, null, !mine);
     speak(key, pick(cmd.q.hit));
-    say(mine ? (hits > 1 ? `${hits} Treffer!` : 'Treffer!') : (hits > 1 ? `${hits} Treffer kassiert.` : 'Du wurdest getroffen.'));
-  } else {
+    say(mine ? (hits > 1 ? `${hits} Treffer!` : 'Treffer!') : (hits > 1 ? `${hits} Treffer kassiert. Dafür gibt es ${hits} Punkte.` : 'Du wurdest getroffen. Ein Punkt Schmerzensgeld.'));
+  } else if (!res.some((r) => r.r === 'mine')) {
     speak(key, pick(cmd.q.miss));
     say(mine ? pick(['Nur Wasser.', 'Daneben.', 'Die Fische sind sauer.']) : pick(['Daneben. Glück gehabt.', 'Der Gegner trifft nur Wasser.']));
   }
@@ -912,29 +1435,31 @@ function fly(key, cls, from, to, ms, arc) {
   ], { duration: ms, easing: 'linear' });
   return anim.finished.catch(() => {}).then(() => el.remove());
 }
-function impact(key, i, r) {
-  const [x, y] = centerOf(key, i), hit = r.result !== 'miss';
+/** Ein Einschlag: Anzeige des Felds ändern und Effekt zeigen. */
+function impact(key, r) {
+  const shots = G.D[key], i = r.i, hit = r.r !== 'miss';
+  if (r.r === 'sunk') { r.cells.forEach((k) => { shots[k] = 3; }); if (key === 'theirs') G.D.sunk.set(r.ship, r.cells); }
+  else shots[i] = r.r === 'miss' ? 1 : r.r === 'hit' ? 2 : 4;
+  if (r.r === 'mine' && key === 'mine') G.D.mines.delete(i);
+  const [x, y] = centerOf(key, i);
   const fx = spawn(key, hit ? 'boom' : 'splash', x, y, null, true);
   setTimeout(() => fx.remove(), 700);
-  if (r.result === 'sunk') Sound.sunk(); else if (hit) Sound.boom(); else Sound.splash();
+  if (r.r === 'sunk') Sound.sunk(); else if (hit) Sound.boom(); else Sound.splash();
   if (hit || Math.random() < 0.35) {
     const w = spawn(key, 'word', x, y, null, true);
-    w.textContent = r.result === 'sunk' ? 'Versenkt!' : pick(WORDS[hit ? 'hit' : 'miss']);
+    w.textContent = r.r === 'sunk' ? 'Versenkt!' : r.r === 'mine' ? 'Mine!' : pick(WORDS[hit ? 'hit' : 'miss']);
     if (!hit) w.style.fontSize = '17px';
     setTimeout(() => w.remove(), 950);
   }
-  const cells = r.result === 'sunk' ? r.ship.cells : [i];
-  cells.forEach((k) => { const el = cellEl(key, k); el.classList.remove('reveal'); void el.offsetWidth; el.classList.add('reveal'); });
-  paint(key);
+  (r.r === 'sunk' ? r.cells : [i]).forEach((k) => { const el = cellEl(key, k); el.classList.remove('reveal'); void el.offsetWidth; el.classList.add('reveal'); });
+  paint(key); updateSide(key === 'mine' ? 'me' : 'foe');
 }
-/** Beschießt die Felder nacheinander (leicht versetzt) und liefert die Ergebnisse. */
-async function volley(key, cells, fx, info) {
-  const board = key === 'mine' ? G.mine : G.theirs, grid = $('grid-' + key), W = grid.offsetWidth, H = grid.offsetHeight;
-  const results = [];
-  const land = (i) => { const r = fire(board, i); if (r.result !== 'dup') { results.push(r); impact(key, i, r); } };
+/** Zeigt die Einschläge einer Salve nacheinander (leicht versetzt). */
+async function volley(key, res, fx, info) {
+  const grid = $('grid-' + key), W = grid.offsetWidth, H = grid.offsetHeight, cells = res.map((r) => r.i);
   if (fx === 'plane' || fx === 'torp') {
     const first = centerOf(key, cells[0]), last = centerOf(key, cells[cells.length - 1]);
-    const dir = info.vertical ? [0, Math.sign(last[1] - first[1]) || (first[1] > H / 2 ? -1 : 1)] : [Math.sign(last[0] - first[0]) || (first[0] > W / 2 ? -1 : 1), 0];
+    const dir = info.v ? [0, Math.sign(last[1] - first[1]) || (first[1] > H / 2 ? -1 : 1)] : [Math.sign(last[0] - first[0]) || (first[0] > W / 2 ? -1 : 1), 0];
     const step = fx === 'plane' ? 90 : 150, lead = 70;
     const start = [first[0] - dir[0] * lead, first[1] - dir[1] * lead];
     const end = fx === 'plane' ? [last[0] + dir[0] * (lead + 40), last[1] + dir[1] * (lead + 40)] : last;
@@ -944,47 +1469,50 @@ async function volley(key, cells, fx, info) {
     const total = step * cells.length + 200;
     if (!calm && el.animate) el.animate([{ transform: `translate(${start[0]}px, ${start[1]}px) rotate(${deg}deg)` }, { transform: `translate(${end[0]}px, ${end[1]}px) rotate(${deg}deg)` }], { duration: total, easing: fx === 'plane' ? 'linear' : 'ease-in', fill: 'forwards' });
     Sound.shoot();
-    for (let k = 0; k < cells.length; k++) { await wait(step); land(cells[k]); }
+    for (const r of res) { await wait(step); impact(key, r); }
     await wait(200); el.remove();
-    return results;
+    return;
   }
   const cls = { arrow: 'arrow', bomb: 'bomb', axe: 'axe', shell: 'shell', ball: '' }[fx] || '';
   const stagger = cells.length > 1 ? 130 : 0;
-  await Promise.all(cells.map(async (i, k) => {
+  await Promise.all(res.map(async (r, k) => {
     await wait(k * stagger);
-    const to = centerOf(key, i);
+    const to = centerOf(key, r.i);
     const from = fx === 'bomb' ? [to[0], -60] : key === 'theirs' ? [-50 + Math.random() * 40, H * (0.3 + Math.random() * 0.6)] : [W + 10 + Math.random() * 40, H * (0.3 + Math.random() * 0.6)];
     Sound.shoot();
     await fly(key, cls, from, to, fx === 'bomb' ? 420 : 460, fx === 'bomb' ? 0 : 70 + Math.random() * 50);
-    land(i);
+    impact(key, r);
   }));
   await wait(250);
-  return results;
 }
 
 /* ---------- Ende ---------- */
-function finish(won) {
-  G.phase = 'end'; G.busy = true;
-  $('sideYou').classList.remove('active'); $('sideFoe').classList.remove('active'); $('boxTheirs').classList.remove('live');
+function finish(won, left, note) {
+  if (G.phase === 'end') return;
+  G.phase = 'end';
+  $('sideYou').classList.remove('active'); $('sideFoe').classList.remove('active'); $('boxTheirs').classList.remove('live'); $('boxMine').classList.remove('laying');
+  updateBar();
   // übrige Schiffe des Gegners zeigen
-  G.theirs.ships.forEach((s) => { if (!s.sunk) s.cells.forEach((i) => { if (!G.theirs.shots[i]) cellEl('theirs', i).classList.add('left'); }); });
+  const rest = G.online ? G.left : G.match.boards[1].ships.filter((s) => !s.sunk);
+  rest.forEach((s) => s.cells.forEach((i) => { if (!G.D.theirs[i]) cellEl('theirs', i).classList.add('left'); }));
   const s = stats[G.me.id] = stats[G.me.id] || { w: 0, l: 0 };
   if (won) s.w++; else s.l++;
-  try { localStorage.setItem('sv.stats', JSON.stringify(stats)); } catch (e) { /* privater Modus */ }
+  store('sv.stats', JSON.stringify(stats));
+  const online = G.online, foeName = G.foeName;
   setTimeout(() => {
+    if (G.phase !== 'end') return;
     won ? Sound.win() : Sound.lose();
     if (won && !calm) confetti();
     const speaker = won ? G.me : G.foe, rate = G.shots ? Math.round(G.hits / G.shots * 100) : 0;
     $('end').innerHTML = `<div class="endcard ${won ? 'win' : 'lose'}" role="dialog" aria-label="${won ? 'Sieg' : 'Niederlage'}">
       <h2>${won ? 'Sieg!' : 'Blubb.'}</h2><div class="face">${portrait(speaker.id)}</div>
-      <p class="q">${esc(speaker.name)}: „${esc(won ? speaker.q.win : G.foe.q.win)}“</p>
-      ${won ? '' : `<p>${esc(G.me.name)}: „${esc(G.me.q.lose)}“</p>`}
-      <div class="st"><div><b>${G.turns}</b><span>Züge</span></div><div><b>${rate} %</b><span>Trefferquote</span></div><div><b>${G.mine.ships.filter((x) => !x.sunk).length}/5</b><span>Schiffe übrig</span></div></div>
-      <div class="row"><button class="btn go" id="again" type="button">Revanche</button><button class="btn" id="other" type="button">Anderer Kommandeur</button></div></div>`;
+      ${left ? `<p class="q">${esc(note || `${foeName} ist gegangen. Du gewinnst kampflos.`)}</p>` : `<p class="q">${esc(speaker.name)}: „${esc(speaker.q.win)}“</p>${won ? '' : `<p>${esc(G.me.name)}: „${esc(G.me.q.lose)}“</p>`}`}
+      <div class="st"><div><b>${G.turns}</b><span>Züge</span></div><div><b>${rate} %</b><span>Trefferquote</span></div><div><b>${5 - sunkIds('me').length}/5</b><span>Schiffe übrig</span></div></div>
+      <div class="row"><button class="btn go" id="again" type="button">Revanche</button><button class="btn" id="other" type="button">${online ? 'Raum verlassen' : 'Anderer Kommandeur'}</button></div></div>`;
     $('end').hidden = false;
     $('again').focus();
-    $('again').addEventListener('click', () => startPlacement(G.me));
-    $('other').addEventListener('click', () => { $('end').hidden = true; $('game').hidden = true; $('pick').hidden = false; G.phase = 'pick'; renderPick(); window.scrollTo(0, 0); });
+    $('again').addEventListener('click', () => (online ? Online.do({ a: 'again' }) : startLocal(G.me)));
+    $('other').addEventListener('click', () => (online ? Online.leave() : showPick()));
   }, 1100);
 }
 function confetti() {
@@ -1002,9 +1530,19 @@ function confetti() {
 function muteLabel() { $('mute').textContent = Sound.muted ? 'Ton aus' : 'Ton an'; $('mute').setAttribute('aria-pressed', Sound.muted); }
 $('mute').addEventListener('click', () => { Sound.toggle(); muteLabel(); Sound.click(); });
 muteLabel();
-renderSkills();
-renderPick();
-window.SVG = G;
+$('name').value = store('sv.name') || '';
+window.SVG = G; window.SVO = Online;
+(() => {
+  const wanted = (new URLSearchParams(location.search).get('raum') || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+  if (wanted.length === 4) {
+    G.online = true; $('code').value = wanted;
+    let saved = null;
+    try { saved = JSON.parse(sessionStorage.getItem('sv.room')); } catch (e) { /* egal */ }
+    if (saved && saved.code === wanted) Online.enter({ a: 'join', room: wanted, token: saved.token });
+  }
+  renderModes(); renderPick();
+  if (G.online && !Online.code && !$('name').value) $('name').focus();
+})();
 </script>
 </body>
 </html>

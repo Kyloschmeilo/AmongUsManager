@@ -489,12 +489,31 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
 - **Schiffe versenken** (14.11.2026, Kilian: Browserspiele auf der Website, jedes Spiel eine eigene Seite, „bunter“ im Stil von
   Codenames, „alles gerne animiert“): `seiten/schiffe.html` **im Repo** (Ordner `seiten/` im Wurzelordner = Standard von
   `WEB_PAGES_DIR` beim lokalen Start; aufs Panel in `seiten/` neben die JAR legen), eine Datei ohne Abhängigkeiten (Schrift Barlow
-  Condensed eingebettet, Porträts als SVG im Skript, Töne per Web Audio). 10×10, Schiffe 5/4/3/3/2, gegen den Computer. Sieben
-  Kommandeure (`COMMANDERS`: Euryleia Pfeilhagel 1+6 in der Nähe, Potier Surgical Strike, Wade Breitseite Kreuz aus 5, Astrid 6
-  zufällig, Ferrara 3×3, Schmidt Torpedo bis zum ersten Schiff, Karslake ganze Reihe/Spalte); die Fähigkeit lädt mit jedem normalen
-  Schuss (`cd`). Computer: Wahrscheinlichkeitskarte (`density`/`aiMove`), drei Stärken (ungenauer + Fähigkeit lädt 4/2/0 Schüsse
-  langsamer, `SKILL_SLOW`). Regeln ohne DOM unter `window.SV` (damit per Playwright simulierbar). Eigenes buntes Design, nicht das
-  Standard-Design. Kein Mehrspieler. Die Spiele-Startseite (Kacheln) baut ein anderer Thread; „Alle Spiele“ zeigt auf `/`.
+  Condensed eingebettet, Porträts als SVG im Skript, Töne per Web Audio). Eigenes buntes Design, nicht das Standard-Design.
+  **Umbau 15.11.2026** (Kilian: „kann ich nicht gegen andere Menschen spielen … punkte … pro zug 2 … pro eigenes Schiff das
+  getroffen wird 1 … Sonar 3, Mine 2, Bombe 5 … schiff formen im anhang“, Screenshots eines fertigen Handyspiels): 10×10, jeder
+  der sieben Kommandeure hat eine **eigene Flotte** aus fünf Schiffen mit 16 Feldern, auch L-/T-/Z-/Kreuz-Formen (drehen und spiegeln
+  beim Aufstellen, Schiffe dürfen sich berühren). **Punkte**: 2 zu Beginn jedes eigenen Zugs, 1 je getroffenem eigenen Schiffsteil.
+  Vor dem Schuss kaufbar (beliebig oft): **Sonar** (3) auf ein schon beschossenes Feld → Zahl der unentdeckten Schiffsteile in den
+  acht Feldern drumherum (Zahl bleibt stehen und zählt mit); **Mine** (2) auf eigenes freies Wasser, höchstens 3 gleichzeitig –
+  trifft der Gegner sie, schlagen bei ihm zwei zufällige Schüsse ein und sein Zug ist vorbei (auch nach einer Bombe); **Bombe** (5)
+  = zusätzlicher 2×2-Schuss. Normaler Schuss oder Spezialfähigkeit (lädt weiter mit normalen Schüssen, `cd`) beendet den Zug, ein
+  Schuss pro Zug. Fähigkeiten: Kallisto Pfeilhagel 1+6 in der Nähe, Beaumont Präzisionsschlag (Treffer versenkt das Schiff), Finch
+  Salve aus 5 frei gewählten Feldern, Sigrun 6 zufällig, Bellini 3×3, Petersen Torpedo bis zum ersten Schiff (oder Mine), Pembroke
+  ganze Reihe/Spalte. **Bewusst eigene Namen, Porträts und Flotten**: die Screenshots zeigen ein bestehendes Spiel, dessen Figuren
+  und Aussehen nicht nachgebaut werden – nur die Spielideen (frühere Namen aus Kilians erster Liste wurden deshalb ersetzt).
+  **Zu zweit** (`web/ShipGame.kt`, `POST /api/schiffe`, GET = `{rooms, players}` für die Live-Leiste, Muster wie Meme-Schmiede:
+  Raum-Code aus 4 Buchstaben, Link `?raum=CODE`, Token, nur im Speicher, Abfragen alle 0,8–1,5 s): Lobby (beide wählen, Wahl des
+  Gegners bleibt bis zum Start geheim) → Aufstellen (Server prüft die Formen) → Gefecht (wer anfängt, wird gewürfelt) → Ende/Revanche.
+  Der Server entscheidet alles und schickt jedem nur seine Sicht (Seite 0 = ich): vom gegnerischen Feld nur Schüsse, versenkte
+  Schiffe, eigene Sonar-Zahlen; wo Minen liegen, nie. Ereignisliste mit `seq` (volley/sonar/laid/turn/end), die Seite spielt neue
+  Ereignisse ab und übernimmt dann den Stand; Neuladen mitten im Gefecht geht (Token in sessionStorage). Wer im Gefecht geht oder
+  2 min weg ist, verliert. **Regeln gibt es zweimal** (Skript der Seite für das Spiel gegen den Computer, `ShipMatch` für zu zweit):
+  Zahlen, Formen, Flotten stehen im Block `RULES` der Seite und in `ShipRules` – `ShipGameTest` prüft, dass sie gleich sind; Regeln
+  immer in beiden ändern. Computer (`density`/`aiAction`, drei Stärken): Wahrscheinlichkeitskarte über alle Lagen der Formen, kauft
+  Minen und Bomben (je Stärke seltener, `AI_BUY`), kein Sonar; Fähigkeit lädt 4/2/0 Schüsse langsamer (`SKILL_SLOW`). Regeln ohne DOM
+  unter `window.SV`, Zustand `window.SVG` (per Playwright simulierbar). Die Spiele-Startseite (Kacheln) gehört einem anderen Thread;
+  „Alle Spiele“ zeigt auf `/`.
 - **Nudelsalat – Schlangen-Arena** (14.11.2026, Kilian: Spiele wie Slither.io auf der Website, „bunter“, animiert, Meme-Humor; eigenes
   Spiel mit eigenem Namen/Look, kein Nachbau): Seite `seiten/nudelsalat.html` (**im Repo**, gehört in den `seiten/`-Ordner neben der
   StatsWebsite.jar → `/seiten/nudelsalat.html`), Server `web/NoodleGame.kt`. Mehrspieler über den Website-Server: SSE-Stream
