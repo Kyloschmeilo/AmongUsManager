@@ -171,4 +171,31 @@ class NoodleGameTest {
             server.stop()
         }
     }
+
+    @Test
+    fun botsDoNotCircleForeverAroundCrumbs() {
+        // Kilian, 15.11.2026: Bots kreisten ewig um kleine Kugeln, die sie wegen des Wendekreises nicht erreichten
+        for (seed in 1..6) {
+            val game = NoodleGame(random = Random(seed))
+            val client = game.connect("1.2.3.4")!!
+            val track = HashMap<Int, ArrayList<Pair<Double, Double>>>()
+            repeat(90 * NoodleGame.TICKS) { tick ->
+                game.tick()
+                client.queue.clear()
+                if (tick % NoodleGame.TICKS == 0) {
+                    for (bot in game.allSnakes()) track.getOrPut(bot.id) { ArrayList() } += bot.x to bot.y
+                }
+            }
+            for ((id, points) in track) {
+                // 12 Sekunden am Stück in einem Kreis von 120 Punkten = festgefahren
+                for (start in 0..points.size - 12) {
+                    val window = points.subList(start, start + 12)
+                    val cx = window.sumOf { it.first } / window.size
+                    val cy = window.sumOf { it.second } / window.size
+                    val spread = window.maxOf { hypot(it.first - cx, it.second - cy) }
+                    assertTrue(spread > 120, "Bot $id (Seed $seed) kreist ab Sekunde $start auf der Stelle")
+                }
+            }
+        }
+    }
 }
