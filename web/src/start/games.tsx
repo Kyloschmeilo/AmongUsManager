@@ -47,7 +47,7 @@ const stroke = { stroke: '#120f24', strokeWidth: 3, strokeLinejoin: 'round' as c
 
 export const GAMES: Game[] = [
   {
-    files: ['schiffe.html', 'schiffeversenken.html', 'schiffe-versenken.html'], href: '/seiten/schiffe.html', title: 'Schiffe versenken', tag: 'Strategie',
+    files: ['schiffe.html', 'schiffeversenken.html', 'schiffe-versenken.html'], href: '/seiten/schiffe.html', title: 'Schiffe versenken', tag: 'Strategie', live: '/api/schiffe',
     text: 'Mit sieben Kommandeuren und ihren Spezialangriffen.',
     color: '#2f7cf6', ink: '#ffffff', accent: '#ffd23f',
     icon: (

@@ -54,6 +54,8 @@ class StatsServer(
     private val wordGame: WordGame? = null,
     /** Meme-Schmiede: Memes schreiben und bewerten (/api/memes, Seite seiten/memes.html), null = aus. */
     private val memeGame: MemeGame? = null,
+    /** Schiffe versenken zu zweit (/api/schiffe, Seite seiten/schiffe.html), null = aus. */
+    private val shipGame: ShipGame? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
@@ -101,6 +103,7 @@ class StatsServer(
             if (path == MampfGame.PATH || path.startsWith(MampfGame.PATH + "/")) return mampf(exchange, method, path)
             if (path == WordGame.PATH || path.startsWith(WordGame.PATH + "/")) return wordGame(exchange, method, path)
             if (path == MemeGame.PATH) return memeGame(exchange, method, path)
+            if (path == ShipGame.PATH) return shipGame(exchange, method, path)
             if (method != "GET" && method != "HEAD") {
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
@@ -355,6 +358,20 @@ class StatsServer(
 
     private fun memeGame(exchange: HttpExchange, method: String, path: String) {
         val handler = memeGame ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
+        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
+        val response = handler.handle(WebRequest(method, path, emptyMap(), emptyMap(), body), client)
+        for ((name, value) in response.headers) {
+            if (name.equals("Cache-Control", ignoreCase = true)) continue
+            exchange.responseHeaders.add(name, value)
+        }
+        respond(exchange, response.status, response.type, response.body, cache = "no-store")
+    }
+
+    // ---------- Schiffe versenken ----------
+
+    private fun shipGame(exchange: HttpExchange, method: String, path: String) {
+        val handler = shipGame ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
         val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
         val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
         val response = handler.handle(WebRequest(method, path, emptyMap(), emptyMap(), body), client)

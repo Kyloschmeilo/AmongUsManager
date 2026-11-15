@@ -139,6 +139,7 @@ fun main() {
             mampf = mampf,
             wordGame = wordGame,
             memeGame = MemeGame(),
+            shipGame = ShipGame(),
         )
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)
