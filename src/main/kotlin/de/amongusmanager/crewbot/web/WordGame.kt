@@ -403,10 +403,15 @@ class WordGame(
         }
     }
 
-    private fun info(): WebResponse = json(200, obj(
+    /** Wortpakete + Live-Status (`rooms`, `players`, `list` mit Codes) für die Startseite. */
+    private fun info(): WebResponse = json(200, JsonObject(obj(
         "packs" to WordGameWords.PACKS.map { obj("id" to it.id, "name" to it.name, "about" to it.about, "count" to it.words.size) },
-        "rooms" to synchronized(rooms) { rooms.size },
-    ))
+    ) + LiveRooms.status(synchronized(rooms) { rooms.values.toList() }.map { room ->
+        synchronized(room) {
+            LiveRooms.Room(room.code, room.players.values.count { it.online }, MAX_PLAYERS,
+                room.phase == WordRoom.Phase.CLUE || room.phase == WordRoom.Phase.GUESS, room.players.size)
+        }
+    })))
 
     private fun create(body: JsonObject, client: String): WebResponse {
         val name = cleanName(body.str("name")) ?: return json(400, obj("error" to "Gib dir einen Namen (1–$NAME_LENGTH Zeichen)."))

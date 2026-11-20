@@ -285,6 +285,10 @@ class WordGameTest {
         val info = client.send(HttpRequest.newBuilder(URI("$base/api/geheimfunk")).build(), HttpResponse.BodyHandlers.ofString())
         val packs = (parseJson(info.body()) as JsonObject)["packs"] as JsonArray
         assertEquals(WordGameWords.PACKS.size, packs.size)
-        assertEquals(1, ((parseJson(info.body()) as JsonObject)["rooms"] as JsonPrimitive).int)
+        // Live-Status: nur Räume mit verbundenen Spielern, beitretbare mit Code, keine Namen
+        val live = parseJson(info.body()) as JsonObject
+        val list = live["list"] as JsonArray
+        assertEquals(list.size, (live["rooms"] as JsonPrimitive).int)
+        assertFalse(info.body().contains("Kylo"))
     }
 }

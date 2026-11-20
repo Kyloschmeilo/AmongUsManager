@@ -191,12 +191,13 @@ class MemeGame(
         }
     }
 
-    /** Für die Live-Leiste der Startseite: wie viele Räume gerade jemanden haben und wie viele Leute da sind (ohne Codes/Namen). */
+    /** Für die Live-Leiste der Startseite: belegte Räume mit Code (zum direkten Beitreten), keine Namen. */
     private fun status(): WebResponse {
         val now = clock()
         sweep(now)
-        val online = rooms.values.map { room -> room.players.values.count { now - it.lastSeen < OFFLINE_MS } }.filter { it > 0 }
-        return json(200, obj("rooms" to online.size, "players" to online.sum()))
+        return json(200, LiveRooms.status(rooms.values.map { room ->
+            LiveRooms.Room(room.code, present(room, now).size, MemeRules.MAX_PLAYERS, room.phase != Phase.LOBBY && room.phase != Phase.FINAL, room.players.size)
+        }))
     }
 
     // ---------- Raum betreten ----------

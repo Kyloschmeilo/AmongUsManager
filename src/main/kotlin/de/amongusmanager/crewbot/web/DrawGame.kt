@@ -481,11 +481,12 @@ class DrawGame(
     }
 
     /** Bringt den Raum auf den Stand von `now`: Abwesende raus, abgelaufene Phasen weiter. */
-    /** Für die Live-Leiste der Startseite: nur Anzahlen offener Räume und anwesender Spieler, keine Codes oder Namen. */
+    /** Für die Live-Leiste der Startseite: belegte Räume mit Code (zum direkten Beitreten), keine Namen. */
     private fun status(now: Long): WebResponse {
         sweep(now)
-        val present = rooms.values.map { room -> present(room, now).size }.filter { it > 0 }
-        return json(200, obj("rooms" to present.size, "players" to present.sum()))
+        return json(200, LiveRooms.status(rooms.values.map { room ->
+            LiveRooms.Room(room.code, present(room, now).size, DrawRules.MAX_PLAYERS, room.phase != Phase.LOBBY && room.phase != Phase.FINAL, room.players.size)
+        }))
     }
 
     private fun tick(room: Room, now: Long) {

@@ -4,7 +4,7 @@ import gsap from 'gsap';
 import type { LiveLobby, LobbiesResponse } from '../lib/lobbies';
 import type { Overview, RoundItem } from '../lib/api';
 import { playerColor } from '../lib/colors';
-import { GAMES, liveOf, type Game, type LiveGame } from './games';
+import { GAMES, joinHref, liveOf, type Game, type LiveGame, type LiveRoom } from './games';
 
 const APP = '/amongus';
 
@@ -219,7 +219,7 @@ function LiveBar({ lobbies, games, loaded, failed, overview }: { lobbies: LiveLo
       <div className="st-live__row">
         {lobbies.map((lobby) => <LobbyCard key={lobby.id} lobby={lobby} />)}
         {lobbies.length > 0 && <MoreLobbies />}
-        {games.map((g) => <GameLiveCard key={g.game.href} running={g} />)}
+        {games.map((g) => <GameLiveCards key={g.game.href} running={g} />)}
         {loaded && lobbies.length === 0 && <Idle last={last} />}
         {!loaded && !failed && <div className="st-idle st-idle--wait"><span>Schaue nach laufenden Lobbys …</span></div>}
         {failed && <div className="st-idle"><span>Live-Daten gerade nicht erreichbar.</span></div>}
@@ -252,25 +252,41 @@ function Idle({ last }: { last: RoundItem | undefined }) {
   );
 }
 
-/** Laufendes Browserspiel: Arena mit Spielerzahl oder Raum-Spiel mit offenen Räumen (Codes bleiben im Spiel). */
-function GameLiveCard({ running }: { running: RunningGame }) {
+/**
+ * Laufendes Browserspiel: Raum-Spiele zeigen jeden beitretbaren Raum als eigene Karte (Klick = direkt in den Raum),
+ * Arenen eine Karte mit Spielerzahl (Klick = direkt in die Arena). Sind alle Räume voll, führt die Karte nur zum Spiel.
+ */
+function GameLiveCards({ running }: { running: RunningGame }) {
+  const { href, info } = running;
+  if (info.list && info.list.length) {
+    return <>{info.list.map((room) => <GameLiveCard key={room.code} running={running} room={room} href={joinHref(href, room.code)} />)}</>;
+  }
+  return <GameLiveCard running={running} href={info.list ? href : joinHref(href)} />;
+}
+
+function GameLiveCard({ running, room, href }: { running: RunningGame; room?: LiveRoom; href: string }) {
   const ref = useAppear<HTMLAnchorElement>();
-  const { game, href, info } = running;
+  const { game, info } = running;
   const style = { '--c': game.color, '--ink': game.ink, '--acc': game.accent } as CSSProperties;
-  const people = info.players ? `${info.players} ${info.players === 1 ? 'spielt' : 'spielen'} gerade` : '';
-  const rooms = info.rooms ? `${info.rooms} ${info.rooms === 1 ? 'Raum' : 'Räume'} offen` : '';
+  const count = room ? room.players : info.players;
+  const people = room ? `${count}/${room.max} Spieler` : count ? `${count} ${count === 1 ? 'spielt gerade' : 'spielen gerade'}` : '';
+  const what = room
+    ? `Raum ${room.code} · ${room.playing ? 'läuft' : 'Lobby'}`
+    : info.list ? `${info.rooms} ${info.rooms === 1 ? 'Raum' : 'Räume'}, alle voll` : '';
+  const go = room ? 'Beitreten' : info.list ? 'Zum Spiel' : 'Mitspielen';
   return (
-    <a ref={ref} className="st-lobby st-lobby--game" href={href} style={style}>
+    <a ref={ref} className="st-lobby st-lobby--game" href={href} style={style}
+      aria-label={room ? `${game.title}: Raum ${room.code} beitreten` : `${game.title}: ${go}`}>
       <span className="st-lobby__state">{game.tag}</span>
       <span className="st-lobby__icon">{game.icon}</span>
       <b className="st-lobby__map">{game.title}</b>
-      <span className="st-lobby__host">{[people, rooms].filter(Boolean).join(' · ')}</span>
-      {info.players > 0 && (
+      <span className="st-lobby__host">{[what, people].filter(Boolean).join(' · ')}</span>
+      {count > 0 && (
         <span className="st-lobby__crew" aria-hidden="true">
-          {Array.from({ length: Math.min(12, info.players) }, (_, i) => <i key={i} style={{ background: 'var(--acc)', animationDelay: `${i * 0.12}s` }} />)}
+          {Array.from({ length: Math.min(12, count) }, (_, i) => <i key={i} style={{ background: 'var(--acc)', animationDelay: `${i * 0.12}s` }} />)}
         </span>
       )}
-      <span className="st-tile__go">{info.rooms && !info.players ? 'Raum beitreten' : 'Mitspielen'} <Arrow /></span>
+      <span className="st-tile__go">{go} <Arrow /></span>
     </a>
   );
 }

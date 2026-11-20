@@ -575,7 +575,9 @@ textarea.field { resize: vertical; min-height: 70px; font-size: 15px; }
   const knownPlayers = new Set();
 
   $("nameInput").value = saved.name || "";
-  const hashCode = (location.hash || "").replace("#", "").toUpperCase().slice(0, 4);
+  // Raum aus dem Link: #CODE (Einladung) oder ?raum=CODE (Live-Leiste der Startseite)
+  const hashCode = ((location.hash || "").replace("#", "") || new URLSearchParams(location.search).get("raum") || "")
+    .toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4);
   if (hashCode) $("joinCode").value = hashCode;
 
   function renderMaker() { $("makerAvatar").innerHTML = avatarSvg(myAvatar); }
@@ -671,7 +673,7 @@ textarea.field { resize: vertical; min-height: 70px; font-size: 15px; }
   function begin(res) {
     room = res.code; token = res.token; me = res.you;
     store.save({ room, token });
-    history.replaceState(null, "", "#" + room);
+    history.replaceState(null, "", location.pathname + "#" + room);
     chatSeq = 0; gen = -1; opsKnown = 0; needOps = true; pendingOps = []; pendingMsgs = []; expectClears = 0;
     knownPlayers.clear();
     clearChat();
@@ -1243,6 +1245,10 @@ textarea.field { resize: vertical; min-height: 70px; font-size: 15px; }
     call({ a: "join", room: saved.room, token: saved.token, name: saved.name || "", av: myAvatar })
       .then((res) => { if (res.ok) begin(res); else store.save({ room: "", token: "" }); })
       .catch(() => {});
+  } else if (hashCode.length === 4) {
+    // direkt in den Raum aus dem Link – mit bekanntem Namen ohne weiteren Klick, sonst nur noch Namen eingeben
+    if ($("nameInput").value.trim()) enter("join");
+    else { homeError("Gib deinen Namen ein und drück Enter – dann bist du in Raum " + hashCode + "."); $("nameInput").focus(); }
   }
   addEventListener("pagehide", () => {
     // Beim Schließen nichts tun: wer neu lädt, kommt mit dem Token zurück; wer weg ist, fliegt nach kurzer Zeit raus.

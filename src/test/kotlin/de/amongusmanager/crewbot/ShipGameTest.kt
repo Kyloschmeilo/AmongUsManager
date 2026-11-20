@@ -265,9 +265,9 @@ class ShipGameTest {
     @Test
     fun twoPlayersPlayThroughARoom() {
         val (first, second) = battle()
-        // Status für die Live-Leiste: ohne Codes und Namen
+        // Status für die Live-Leiste: ohne Namen; der Raum ist voll, also kein Code zum Beitreten
         val status = game.handle(WebRequest("GET", ShipGame.PATH, emptyMap(), emptyMap()), "1.2.3.4").body.toString(Charsets.UTF_8)
-        assertEquals("""{"rooms":1,"players":2}""", status)
+        assertEquals("""{"rooms":1,"players":2,"list":[]}""", status)
         assertFalse(send(second, "act", "m" to "shot", "t" to 0).ok(), "nicht dran")
         val match = game.matchOf(first.code)!!
         val water = (0 until 100).first { i -> match.boards.all { it.grid[i] == 0 } }

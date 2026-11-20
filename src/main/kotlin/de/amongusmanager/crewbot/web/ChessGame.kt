@@ -110,8 +110,10 @@ class ChessGame(
     private fun status(): WebResponse {
         val now = clock()
         sweep(now)
-        val online = rooms.values.map { room -> room.players.values.count { now - it.lastSeen < OFFLINE_MS } }.filter { it > 0 }
-        return json(200, obj("rooms" to online.size, "players" to online.sum()))
+        // Live-Leiste: Räume mit Code zum direkten Beitreten (läuft schon eine Partie, kommt man als Zuschauer rein)
+        return json(200, LiveRooms.status(rooms.values.map { room ->
+            LiveRooms.Room(room.code, room.players.values.count { now - it.lastSeen < OFFLINE_MS }, MAX_PEOPLE, room.phase == Phase.PLAY, room.players.size)
+        }))
     }
 
     // ---------- Raum betreten ----------

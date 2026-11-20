@@ -478,8 +478,13 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   `corehold` (Bridge an); keine Datei = Kachel „Bald“,
   unbekannte Dateien erscheinen als eigene Kachel „Neu“. Neue Spiele in `GAMES` anhängen. **Live-Leiste mit Browserspielen** (14.11.2026, Kilian: „unter live sollen auch
   laufende Browser games gezeigt werden“): Spiele mit `live` (Status-Adresse, GET/JSON) werden alle 10 s gefragt; `liveOf` liest
-  `players`/`online` (Arena) bzw. `rooms` (Zahl oder Liste, Raum-Spiele), > 0 → Karte „N spielen gerade“/„N Räume offen“ mit Link
-  zum Spiel (Raum-Codes nie öffentlich). Antwortet ein Spiel nicht mit JSON (z.B. nur POST), wird es pro Besuch nicht mehr gefragt.
+  `players`/`online` (Arena) bzw. `rooms` (Zahl oder Liste, Raum-Spiele), > 0 → Karte. **Direkt beitreten** (20.11.2026, Kilian: „wenn man im live tab auf ein spiel klickt muss man trotzdem den
+  code eingeben mach das man bei jedem game automatisch joint“): Raum-Spiele liefern im GET zusätzlich `list` (`web/LiveRooms.kt`:
+  beitretbare Räume mit Code/Spielerzahl/max/playing, keine Namen, volle fehlen, ≤ 6 je Spiel) → eine Karte je Raum mit
+  `<Spiel>?raum=CODE`; Arenen (MAMPF!, Nudelsalat, Ballerbude) → `?los=1`. Jede Seite liest das: mit gespeichertem Namen sofort
+  hinein (Arenen ohne Namen mit Server-Namen), sonst Code eingetragen + Hinweis „Name eingeben, Enter“. Schiffe/Memes/Kritzelpost
+  nutzten `?raum=` schon für Einladungen, Kritzelkiste/Geheimfunk nehmen neben `#CODE` jetzt auch `?raum=`. Codes stehen damit
+  öffentlich auf der Startseite (gewollt). Geprüft mit Playwright gegen die echte JAR (alle 8 Spiele, mit/ohne gespeicherten Namen). Antwortet ein Spiel nicht mit JSON (z.B. nur POST), wird es pro Besuch nicht mehr gefragt.
   Einflug: Seite bleibt unsichtbar, bis Lobbys/Übersicht/Seiten/Spiel-Status da sind (max. 1,5 s), dann fliegt alles in einer
   GSAP-Zeitleiste herein; später Erscheinendes springt per `useAppear` einzeln herein. `st-entering` muss über React-State laufen
   (sonst überschreibt `className` die Klasse und CSS-Transitions halten GSAP mitten im Flug an). Link „Alle Spiele“ oben rechts in der

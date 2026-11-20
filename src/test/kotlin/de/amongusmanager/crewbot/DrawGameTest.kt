@@ -327,9 +327,10 @@ class DrawGameTest {
             assertEquals("no-store", res.headers().firstValue("Cache-Control").orElse(""))
             val get = client.send(HttpRequest.newBuilder(URI("$base${DrawGame.PATH}")).build(), HttpResponse.BodyHandlers.ofString())
             assertEquals(200, get.statusCode())
-            assertEquals("""{"rooms":1,"players":1}""", get.body())
             val code = Regex("\"code\":\"([A-Z]+)\"").find(res.body())!!.groupValues[1]
-            assertFalse(get.body().contains(code) || get.body().contains("Test"), "Status verrät keine Codes oder Namen")
+            // Live-Leiste: der Code führt direkt in den Raum, Namen gehen nicht raus
+            assertEquals("""{"rooms":1,"players":1,"list":[{"code":"$code","players":1,"max":12,"playing":false}]}""", get.body())
+            assertFalse(get.body().contains("Test"), "Status verrät keine Namen")
         } finally {
             server.stop()
         }

@@ -261,6 +261,12 @@ $('join').onsubmit = async (event) => {
   $('go').disabled = false;
 };
 
+// Link aus der Live-Leiste der Startseite (?los=1): direkt in die Arena (ohne Namen heißt man „Namenlos“)
+if (new URLSearchParams(location.search).has('los')) {
+  history.replaceState(null, '', location.pathname);
+  $('join').requestSubmit();
+}
+
 function begin(data) {
   conn = data; me = null; clockOffset = null; lastKillSeq = -1; lastLevel = 1; lastScore = 0; wasDead = false;
   tanks.clear(); bullets.clear(); snacks.clear(); particles = []; texts = []; commands = []; sent = '';

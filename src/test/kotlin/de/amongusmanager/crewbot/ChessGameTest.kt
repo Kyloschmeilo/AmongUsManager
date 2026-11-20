@@ -216,6 +216,11 @@ class ChessGameTest {
         val json = Json.parseToJsonElement(status.body.toString(Charsets.UTF_8)).jsonObject
         assertEquals(1, json["rooms"]!!.jsonPrimitive.int)
         assertEquals(2, json["players"]!!.jsonPrimitive.int)
+        // Live-Leiste: Raum mit Code, läuft schon (Beitreten = Zuschauen)
+        val live = json["list"]!!.jsonArray.single().jsonObject
+        assertEquals(2, live["players"]!!.jsonPrimitive.int)
+        assertTrue(live["playing"]!!.jsonPrimitive.boolean)
+        assertEquals(4, live["code"]!!.jsonPrimitive.content.length)
         assertFalse(call(msg("a" to "create", "name" to "  ")).ok())
         assertFalse(call(msg("a" to "join", "room" to "QQQQ", "name" to "X")).ok())
         now += ChessGame.ROOM_IDLE_MS + 1

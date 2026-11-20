@@ -101,7 +101,7 @@
     room = code;
     token = playerToken;
     store.set('gf:' + room, token);
-    history.replaceState(null, '', '#' + room);
+    history.replaceState(null, '', location.pathname + '#' + room);
     $('start').hidden = true;
     $('game').hidden = false;
     $('room-code').textContent = room;
@@ -691,7 +691,9 @@
   // ---------- Los ----------
 
   (async () => {
-    const code = (location.hash || '').replace('#', '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+    // Raum aus dem Link: #CODE (Einladung) oder ?raum=CODE (Live-Leiste der Spiele-Startseite)
+    const code = ((location.hash || '').replace('#', '') || new URLSearchParams(location.search).get('raum') || '')
+      .toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
     const saved = code ? store.get('gf:' + code) : null;
     if (code && saved) {
       const back = await post('/join', { room: code, token: saved });
@@ -700,5 +702,10 @@
     }
     showStart(code);
     $('code').dispatchEvent(new Event('input'));
+    // direkt hinein – mit bekanntem Namen ohne weiteren Klick, sonst nur noch Namen eingeben
+    if (code.length === 4) {
+      if ($('name').value.trim()) begin(true);
+      else $('start-error').textContent = 'Gib deinen Namen ein und drück Enter – dann bist du in Raum ' + code + '.';
+    }
   })();
 })();

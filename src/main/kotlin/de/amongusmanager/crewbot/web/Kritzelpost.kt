@@ -83,7 +83,10 @@ class Kritzelpost(
         val route = request.path.removePrefix(PATH).trim('/')
         val get = request.method == "GET" || request.method == "HEAD"
         return when (route) {
-            "" -> if (get) json(200, obj("ok" to true, "rooms" to rooms.size)) else notAllowed("GET")
+            "" -> if (get) json(200, LiveRooms.status(rooms.values.map { room ->
+                LiveRooms.Room(room.code, room.players.values.count { it.online }, MAX_PLAYERS, room.phase != LOBBY && room.phase != END,
+                    room.players.values.count { !it.gone })
+            }, "ok" to true)) else notAllowed("GET")
             "state" -> if (get) state(request, now) else notAllowed("GET")
             "drawing" -> if (get) drawing(request, now) else notAllowed("GET")
             "create", "join", "act" -> {

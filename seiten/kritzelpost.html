@@ -485,6 +485,12 @@ function home() {
     } catch (e) { toast(e.message); }
   }
   name.addEventListener("keydown", e => { if (e.key === "Enter") go(code.value.trim().length === 4); });
+  // Link aus der Live-Leiste der Startseite (?raum=CODE): mit bekanntem Namen gleich hinein, sonst nur noch Namen eingeben
+  if (pendingRoom) {
+    const room = pendingRoom; pendingRoom = "";
+    if (me.name) setTimeout(() => go(true), 0);
+    else setTimeout(() => { toast("Gib deinen Namen ein und drück Enter – dann bist du in Raum " + room + "."); name.focus(); }, 0);
+  }
   code.addEventListener("keydown", e => { if (e.key === "Enter") go(true); });
   const steps = [["✍️", "Jeder schreibt einen völlig normalen Satz.", "#ffe14d", -2], ["🎨", "Der Nächste muss ihn zeichnen. Viel Glück.", "#4ee68a", 1.5], ["🤔", "Der Übernächste rät, was das sein soll.", "#38c6ff", -1], ["😂", "Am Ende wird aufgedeckt, wie alles entgleist ist.", "#ff4f9a", 2]];
   return el("div", { class: "home" },
@@ -802,6 +808,10 @@ async function saveAlbum(album) {
 }
 
 // ---------- los ----------
+let pendingRoom = (new URLSearchParams(location.search).get("raum") || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4);
+if (pendingRoom.length !== 4) pendingRoom = "";
+if (sess && pendingRoom && sess.room !== pendingRoom) { sess = null; store.set("session", null); } // Link in einen anderen Raum
+if (sess) pendingRoom = "";
 render();
 if (sess) poll(true);
 else fetch(API, { cache: "no-store" }).then(r => { if (!r.ok) throw 0; }).catch(() => toast("Der Spiel-Server antwortet nicht. Läuft die neue Website-Version?"));
