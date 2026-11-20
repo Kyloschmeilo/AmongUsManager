@@ -150,8 +150,8 @@ export const GAMES: Game[] = [
     ),
   },
   {
-    files: ['schach.html'], href: '/seiten/schach.html', title: 'Schach-Analyse', tag: 'Werkzeug',
-    text: 'Eigene chess.com-Partien mit Stockfish auswerten.',
+    files: ['schach.html'], href: '/seiten/schach.html', title: 'Schach', tag: 'Duell', live: '/api/schach',
+    text: 'Online gegen Freunde oder den Computer, danach jede Partie mit Stockfish auswerten.',
     color: '#f4e3c1', ink: '#120f24', accent: '#6b4a2b',
     icon: (
       <svg viewBox="0 0 64 64" aria-hidden="true">

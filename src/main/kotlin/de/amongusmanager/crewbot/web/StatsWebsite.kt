@@ -140,6 +140,7 @@ fun main() {
             wordGame = wordGame,
             memeGame = MemeGame(),
             shipGame = ShipGame(),
+            chessGame = ChessGame(),
         )
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)

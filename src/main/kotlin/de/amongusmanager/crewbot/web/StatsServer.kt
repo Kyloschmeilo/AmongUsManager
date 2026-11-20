@@ -56,6 +56,8 @@ class StatsServer(
     private val memeGame: MemeGame? = null,
     /** Schiffe versenken zu zweit (/api/schiffe, Seite seiten/schiffe.html), null = aus. */
     private val shipGame: ShipGame? = null,
+    /** Online-Schach zu zweit (/api/schach, Seite seiten/schach.html), null = aus. */
+    private val chessGame: ChessGame? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
@@ -104,6 +106,7 @@ class StatsServer(
             if (path == WordGame.PATH || path.startsWith(WordGame.PATH + "/")) return wordGame(exchange, method, path)
             if (path == MemeGame.PATH) return memeGame(exchange, method, path)
             if (path == ShipGame.PATH) return shipGame(exchange, method, path)
+            if (path == ChessGame.PATH) return chessGame(exchange, method, path)
             if (method != "GET" && method != "HEAD") {
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
@@ -372,6 +375,20 @@ class StatsServer(
 
     private fun shipGame(exchange: HttpExchange, method: String, path: String) {
         val handler = shipGame ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
+        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
+        val response = handler.handle(WebRequest(method, path, emptyMap(), emptyMap(), body), client)
+        for ((name, value) in response.headers) {
+            if (name.equals("Cache-Control", ignoreCase = true)) continue
+            exchange.responseHeaders.add(name, value)
+        }
+        respond(exchange, response.status, response.type, response.body, cache = "no-store")
+    }
+
+    // ---------- Schach ----------
+
+    private fun chessGame(exchange: HttpExchange, method: String, path: String) {
+        val handler = chessGame ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
         val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
         val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
         val response = handler.handle(WebRequest(method, path, emptyMap(), emptyMap(), body), client)

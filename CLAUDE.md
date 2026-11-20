@@ -440,8 +440,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   reinlegen kann“): Ordner `seiten/` neben der StatsWebsite.jar (`WEB_PAGES_DIR`, `web/Pages.kt`) → `/seiten/<datei>`, wird angezeigt
   statt heruntergeladen, nur Dateien direkt im Ordner mit bekannter Endung, ohne Neustart. HTML dort bekommt eine eigene, lockerere
   CSP (`Pages.CSP`: CDN-Skripte, Inline-Skripte, fremde https-APIs, Blob-Worker, WebAssembly) – die Stats-Seite selbst bleibt streng.
-  Läuft unter derselben Adresse wie die Website (gleiche Anmeldung) → nur eigene Dateien. `schach.html` liegt **nicht im Repo**,
-  sondern in /mnt/project-files/schach-analyse/ (und im `StatsWebsite.zip` unter `seiten/`): chess.com-API, Stockfish 18 lite als
+  Läuft unter derselben Adresse wie die Website (gleiche Anmeldung) → nur eigene Dateien. `schach.html` lag zuerst **nicht im Repo**,
+  sondern in /mnt/project-files/schach-analyse/ (seit 20.11.2026 im Repo, siehe „Schach – online spielen“): chess.com-API, Stockfish 18 lite als
   Blob-Worker (jsDelivr, Ersatz unpkg, alles mit SRI-Prüfsumme), chess.js 0.10.3, Figuren aus chessground-CSS, Standard-Design.
   Erste Version ohne Statistik-Seite/Training. Mit echter Engine, aber nachgestellter chess.com-API getestet (Cloud erreicht
   chess.com und die CDNs nicht). Test: `serverShowsOwnPagesFromFolder` in `WebGuidesTest`.
@@ -575,6 +575,26 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Host trägt bis zu 20 https-Adressen ein (je 2 Textfelder), die Browser laden sie direkt. Startseiten-Kachel in `games.tsx`
   (`memes.html`); CoreHold ist nur noch breit, wenn das Raster dadurch aufgeht (`wideFits` in `Start.tsx`). Tests: `MemeGameTest`;
   mit drei Chromium-Browsern (Desktop + Handy) eine ganze Partie gespielt. Mit echten Spielern ungetestet.
+- **Schach – online spielen + Analyse** (20.11.2026, Kilian: „Mach ein schach game was man gegen andere spielen kann arbeite die
+  analyse dort ein“): `seiten/schach.html` (**jetzt im Repo**, ersetzt die alte Analyse-Datei aus /mnt/project-files/schach-analyse/,
+  gleicher Name → gleiche Kachel/Adresse) + Server `web/ChessRules.kt` (`ChessPosition` = Regeln/Zuggenerator/FEN, `ChessMatch` =
+  Partie mit Uhr) und `web/ChessGame.kt` (`POST /api/schach`, GET = `{rooms, players}` für die Live-Leiste). Räume wie Schiffe
+  versenken: Code aus 4 Buchstaben, Link `?raum=CODE`, Token im localStorage (`schach.raum`), ohne Anmeldung, nur im Speicher; die
+  ersten zwei spielen, alle weiteren (≤ 22) schauen zu. Gastgeber wählt Bedenkzeit (`TIMES` in der Seite ⊆ `ChessGame.TIME_MINUTES`,
+  0 = ohne Uhr) und seine Farbe, startet; Revanche tauscht die Farben, „Einstellungen“ = zurück in die Lobby. Server prüft jeden Zug
+  (UCI), erkennt Matt/Patt/Wiederholung/50 Züge/zu wenig Material, rechnet die Uhren (läuft erst ab dem 2. Halbzug, erster Zug je
+  Seite ≤ 60 s sonst Abbruch, Zeit gegen zu wenig Material = Remis), Remis-Angebot (ein Zug lehnt ab), Aufgeben, wer 90 s weg ist oder
+  den Raum verlässt, verliert. Abfrage mit `v` (unverändert → `{same:true}`), alle 0,6 s im Spiel. Reaktionen (`REACTIONS`, gleiche
+  Liste in Seite und Server) fliegen bei allen hoch. **Regeln gibt es zweimal**: Kotlin für den Server, eigenes JS (Schnittstelle wie
+  chess.js 0.10.3 inkl. SAN und `load_pgn`) in der Seite – beide gegen dieselben Perft-Zahlen geprüft (`ChessGameTest`, im JS per Node).
+  Gegen den Computer: Stockfish „Skill Level“ in 8 Stufen (`LEVELS`), Zug zurück erlaubt, läuft nur im Browser. Nach jeder Partie
+  „Partie analysieren“ = bisherige Analyse (Klassen Brillant … Patzer, Genauigkeit, Kurve, Varianten) plus „Wichtige Momente“ und
+  geschätzte Elo; gespielte Partien bleiben im Browser (`schach.partien.v1`, ≤ 60) unter „Hier gespielt“, chess.com-Partien als zweiter
+  Reiter. Eingebettet: Regeln, Schriften Lilita One/Nunito (OFL), Figuren cburnett (GPLv2+, aus chessground 9.2.1); nur Stockfish
+  18 lite kommt vom CDN (jsDelivr/unpkg mit SRI) – ohne CDN geht Online-Spiel, aber keine Analyse/kein Computer. Eigenes buntes
+  Design (dicke Konturen, harte Schatten, Konfetti, gleitende Figuren, Töne per WebAudio abschaltbar). Kachel in `games.tsx`
+  (`live: '/api/schach'`). Test: `ChessGameTest`; mit drei Chromium-Browsern (Desktop + Handy-Zuschauer) eine Partie bis Matt,
+  Analyse, Revanche und Computer-Partie gespielt (Stockfish aus npm statt CDN).
 - **CoreHold-Website im selben Server** (05.11.2026, Kilian: „ich kann keinen neuen [Pelican-Server] machen, wie geht es das wir es auf dem selben machen“):
   Eigenes Programm (nicht im Repo, Quelltext in /mnt/project-files/corehold-website/): Teams, PvP-Tierliste, Special Items mit
   Rezepten des Minecraft-Servers CoreHold unter `/corehold`, Admin-Login per Passwort (`ADMIN_PASSWORD`). Ein Java-Egg startet nur
