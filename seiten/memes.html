@@ -1276,6 +1276,10 @@ if (!reduced) setInterval(() => { if (!$('home').hidden) showcase(); }, 7000);
 if (session && (!wanted || wanted === session.room)) {
   // nach dem Neuladen mit demselben Platz weitermachen (unbekanntes Token → zurück zum Start)
   send({ a: 'sync' }).then((res) => { if (res && res.ok) poll(); });
+} else if (wanted.length === 4) {
+  // Link aus der Live-Leiste der Startseite (?raum=CODE): mit bekanntem Namen gleich hinein, sonst nur noch Namen eingeben
+  if ($('name').value.trim()) enter('join');
+  else { showErr('homeErr', 'Gib deinen Namen ein und drück Enter – dann bist du in Raum ' + wanted + '.'); $('name').focus(); }
 }
 })();
 </script>

@@ -772,6 +772,8 @@
   });
   $("name").addEventListener("keydown", (e) => { if (e.key === "Enter") start(); });
   $("play").onclick = start;
+  // Link aus der Live-Leiste der Startseite (?los=1): ohne Menü direkt in die Arena
+  if (new URLSearchParams(location.search).has("los")) { history.replaceState(null, "", location.pathname); start(); }
   const hold = (el, fn) => {
     let timer = 0;
     el.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); fn(); timer = setInterval(fn, 120); });

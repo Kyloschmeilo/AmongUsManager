@@ -158,7 +158,7 @@ class MemeGameTest {
     }
 
     @Test
-    fun statusCountsRoomsAndPlayersWithoutCodes() {
+    fun statusListsJoinableRoomsForTheLiveBar() {
         fun status() = Json.parseToJsonElement(game.handle(WebRequest("GET", MemeGame.PATH, emptyMap(), emptyMap()), "1.2.3.4").body.toString(Charsets.UTF_8)).jsonObject
         assertEquals(0, status()["rooms"]!!.jsonPrimitive.int)
         val host = create("A")
@@ -166,7 +166,13 @@ class MemeGameTest {
         val s = status()
         assertEquals(1, s["rooms"]!!.jsonPrimitive.int)
         assertEquals(2, s["players"]!!.jsonPrimitive.int)
-        assertFalse(host.code in s.toString())
+        // die Live-Leiste der Startseite führt mit dem Code direkt in den Raum – Namen gehen nicht raus
+        val room = s["list"]!!.jsonArray.single().jsonObject
+        assertEquals(host.code, room.str("code"))
+        assertEquals(2, room["players"]!!.jsonPrimitive.int)
+        assertEquals(MemeRules.MAX_PLAYERS, room["max"]!!.jsonPrimitive.int)
+        assertFalse(room["playing"]!!.jsonPrimitive.boolean)
+        assertFalse("\"A\"" in s.toString() || "\"B\"" in s.toString())
         now += MemeGame.OFFLINE_MS + 1
         assertEquals(0, status()["rooms"]!!.jsonPrimitive.int)
     }

@@ -1,7 +1,7 @@
 // Spiele der Startseite. Die Browserspiele sind eigene Seiten unter /seiten/<datei> (Ordner seiten/ neben dem StatsWebsite.jar
 // oder im JAR); Titel und Beschreibung kommen, wenn vorhanden, aus der Seite selbst (/api/pages).
 // Fehlt die Seite noch, zeigt die Kachel „Bald“. Neue Spiele hier anhängen; mit `live` erscheinen
-// laufende Partien oben in der Live-Leiste (Raum-Codes bleiben privat, die Karte führt nur zum Spiel).
+// laufende Partien oben in der Live-Leiste – jeder offene Raum als eigene Karte, ein Klick tritt direkt bei (`?raum=CODE`, Arenen `?los=1`).
 import type { ReactNode } from 'react';
 
 export interface Game {
@@ -27,12 +27,15 @@ export interface Game {
   live?: string;
 }
 
+/** Ein beitretbarer Raum eines Raum-Spiels (Code führt per `?raum=CODE` direkt hinein). */
+export interface LiveRoom { code: string; players: number; max: number; playing: boolean }
+
 /** Was in einem Browserspiel gerade los ist. */
-export interface LiveGame { players: number; rooms: number }
+export interface LiveGame { players: number; rooms: number; list: LiveRoom[] | null }
 
 /**
- * Liest die Status-Antwort eines Spiels: Arenen melden Spieler (`players`, MAMPF! `online`), Raum-Spiele die Zahl offener Räume
- * (`rooms`, als Zahl oder Liste). Bots zählen nicht. null = nichts los.
+ * Liest die Status-Antwort eines Spiels: Arenen melden Spieler (`players`, MAMPF! `online`), Raum-Spiele die Zahl belegter Räume
+ * (`rooms`, als Zahl oder Liste) und in `list` die beitretbaren Räume mit Code. Bots zählen nicht. null = nichts los.
  */
 export function liveOf(data: unknown): LiveGame | null {
   if (!data || typeof data !== 'object') return null;
@@ -40,7 +43,22 @@ export function liveOf(data: unknown): LiveGame | null {
   const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.floor(v)) : Array.isArray(v) ? v.length : 0);
   const players = num(d.players) || num(d.online);
   const rooms = num(d.rooms);
-  return players > 0 || rooms > 0 ? { players, rooms } : null;
+  const list = Array.isArray(d.list)
+    ? d.list.flatMap((r): LiveRoom[] => {
+      if (!r || typeof r !== 'object') return [];
+      const room = r as Record<string, unknown>;
+      const code = typeof room.code === 'string' ? room.code.toUpperCase().replace(/[^A-Z]/g, '') : '';
+      return code.length === 4 ? [{ code, players: num(room.players), max: num(room.max), playing: room.playing === true }] : [];
+    })
+    : null;
+  return players > 0 || rooms > 0 ? { players, rooms, list } : null;
+}
+
+/** Adresse, die direkt ins Spiel führt: Raum-Spiele mit `?raum=CODE`, Arenen mit `?los=1` (ohne Menü hinein). */
+export function joinHref(href: string, room?: string): string {
+  const [path, hash] = href.split('#');
+  const sep = path.includes('?') ? '&' : '?';
+  return `${path}${sep}${room ? `raum=${encodeURIComponent(room)}` : 'los=1'}${hash ? `#${hash}` : ''}`;
 }
 
 const stroke = { stroke: '#120f24', strokeWidth: 3, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };

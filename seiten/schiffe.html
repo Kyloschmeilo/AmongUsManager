@@ -1541,6 +1541,9 @@ window.SVG = G; window.SVO = Online;
     let saved = null;
     try { saved = JSON.parse(sessionStorage.getItem('sv.room')); } catch (e) { /* egal */ }
     if (saved && saved.code === wanted) Online.enter({ a: 'join', room: wanted, token: saved.token });
+    // Link aus der Live-Leiste der Startseite (?raum=CODE): mit bekanntem Namen gleich hinein, sonst nur noch Namen eingeben
+    else if ($('name').value.trim()) Online.enter({ a: 'join', room: wanted });
+    else $('err').textContent = 'Gib deinen Namen ein und drück Enter – dann bist du in Raum ' + wanted + '.';
   }
   renderModes(); renderPick();
   if (G.online && !Online.code && !$('name').value) $('name').focus();

@@ -238,6 +238,9 @@ let es = null, token = null, R = 2400, tickMs = 50, lastTick = performance.now()
 const snakes = new Map();
 const foods = new Map();
 let bestList = [];
+// Link aus der Live-Leiste der Startseite (?los=1): sobald die Arena da ist, direkt hinein (ohne Namen vergibt der Server einen)
+let autoPlay = new URLSearchParams(location.search).has("los");
+if (autoPlay) history.replaceState(null, "", location.pathname);
 let myId = null, playing = false, joining = false, myKills = 0, bornAt = 0, follow = null, followUntil = 0;
 let angle = 0, boost = false, keyBoost = false;
 let cam = { x: 0, y: 0, z: 1 };
@@ -312,6 +315,7 @@ function onInit(m) {
   setStatus(true, "Arena läuft");
   $("play").disabled = false;
   $("play").textContent = "LOS GEHT'S";
+  if (autoPlay) { autoPlay = false; setTimeout(join, 0); }
   myId = null;
   if (wasPlaying) die(null, "Verbindung kurz weg – deine Nudel ist leider verdunstet.");
 }

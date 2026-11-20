@@ -429,12 +429,13 @@ class ShipGame(
         }
     }
 
-    /** Für die Live-Leiste der Startseite: Räume, in denen gerade jemand ist (ohne Codes/Namen). */
+    /** Für die Live-Leiste der Startseite: belegte Räume mit Code (zum direkten Beitreten), keine Namen. */
     private fun status(): WebResponse {
         val now = clock()
         sweep(now)
-        val online = rooms.values.map { room -> room.players.values.count { now - it.lastSeen < OFFLINE_MS } }.filter { it > 0 }
-        return json(200, obj("rooms" to online.size, "players" to online.sum()))
+        return json(200, LiveRooms.status(rooms.values.map { room ->
+            LiveRooms.Room(room.code, room.players.values.count { now - it.lastSeen < OFFLINE_MS }, 2, room.phase != Phase.LOBBY && room.phase != Phase.END, room.players.size)
+        }))
     }
 
     // ---------- Raum betreten ----------
