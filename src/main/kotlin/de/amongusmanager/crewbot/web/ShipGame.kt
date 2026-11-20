@@ -11,7 +11,8 @@
  * Punkte ausgeben: Sonar (3) auf ein schon beschossenes Feld zeigt, wie viele unentdeckte Schiffsteile in den acht
  * Feldern drumherum liegen; Mine (2) auf ein eigenes Wasserfeld – trifft der Gegner sie, schlagen bei ihm zwei
  * zufällige Schüsse ein und sein Zug ist vorbei; Bombe (5) ist ein zusätzlicher 2×2-Schuss. Der normale Schuss oder
- * die Spezialfähigkeit des Kommandeurs (lädt mit jedem normalen Schuss) beendet den Zug.
+ * die Spezialfähigkeit des Kommandeurs (lädt mit jedem normalen Schuss) beendet den Zug – außer er trifft ein Schiff,
+ * dann ist man nochmal dran (16.11.2026, Kilian). Die 2 Punkte gibt es nur, wenn der Zug wirklich wechselt.
  */
 package de.amongusmanager.crewbot.web
 
@@ -326,6 +327,8 @@ class ShipMatch(val boards: List<ShipBoard>, first: Int, private val random: Ran
             }
             else -> return events to "Unbekannte Aktion"
         }
+        // Treffer (Schuss oder Fähigkeit): man ist nochmal dran
+        if ((action == "shot" || action == "abil") && events.last().hits.any { it.result == "hit" || it.result == "sunk" }) endsTurn = false
         // Minen: je getroffener Mine zwei zufällige Schüsse auf das Feld des Schützen, sein Zug ist vorbei
         val mines = events.last().hits.count { it.result == "mine" }
         if (mines > 0) {

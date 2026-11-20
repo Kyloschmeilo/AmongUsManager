@@ -497,8 +497,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Vor dem Schuss kaufbar (beliebig oft): **Sonar** (3) auf ein schon beschossenes Feld → Zahl der unentdeckten Schiffsteile in den
   acht Feldern drumherum (Zahl bleibt stehen und zählt mit); **Mine** (2) auf eigenes freies Wasser, höchstens 3 gleichzeitig –
   trifft der Gegner sie, schlagen bei ihm zwei zufällige Schüsse ein und sein Zug ist vorbei (auch nach einer Bombe); **Bombe** (5)
-  = zusätzlicher 2×2-Schuss. Normaler Schuss oder Spezialfähigkeit (lädt weiter mit normalen Schüssen, `cd`) beendet den Zug, ein
-  Schuss pro Zug. Fähigkeiten: Kallisto Pfeilhagel 1+6 in der Nähe, Beaumont Präzisionsschlag (Treffer versenkt das Schiff), Finch
+  = zusätzlicher 2×2-Schuss. Normaler Schuss oder Spezialfähigkeit (lädt weiter mit normalen Schüssen, `cd`) beendet den Zug, **außer er trifft
+  ein Schiff: dann ist man nochmal dran** (16.11.2026, Kilian; die 2 Punkte gibt es nur beim echten Zugwechsel). Fähigkeiten: Kallisto Pfeilhagel 1+6 in der Nähe, Beaumont Präzisionsschlag (Treffer versenkt das Schiff), Finch
   Salve aus 5 frei gewählten Feldern, Sigrun 6 zufällig, Bellini 3×3, Petersen Torpedo bis zum ersten Schiff (oder Mine), Pembroke
   ganze Reihe/Spalte. **Bewusst eigene Namen, Porträts und Flotten**: die Screenshots zeigen ein bestehendes Spiel, dessen Figuren
   und Aussehen nicht nachgebaut werden – nur die Spielideen (frühere Namen aus Kilians erster Liste wurden deshalb ersetzt).
