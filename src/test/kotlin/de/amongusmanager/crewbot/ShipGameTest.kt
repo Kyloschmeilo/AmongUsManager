@@ -134,8 +134,13 @@ class ShipGameTest {
         assertEquals(1, m.turn)
         assertNotNull(m.act(0, "shot", 5).second, "nicht dran")
         val ship = m.boards[0].ships[0].cells[0]
-        m.act(1, "shot", ship)
-        assertEquals(listOf(5, 2), m.points.toList(), "1 für den Treffer am eigenen Schiff, 2 für den neuen Zug")
+        val (hit, _) = m.act(1, "shot", ship)
+        assertEquals(listOf("volley"), hit.map { it.type }, "nach einem Treffer kein Zugwechsel")
+        assertEquals(listOf(3, 2), m.points.toList(), "1 für den Treffer am eigenen Schiff, keine 2 ohne Zugwechsel")
+        assertEquals(1, m.turn, "wer trifft, ist nochmal dran")
+        val miss = (0 until 100).first { m.boards[0].grid[it] == 0 && m.boards[0].shots[it] == 0 }
+        m.act(1, "shot", miss)
+        assertEquals(listOf(5, 2), m.points.toList(), "Fehlschuss: Zug wechselt, 2 für den neuen Zug")
         assertNotNull(m.act(0, "shot", water).second, "schon beschossen")
         assertEquals(1, m.charge[0])
     }
@@ -210,7 +215,8 @@ class ShipGameTest {
         hits = m.act(0, "abil", big.cells[2]).first.first().hits
         assertTrue(big.sunk)
         assertEquals(big.cells.toSet(), hits.map { it.cell }.toSet())
-        assertEquals(5, m.points[1] - 2, "fünf Schiffsteile getroffen (plus 2 für den neuen Zug)")
+        assertEquals(5, m.points[1], "fünf Schiffsteile getroffen")
+        assertEquals(0, m.turn, "Treffer mit der Fähigkeit: nochmal dran")
         // Salve: fünf frei gewählte Felder
         m = match("finch", "kallisto")
         ready(m)
@@ -263,7 +269,9 @@ class ShipGameTest {
         val status = game.handle(WebRequest("GET", ShipGame.PATH, emptyMap(), emptyMap()), "1.2.3.4").body.toString(Charsets.UTF_8)
         assertEquals("""{"rooms":1,"players":2}""", status)
         assertFalse(send(second, "act", "m" to "shot", "t" to 0).ok(), "nicht dran")
-        val shot = send(first, "act", "m" to "shot", "t" to 0)
+        val match = game.matchOf(first.code)!!
+        val water = (0 until 100).first { i -> match.boards.all { it.grid[i] == 0 } }
+        val shot = send(first, "act", "m" to "shot", "t" to water)
         assertTrue(shot.ok(), shot.toString())
         assertFalse(shot["myTurn"]!!.jsonPrimitive.boolean)
         val events = shot["events"]!!.jsonArray.map { it.jsonObject }

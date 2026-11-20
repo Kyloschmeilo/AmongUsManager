@@ -606,6 +606,8 @@ function act(m, side, a) {
       return { events: [{ e: 'laid', by: side, t, pts: m.pts.slice() }] };
     default: return { error: 'Unbekannte Aktion' };
   }
+  // Treffer (Schuss oder Fähigkeit): man ist nochmal dran
+  if ((a.m === 'shot' || a.m === 'abil') && events[events.length - 1].res.some((r) => r.r === 'hit' || r.r === 'sunk')) endsTurn = false;
   // Minen: je getroffener Mine zwei zufällige Schüsse auf das Feld des Schützen, sein Zug ist vorbei
   const mines = events[events.length - 1].res.filter((r) => r.r === 'mine').length;
   if (mines) {
@@ -1397,11 +1399,11 @@ function react(key, res, mine) {
   if (sunk.length) {
     banner(sunk.length > 1 ? `${sunk.length}× versenkt!` : 'Versenkt!', sunk.join(' + '), !mine);
     speak(key, pick(cmd.q.sunk)); setTimeout(() => speak(other, pick(otherCmd.q.lost)), 700);
-    say(mine ? `Versenkt: ${sunk.join(', ')}` : `Dein ${sunk[0]} ist weg.`);
+    say(mine ? `Versenkt: ${sunk.join(', ')}. Du bist nochmal dran.` : `Dein ${sunk[0]} ist weg. Der Gegner schießt nochmal.`);
   } else if (hits) {
     if (hits >= 3) banner(`${hits}× Treffer!`, null, !mine);
     speak(key, pick(cmd.q.hit));
-    say(mine ? (hits > 1 ? `${hits} Treffer!` : 'Treffer!') : (hits > 1 ? `${hits} Treffer kassiert. Dafür gibt es ${hits} Punkte.` : 'Du wurdest getroffen. Ein Punkt Schmerzensgeld.'));
+    say(mine ? `${hits > 1 ? `${hits} Treffer!` : 'Treffer!'} Du bist nochmal dran.` : `${hits > 1 ? `${hits} Treffer kassiert, ${hits} Punkte` : 'Getroffen, ein Punkt'} Schmerzensgeld. Der Gegner schießt nochmal.`);
   } else if (!res.some((r) => r.r === 'mine')) {
     speak(key, pick(cmd.q.miss));
     say(mine ? pick(['Nur Wasser.', 'Daneben.', 'Die Fische sind sauer.']) : pick(['Daneben. Glück gehabt.', 'Der Gegner trifft nur Wasser.']));
