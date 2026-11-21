@@ -21,6 +21,7 @@
  * Live-Lobbys mit „Beitreten“: /api/lobbies, siehe LiveLobbies.kt.
  * Proximity-Voice im Live-Tab: /api/voice (SSE + WebRTC im Browser), Positionen vom Host über die Mod-API, siehe VoiceChat.kt.
  * Crack-Voting nach jeder Runde (15 min, Stimmen in data/website.db): /api/crack, siehe CrackVoting.kt.
+ * Lobby-Planer mit Terminabstimmung (data/website.db): /api/planer, siehe LobbyPlanner.kt. Monatsrückblick: /api/recap.
  * Bot steuern (Event-Tab, Admin-Panel): die Website schreibt Aufträge in die Tabelle web_requests der Bot-Datenbank,
  * der Bot führt sie aus und prüft dabei die Discord-Rollen selbst.
  */
@@ -130,6 +131,7 @@ fun main() {
             lobbies = lobbies,
             coreHold = coreHold,
             crack = CrackVoting(crackVotes, auth, store),
+            planner = LobbyPlanner(LobbyPlans(accountsDb), auth, accounts, store),
             voice = voice,
             pages = pages,
             arena = Ballerbude(),

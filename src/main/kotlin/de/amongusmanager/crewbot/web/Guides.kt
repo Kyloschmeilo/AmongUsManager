@@ -163,6 +163,8 @@ class WebGuides(val downloads: Downloads?) {
                     "description" to role.description,
                     "variants" to emptyList<String>(),
                     "statIds" to listOf("game:${GAME_ROLE_IDS[role.name] ?: role.name}"),
+                    "slug" to "among-us-" + (GAME_ROLE_IDS[role.name] ?: role.name).lowercase(),
+                    "images" to emptyList<Any>(),
                 )
             } + SPECIAL_ROLES.values.sortedBy { it.name.lowercase() }.map { role ->
                 val keys = torNameKeys(role.id)
@@ -175,6 +177,8 @@ class WebGuides(val downloads: Downloads?) {
                     "description" to role.description,
                     "variants" to keys.map { it.second }.filter { it != role.name },
                     "statIds" to keys.map { "tor:${it.first}" },
+                    "slug" to role.id.lowercase(),
+                    "images" to RoleArt.IMAGES["tor:${role.id}"].orEmpty().map { obj("file" to it.file, "label" to it.label) },
                 )
             },
             "teams" to SpecialTeam.entries.map { it.name },

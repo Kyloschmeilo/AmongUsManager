@@ -2,6 +2,7 @@
 // Admins – einem Formular, das ein neues Event im Discord postet (wie /create-event).
 import { useMemo, useState } from 'react';
 import { CalendarClock, CalendarPlus, Check, CircleAlert, ExternalLink, LogIn, Users, X } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { loginUrl } from '../lib/api';
 import { useMe } from '../lib/me';
 import { useAction, useBot, usePermissions, type EventsResponse, type GameEvent } from '../lib/control';
@@ -21,6 +22,12 @@ export function EventsPage() {
         <p className="lead">
           Alle geplanten Spieleabende aus dem Discord. Trag dich direkt hier ein – das zählt genauso wie der Knopf im Discord.
         </p>
+        <div className="row">
+          <Link className="text-link" to="/planer">
+            <CalendarClock className="icon icon--sm" aria-hidden="true" />
+            Noch kein Termin? Im Lobby-Planer abstimmen, wann es allen passt
+          </Link>
+        </div>
       </div>
 
       {me && !loggedIn && me.loginEnabled && (
@@ -162,7 +169,12 @@ function EventCard({ event, data, loggedIn, onChange }: { event: GameEvent; data
 function CreateEvent({ data, onCreated }: { data: EventsResponse; onCreated: () => void }) {
   const { perms } = usePermissions();
   const [game, setGame] = useState(data.games[0] ?? '');
-  const [start, setStart] = useState(defaultStart);
+  const [params] = useSearchParams();
+  // Vom Lobby-Planer: festgelegter Termin als Start vorausgefüllt (/events?start=2026-11-28T20:00)
+  const [start, setStart] = useState(() => {
+    const wanted = params.get('start') ?? '';
+    return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(wanted) && new Date(wanted).getTime() > Date.now() ? wanted : defaultStart();
+  });
   const { busy, notice, run } = useAction(onCreated);
   const minimum = useMemo(() => localInput(new Date(Date.now() + 5 * 60_000)), []);
 
