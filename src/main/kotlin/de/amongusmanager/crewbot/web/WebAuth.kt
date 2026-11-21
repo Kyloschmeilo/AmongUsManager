@@ -184,6 +184,16 @@ class WebAuth(
 
     internal fun userOf(request: WebRequest): Long? = accounts.sessionUser(request.cookies[SESSION_COOKIE])
 
+    /** Gibt es auf dieser Website den Discord-Login (Client Secret gesetzt)? */
+    val loginEnabled: Boolean get() = config.enabled
+
+    /** Name für die Browserspiele: Discord-Name (Server-Spitzname zuerst) des Angemeldeten, sonst null. */
+    fun gameName(request: WebRequest): String? {
+        if (!config.enabled) return null
+        val discordId = userOf(request) ?: return null
+        return accounts.discordUser(discordId)?.shownName?.takeIf { it.isNotBlank() } ?: "Discord-Spieler"
+    }
+
     private fun redirectUri(request: WebRequest): String = baseUrl(request) + "/auth/callback"
 
     private fun baseUrl(request: WebRequest): String {

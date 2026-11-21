@@ -126,7 +126,7 @@
 
   function showStart(code) {
     $('start').hidden = false;
-    $('name').value = store.get('gf:name') || '';
+    $('name').value = (window.DcName && DcName.state.name) || store.get('gf:name') || '';
     $('code').value = code || '';
     const box = $('avatars');
     box.textContent = '';
@@ -691,6 +691,8 @@
   // ---------- Los ----------
 
   (async () => {
+    // Mit Discord angemeldet: Name kommt von dort, Raum aufmachen nur angemeldet (prüft auch der Server)
+    const dcReady = window.DcName ? DcName.bind($('name'), { host: true, after: $('name').parentElement }) : Promise.resolve(null);
     // Raum aus dem Link: #CODE (Einladung) oder ?raum=CODE (Live-Leiste der Spiele-Startseite)
     const code = ((location.hash || '').replace('#', '') || new URLSearchParams(location.search).get('raum') || '')
       .toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
@@ -704,6 +706,7 @@
     $('code').dispatchEvent(new Event('input'));
     // direkt hinein – mit bekanntem Namen ohne weiteren Klick, sonst nur noch Namen eingeben
     if (code.length === 4) {
+      await dcReady;
       if ($('name').value.trim()) begin(true);
       else $('start-error').textContent = 'Gib deinen Namen ein und drück Enter – dann bist du in Raum ' + code + '.';
     }

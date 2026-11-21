@@ -181,6 +181,7 @@ h1.logo span { display: inline-block; animation: bounce 1.6s ease-in-out infinit
   </div>
 </div>
 
+<script src="/spiele/spielname.js"></script>
 <script>
 'use strict';
 const API = '/api/arena';
@@ -236,6 +237,8 @@ $('mute').onclick = toggleMute; showMute();
 $('logo').innerHTML = [...'Ballerbude'].map((ch, i) => `<span style="--i:${i};--c:${HUES[i % HUES.length]}">${ch}</span>`).join('');
 $('floaty').innerHTML = Array.from({ length: 18 }, (_, i) => `<i style="left:${(i * 53) % 100}%;--s:${18 + (i * 37) % 46}px;--c:${HUES[i % 8]};--d:${9 + (i * 7) % 12}s;--w:-${(i * 3) % 14}s;--r:${i % 3 === 0 ? '28%' : '50%'}"></i>`).join('');
 $('name').value = localStorage.getItem('ballerbude.name') || '';
+// Mit Discord angemeldet: Name kommt von dort (setzt auch der Server)
+if (window.DcName) DcName.bind($('name'));
 async function showOnline() {
   if ($('start').hidden) return;
   try {

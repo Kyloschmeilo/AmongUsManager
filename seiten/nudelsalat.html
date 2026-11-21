@@ -183,6 +183,7 @@ canvas#mini { position: fixed; right: 14px; bottom: 14px; width: 150px; height: 
   </div>
 </div>
 
+<script src="/spiele/spielname.js"></script>
 <script>
 "use strict";
 // ======================================================================
@@ -782,6 +783,8 @@ function buildMenu() {
   });
   markSkin();
   $("name").value = localStorage.getItem("nudelsalat.name") || "";
+  // Mit Discord angemeldet: Name kommt von dort (setzt auch der Server)
+  if (window.DcName) DcName.bind($("name"));
   let tag = Math.floor(Math.random() * TAGLINES.length);
   $("tag").textContent = TAGLINES[tag];
   setInterval(() => {

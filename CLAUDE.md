@@ -609,6 +609,15 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   X-Forwarded-For/-Host/-Proto eines Reverse-Proxys zählt nur mit `WEB_TRUST_PROXY=true` (sonst Fälschung möglich). Ohne die JAR
   ändert sich nichts. Gleiche `.env` (ADMIN_PASSWORD …), Daten in `data/corehold/`. Test: `CoreHoldBridgeTest`.
 
+- **Discord-Login in den Browserspielen** (21.11.2026, Kilian: „wenn man mit dc angemeldet ist, dann automatisch der name genommen
+  wird und hosten kann man auch nur mit dc link“): `web/GameLogin.kt`, zentral in `StatsServer.loginGate` vor allen Spielen (die Spiele
+  selbst wissen nichts davon). Raum eröffnen (Kritzelkiste, Kritzelpost, Meme-Schmiede, Schiffe, Schach, Geheimfunk) nur angemeldet →
+  sonst 401 `{error, login:true}`; Beitreten/Zuschauen/Arenen/Live-Direkt-Beitritt bleiben ohne Login. Angemeldete spielen immer unter
+  ihrem Discord-Namen (`DiscordUser.shownName`, Server-Spitzname zuerst, ≤ 16 Zeichen): der Server ersetzt `name` beim Eröffnen/
+  Beitreten (+ Arenen-Join, Mampf-Spawn, Geheimfunk `profile`). Ohne Discord-Login auf der Website (kein Client Secret) darf jeder hosten.
+  Seiten: `GET /api/spielname` + `/spiele/spielname.js` (`DcName.bind`: Feld ausfüllen + sperren, Hinweis mit „Mit Discord anmelden“;
+  Auto-Beitritt per `?raum=` wartet auf `DcName.ready`). Neue Spiele: Pfade in `GameLogin.kindOf` eintragen, Skript einbinden.
+  Test: `GameLoginTest`; alle 9 Spiele mit Playwright gegen die echte JAR geprüft (Gast/angemeldet, Live-Beitritt).
 - **Alle Spiele zusammen** (14.11.2026, Kilian: „eine Zip mit allem auch den games“): Integrations-Branch führt #17–#27 zusammen.
   Jedes Spiel hängt sich gleich in `StatsServer` ein: Konstruktor-Parameter (null = aus), eine Zeile im Routing vor dem
   GET-Check, eigene Handler-Funktion; SSE-Spiele erhöhen den Thread-Pool (`Ballerbude.MAX_PLAYERS + NoodleGame.MAX_CLIENTS +

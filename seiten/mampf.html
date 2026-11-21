@@ -233,6 +233,7 @@
   </div>
 </div>
 
+<script src="/spiele/spielname.js"></script>
 <script>
 "use strict";
 (() => {
@@ -457,6 +458,8 @@
   let myFace = store.get("face", Math.floor(Math.random() * FACES.length));
   let myHue = store.get("hue", pick(HUES));
   $("name").value = store.get("name", "");
+  // Mit Discord angemeldet: Name kommt von dort (setzt auch der Server)
+  if (window.DcName) DcName.bind($("name"));
 
   const faceButtons = FACES.map((label, i) => {
     const b = document.createElement("button");

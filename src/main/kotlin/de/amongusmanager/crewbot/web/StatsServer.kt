@@ -94,6 +94,7 @@ class StatsServer(
             val path = if (inApp) rawPath.removePrefix(APP_BASE) else rawPath
             if (path == "/api/me" || path == "/api/me/profile" || path.startsWith("/auth/")) return account(exchange, method, path)
             if (path.startsWith(ControlApi.PREFIX)) return control(exchange, method, path)
+            if (path == GameLogin.STATUS_PATH && (method == "GET" || method == "HEAD")) return gameNameStatus(exchange)
             if (path.startsWith(ModApiSettings.PATH)) return mod(exchange, method, path)
             if (path == LiveLobbies.PATH || path.startsWith(LiveLobbies.PATH + "/")) return lobbies(exchange, method, path)
             if (path == VoiceChat.PATH || path.startsWith(VoiceChat.PATH + "/")) return voice(exchange, method, path)
@@ -237,10 +238,34 @@ class StatsServer(
         respond(exchange, response.status, response.type, response.body, cache = "no-store")
     }
 
+    // ---------- Discord-Login in den Spielen ----------
+
+    /** Hosten nur angemeldet, Angemeldete spielen unter ihrem Discord-Namen ([GameLogin]). null = Antwort ist schon raus. */
+    private fun loginGate(exchange: HttpExchange, path: String, body: ByteArray): ByteArray? {
+        val handler = auth
+        val outcome = GameLogin.apply(path, body, handler?.loginEnabled == true) {
+            handler?.gameName(WebRequest("POST", path, emptyMap(), cookieHeaders(exchange), ByteArray(0)))
+        }
+        val error = outcome.error ?: return outcome.body
+        respond(exchange, error.status, error.type, error.body, cache = "no-store")
+        return null
+    }
+
+    private fun cookieHeaders(exchange: HttpExchange): Map<String, String> =
+        exchange.requestHeaders["Cookie"]?.let { mapOf("cookie" to it.joinToString("; ")) } ?: emptyMap()
+
+    /** `GET /api/spielname`: Name + Login-Status für die Spiel-Seiten (`/spiele/spielname.js`). */
+    private fun gameNameStatus(exchange: HttpExchange) {
+        val handler = auth
+        val name = handler?.gameName(WebRequest("GET", GameLogin.STATUS_PATH, emptyMap(), cookieHeaders(exchange), ByteArray(0)))
+        respond(exchange, 200, TYPE_JSON, bytes(GameLogin.status(handler?.loginEnabled == true, name)), cache = "no-store")
+    }
+
     // ---------- Ballerbude ----------
 
     private fun arena(exchange: HttpExchange, handler: Ballerbude, method: String, path: String) {
-        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val raw = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val body = loginGate(exchange, path, raw) ?: return
         val request = WebRequest(method, path, parseQuery(exchange.requestURI.rawQuery), emptyMap(), body)
         if (path == Ballerbude.STREAM_PATH && method == "GET") {
             val (player, failed) = handler.openStream(request)
@@ -273,7 +298,8 @@ class StatsServer(
             exchange.responseBody.use { out -> game.pump(viewer, out) }
             return
         }
-        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val raw = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val body = loginGate(exchange, path, raw) ?: return
         val response = game.handle(WebRequest(method, path, emptyMap(), emptyMap(), body), client)
         for ((name, value) in response.headers) {
             if (name.equals("Cache-Control", ignoreCase = true)) continue
@@ -297,7 +323,8 @@ class StatsServer(
             exchange.responseBody.use { out -> game.pump(session, out) }
             return
         }
-        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val raw = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val body = loginGate(exchange, path, raw) ?: return
         val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
         val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
         val response = game.handle(WebRequest(method, path, emptyMap(), headers, body), client)
@@ -327,11 +354,12 @@ class StatsServer(
     // ---------- Kritzelpost ----------
 
     private fun kritzelpost(exchange: HttpExchange, method: String, path: String, handler: Kritzelpost) {
-        val body = if (method == "POST") {
+        val raw = if (method == "POST") {
             readBody(exchange, Kritzelpost.MAX_BODY) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store")
         } else {
             ByteArray(0)
         }
+        val body = loginGate(exchange, path, raw) ?: return
         val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
         val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
         val response = handler.handle(WebRequest(method, path, parseQuery(exchange.requestURI.rawQuery), headers, body), client)
@@ -347,7 +375,8 @@ class StatsServer(
 
     private fun drawGame(exchange: HttpExchange, method: String, path: String) {
         val handler = drawGame ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
-        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val raw = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val body = loginGate(exchange, path, raw) ?: return
         val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
         val response = handler.handle(WebRequest(method, path, emptyMap(), emptyMap(), body), client)
         for ((name, value) in response.headers) {
@@ -361,7 +390,8 @@ class StatsServer(
 
     private fun memeGame(exchange: HttpExchange, method: String, path: String) {
         val handler = memeGame ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
-        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val raw = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val body = loginGate(exchange, path, raw) ?: return
         val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
         val response = handler.handle(WebRequest(method, path, emptyMap(), emptyMap(), body), client)
         for ((name, value) in response.headers) {
@@ -375,7 +405,8 @@ class StatsServer(
 
     private fun shipGame(exchange: HttpExchange, method: String, path: String) {
         val handler = shipGame ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
-        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val raw = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val body = loginGate(exchange, path, raw) ?: return
         val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
         val response = handler.handle(WebRequest(method, path, emptyMap(), emptyMap(), body), client)
         for ((name, value) in response.headers) {
@@ -389,7 +420,8 @@ class StatsServer(
 
     private fun chessGame(exchange: HttpExchange, method: String, path: String) {
         val handler = chessGame ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
-        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val raw = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val body = loginGate(exchange, path, raw) ?: return
         val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
         val response = handler.handle(WebRequest(method, path, emptyMap(), emptyMap(), body), client)
         for ((name, value) in response.headers) {
@@ -403,7 +435,8 @@ class StatsServer(
 
     private fun wordGame(exchange: HttpExchange, method: String, path: String) {
         val handler = wordGame ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
-        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val raw = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val body = loginGate(exchange, path, raw) ?: return
         val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
         val request = WebRequest(method, path, parseQuery(exchange.requestURI.rawQuery), headers, body)
         if (path == WordGame.STREAM_PATH && method == "GET") {

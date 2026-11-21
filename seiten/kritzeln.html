@@ -489,6 +489,7 @@ textarea.field { resize: vertical; min-height: 70px; font-size: 15px; }
   <form autocomplete="off"><input maxlength="100" placeholder="Rate hier …"><button class="btn small blue" type="submit">↵</button></form>
 </template>
 
+<script src="/spiele/spielname.js"></script>
 <script>
 "use strict";
 (() => {
@@ -575,6 +576,8 @@ textarea.field { resize: vertical; min-height: 70px; font-size: 15px; }
   const knownPlayers = new Set();
 
   $("nameInput").value = saved.name || "";
+  // Mit Discord angemeldet: Name kommt von dort, Raum erstellen nur angemeldet (prüft auch der Server)
+  const dcReady = window.DcName ? DcName.bind($("nameInput"), { host: true, after: $("nameInput").parentElement }) : Promise.resolve(null);
   // Raum aus dem Link: #CODE (Einladung) oder ?raum=CODE (Live-Leiste der Startseite)
   const hashCode = ((location.hash || "").replace("#", "") || new URLSearchParams(location.search).get("raum") || "")
     .toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4);
@@ -641,6 +644,7 @@ textarea.field { resize: vertical; min-height: 70px; font-size: 15px; }
   // ---------- Netzwerk ----------
   async function call(body) {
     const res = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), cache: "no-store" });
+    if (res.status === 401) return res.json(); // „Raum erstellen nur mit Discord-Anmeldung“ – Text anzeigen
     if (!res.ok) throw new Error("HTTP " + res.status);
     return res.json();
   }
@@ -1241,6 +1245,7 @@ textarea.field { resize: vertical; min-height: 70px; font-size: 15px; }
   }
 
   // ---------- Start: zurück in den alten Raum? ----------
+  dcReady.then(() => {
   if (saved.room && saved.token && (!hashCode || hashCode === saved.room)) {
     call({ a: "join", room: saved.room, token: saved.token, name: saved.name || "", av: myAvatar })
       .then((res) => { if (res.ok) begin(res); else store.save({ room: "", token: "" }); })
@@ -1250,6 +1255,7 @@ textarea.field { resize: vertical; min-height: 70px; font-size: 15px; }
     if ($("nameInput").value.trim()) enter("join");
     else { homeError("Gib deinen Namen ein und drück Enter – dann bist du in Raum " + hashCode + "."); $("nameInput").focus(); }
   }
+  });
   addEventListener("pagehide", () => {
     // Beim Schließen nichts tun: wer neu lädt, kommt mit dem Token zurück; wer weg ist, fliegt nach kurzer Zeit raus.
   });
