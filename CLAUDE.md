@@ -578,10 +578,10 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   eigene Stimme zählt nicht; Host kann „Weiter“ drücken. Texte immer per `textContent`. **Meme-Pakete** (21.11.2026, Kilian: „nicht
   diese komischen bilder … richtig pakete mit echten memes“): 160 echte Vorlagen aus der memegen-Sammlung
   (github.com/jacebrowning/memegen, `templates/`: Bild + Textfeld-Lage als Anteile, Drehung, Farbe) in den Paketen Klassiker,
-  Vergleiche & Bildfolgen, Filme & Serien, Tiere (Standard: alle vier) + „zeichnungen“ (die alten Blob-SVGs, `TEMPLATES` in der HTML
+  Vergleiche & Bildfolgen, Filme & Serien, Tiere; dazu (21.11.2026, Kilian: „mach noch ein Spongebob, ein deutsche klassiker, Brainrot“, dann „noch so 5 mehr“) eigene Pakete SpongeBob, Deutsche Klassiker, Brainrot, Gaming, Anime, Fußball, Reaktionen, Schule & Alltag aus `tools/memes/eigene.yml` (Bilder von imgflip u.a., über Kilians PC geladen – die Cloud erreicht imgflip nicht – und als Originale in `tools/memes/eigene-bilder/` mit Quellen in `manifest.json`; Textfelder selbst festgelegt, ohne Angabe oben + unten), zusammen 340 Vorlagen (Standard: alle Foto-Pakete an) + „zeichnungen“ (die alten Blob-SVGs, `TEMPLATES` in der HTML
   – neue Zeichnung dort UND in `MemeTemplates.ALL`, `MemeGameTest` prüft beides). `tools/memes/build_memes.py` (Pakete = Listen von
   memegen-ids, Politik/Anzügliches bewusst weggelassen) lädt, verkleinert (≤ 720 px) und schreibt `src/main/resources/web-memes/`
-  (`vorlagen.json` + `<id>.jpg`, ~6 MB, nur im Website-JAR); `web/MemePhotos.kt` liest sie, `GET /api/memes/vorlagen` und
+  (`vorlagen.json` + `<id>.jpg`, ~14 MB, nur im Website-JAR); `web/MemePhotos.kt` liest sie, `GET /api/memes/vorlagen` und
   `/api/memes/bild/<id>.jpg` liefern sie (gecacht) – die Browser fragen nirgends sonst an. Bildrechte: Meme-Vorlagen sind Film-/
   Fotostills Dritter, Nutzung als Meme (Pastiche, § 51a UrhG) auf einer privaten Spieleseite. Lobby: Pakete als Schalter (nur Host),
   Server prüft (`packs`, mind. ein Paket oder eigene Bilder). Eigene Bilder:
