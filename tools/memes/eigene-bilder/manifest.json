@@ -1,0 +1,373 @@
+[
+    {
+        "id":  "mocking-spongebob",
+        "pack":  "spongebob",
+        "name":  "Mocking SpongeBob",
+        "source":  "https://i.imgflip.com/1otk96.jpg",
+        "file":  "spongebob/mocking-spongebob.jpg"
+    },
+    {
+        "id":  "handsome-squidward",
+        "pack":  "spongebob",
+        "name":  "Handsome Squidward",
+        "source":  "https://i.imgflip.com/3s994e.png",
+        "file":  "spongebob/handsome-squidward.png"
+    },
+    {
+        "id":  "tired-spongebob",
+        "pack":  "spongebob",
+        "name":  "Tired SpongeBob",
+        "source":  "https://i.imgflip.com/27ctrj.jpg",
+        "file":  "spongebob/tired-spongebob.jpg"
+    },
+    {
+        "id":  "spongegar",
+        "pack":  "spongebob",
+        "name":  "Caveman SpongeBob (Spongegar)",
+        "source":  "https://i.imgflip.com/15d35q.jpg",
+        "file":  "spongebob/spongegar.jpg"
+    },
+    {
+        "id":  "imagination-spongebob",
+        "pack":  "spongebob",
+        "name":  "Imagination SpongeBob",
+        "source":  "https://i.imgflip.com/3i7p.jpg",
+        "file":  "spongebob/imagination-spongebob.jpg"
+    },
+    {
+        "id":  "ight-imma-head-out",
+        "pack":  "spongebob",
+        "name":  "Ight Imma Head Out",
+        "source":  "https://i.imgflip.com/392xtu.jpg",
+        "file":  "spongebob/ight-imma-head-out.jpg"
+    },
+    {
+        "id":  "a-few-moments-later",
+        "pack":  "spongebob",
+        "name":  "A Few Moments Later",
+        "source":  "https://i.imgflip.com/1qdfgl.jpg",
+        "file":  "spongebob/a-few-moments-later.jpg"
+    },
+    {
+        "id":  "squidward-window",
+        "pack":  "spongebob",
+        "name":  "Squidward am Fenster",
+        "source":  "https://i.imgflip.com/145qvv.jpg",
+        "file":  "spongebob/squidward-window.jpg"
+    },
+    {
+        "id":  "surprised-patrick",
+        "pack":  "spongebob",
+        "name":  "Surprised Patrick",
+        "source":  "https://i.imgflip.com/e3u3v.jpg",
+        "file":  "spongebob/surprised-patrick.jpg"
+    },
+    {
+        "id":  "mr-krabs-blur",
+        "pack":  "spongebob",
+        "name":  "Confused Mr. Krabs (Blur)",
+        "source":  "https://i.imgflip.com/10r5wh.jpg",
+        "file":  "spongebob/mr-krabs-blur.jpg"
+    },
+    {
+        "id":  "savage-patrick",
+        "pack":  "spongebob",
+        "name":  "Savage Patrick",
+        "source":  "https://i.imgflip.com/25tan4.jpg",
+        "file":  "spongebob/savage-patrick.jpg"
+    },
+    {
+        "id":  "evil-patrick",
+        "pack":  "spongebob",
+        "name":  "Evil Patrick",
+        "source":  "https://i.imgflip.com/15o3ns.jpg",
+        "file":  "spongebob/evil-patrick.jpg"
+    },
+    {
+        "id":  "mayonnaise-instrument",
+        "pack":  "spongebob",
+        "name":  "Is Mayonnaise an Instrument?",
+        "source":  "https://i.imgflip.com/1c4gs7.jpg",
+        "file":  "spongebob/mayonnaise-instrument.jpg"
+    },
+    {
+        "id":  "burning-paper",
+        "pack":  "spongebob",
+        "name":  "SpongeBob Burning Paper",
+        "source":  "https://i.imgflip.com/2bc2vf.jpg",
+        "file":  "spongebob/burning-paper.jpg"
+    },
+    {
+        "id":  "plankton-evil-laugh",
+        "pack":  "spongebob",
+        "name":  "Plankton Evil Laugh",
+        "source":  "https://i.imgflip.com/to53r.jpg",
+        "file":  "spongebob/plankton-evil-laugh.jpg"
+    },
+    {
+        "id":  "krusty-krab-vs-chum-bucket",
+        "pack":  "spongebob",
+        "name":  "Krusty Krab vs. Chum Bucket",
+        "source":  "https://i.imgflip.com/26suq7.jpg",
+        "file":  "spongebob/krusty-krab-vs-chum-bucket.jpg"
+    },
+    {
+        "id":  "patrick-wallet",
+        "pack":  "spongebob",
+        "name":  "Patrick Not My Wallet",
+        "source":  "https://i.imgflip.com/1tffbz.jpg",
+        "file":  "spongebob/patrick-wallet.jpg"
+    },
+    {
+        "id":  "sweating-spongebob",
+        "pack":  "spongebob",
+        "name":  "Sweating SpongeBob",
+        "source":  "https://i.imgflip.com/4yxac6.png",
+        "file":  "spongebob/sweating-spongebob.png"
+    },
+    {
+        "id":  "nein-doch-oh",
+        "pack":  "deutsch",
+        "name":  "Nein! Doch! Ohh! (Louis de Funès)",
+        "source":  "https://i.imgflip.com/8b2qc6.jpg",
+        "file":  "deutsch/nein-doch-oh.jpg"
+    },
+    {
+        "id":  "trapattoni",
+        "pack":  "deutsch",
+        "name":  "Trapattoni – Ich habe fertig",
+        "source":  "https://i.imgflip.com/4x1qqn.jpg",
+        "file":  "deutsch/trapattoni.jpg"
+    },
+    {
+        "id":  "peter-lustig-abschalten",
+        "pack":  "deutsch",
+        "name":  "Peter Lustig – Abschalten",
+        "source":  "https://i.imgflip.com/b3idy0.jpg",
+        "file":  "deutsch/peter-lustig-abschalten.jpg"
+    },
+    {
+        "id":  "bernd-das-brot",
+        "pack":  "deutsch",
+        "name":  "Bernd das Brot",
+        "source":  "https://i.imgflip.com/970m00.jpg",
+        "file":  "deutsch/bernd-das-brot.jpg"
+    },
+    {
+        "id":  "stromberg",
+        "pack":  "deutsch",
+        "name":  "Stromberg",
+        "source":  "https://i.imgflip.com/w12j1.jpg",
+        "file":  "deutsch/stromberg.jpg"
+    },
+    {
+        "id":  "schuh-des-manitu",
+        "pack":  "deutsch",
+        "name":  "Der Schuh des Manitu",
+        "source":  "https://i.imgflip.com/5rqj22.jpg",
+        "file":  "deutsch/schuh-des-manitu.jpg"
+    },
+    {
+        "id":  "pumuckl",
+        "pack":  "deutsch",
+        "name":  "Pumuckl",
+        "source":  "https://i.imgflip.com/aeqkfb.jpg",
+        "file":  "deutsch/pumuckl.jpg"
+    },
+    {
+        "id":  "dieter-bohlen",
+        "pack":  "deutsch",
+        "name":  "Dieter Bohlen",
+        "source":  "https://i.imgflip.com/6ozzpt.jpg",
+        "file":  "deutsch/dieter-bohlen.jpg"
+    },
+    {
+        "id":  "tagesschau-daubner",
+        "pack":  "deutsch",
+        "name":  "Tagesschau – Susanne Daubner",
+        "source":  "https://i.imgflip.com/6q0xel.jpg",
+        "file":  "deutsch/tagesschau-daubner.jpg"
+    },
+    {
+        "id":  "ernie-bert",
+        "pack":  "deutsch",
+        "name":  "Ernie \u0026 Bert",
+        "source":  "https://i.imgflip.com/13luwm.jpg",
+        "file":  "deutsch/ernie-bert.jpg"
+    },
+    {
+        "id":  "klopp",
+        "pack":  "deutsch",
+        "name":  "Jürgen Klopp",
+        "source":  "https://i.imgflip.com/29fjut.jpg",
+        "file":  "deutsch/klopp.jpg"
+    },
+    {
+        "id":  "peter-zwegat",
+        "pack":  "deutsch",
+        "name":  "Peter Zwegat",
+        "source":  "https://i.imgflip.com/66nauu.jpg",
+        "file":  "deutsch/peter-zwegat.jpg"
+    },
+    {
+        "id":  "loriot",
+        "pack":  "deutsch",
+        "name":  "Loriot",
+        "source":  "https://i.imgflip.com/6u35ms.jpg",
+        "file":  "deutsch/loriot.jpg"
+    },
+    {
+        "id":  "heinz-erhardt",
+        "pack":  "deutsch",
+        "name":  "Heinz Erhardt",
+        "source":  "https://i.imgflip.com/4kuami.jpg",
+        "file":  "deutsch/heinz-erhardt.jpg"
+    },
+    {
+        "id":  "stefan-raab",
+        "pack":  "deutsch",
+        "name":  "Stefan Raab",
+        "source":  "https://i.imgflip.com/93mkj1.png",
+        "file":  "deutsch/stefan-raab.png"
+    },
+    {
+        "id":  "lothar-matthaeus",
+        "pack":  "deutsch",
+        "name":  "Lothar Matthäus",
+        "source":  "https://commons.wikimedia.org/wiki/Special:FilePath/Lothar_Matth%C3%A4us_1995.jpg?width=960",
+        "file":  "deutsch/lothar-matthaeus.jpg"
+    },
+    {
+        "id":  "tralalero-tralala",
+        "pack":  "brainrot",
+        "name":  "Tralalero Tralala",
+        "source":  "https://i.imgflip.com/9p82jm.jpg",
+        "file":  "brainrot/tralalero-tralala.jpg"
+    },
+    {
+        "id":  "tung-tung-sahur",
+        "pack":  "brainrot",
+        "name":  "Tung Tung Tung Sahur",
+        "source":  "https://i.imgflip.com/9nkemr.jpg",
+        "file":  "brainrot/tung-tung-sahur.jpg"
+    },
+    {
+        "id":  "ballerina-cappuccina",
+        "pack":  "brainrot",
+        "name":  "Ballerina Cappuccina",
+        "source":  "https://i.imgflip.com/a85y51.png",
+        "file":  "brainrot/ballerina-cappuccina.png"
+    },
+    {
+        "id":  "bombardiro-crocodilo",
+        "pack":  "brainrot",
+        "name":  "Bombardiro Crocodilo",
+        "source":  "https://i.imgflip.com/9q3kcu.jpg",
+        "file":  "brainrot/bombardiro-crocodilo.jpg"
+    },
+    {
+        "id":  "brr-brr-patapim",
+        "pack":  "brainrot",
+        "name":  "Brr Brr Patapim",
+        "source":  "https://i.imgflip.com/a6e1pg.png",
+        "file":  "brainrot/brr-brr-patapim.png"
+    },
+    {
+        "id":  "lirili-larila",
+        "pack":  "brainrot",
+        "name":  "Lirilì Larilà",
+        "source":  "https://i.imgflip.com/9r9md1.jpg",
+        "file":  "brainrot/lirili-larila.jpg"
+    },
+    {
+        "id":  "chimpanzini-bananini",
+        "pack":  "brainrot",
+        "name":  "Chimpanzini Bananini",
+        "source":  "https://i.imgflip.com/9r9mu1.jpg",
+        "file":  "brainrot/chimpanzini-bananini.jpg"
+    },
+    {
+        "id":  "cappuccino-assassino",
+        "pack":  "brainrot",
+        "name":  "Cappuccino Assassino",
+        "source":  "https://i.imgflip.com/9vlt8x.jpg",
+        "file":  "brainrot/cappuccino-assassino.jpg"
+    },
+    {
+        "id":  "trippi-troppi",
+        "pack":  "brainrot",
+        "name":  "Trippi Troppi",
+        "source":  "https://i.imgflip.com/9vcll5.png",
+        "file":  "brainrot/trippi-troppi.png"
+    },
+    {
+        "id":  "skibidi-toilet",
+        "pack":  "brainrot",
+        "name":  "Skibidi Toilet",
+        "source":  "https://i.imgflip.com/7mzkd0.jpg",
+        "file":  "brainrot/skibidi-toilet.jpg"
+    },
+    {
+        "id":  "gigachad",
+        "pack":  "brainrot",
+        "name":  "Gigachad",
+        "source":  "https://i.imgflip.com/35bdwf.jpg",
+        "file":  "brainrot/gigachad.jpg"
+    },
+    {
+        "id":  "smurf-cat",
+        "pack":  "brainrot",
+        "name":  "Smurf Cat",
+        "source":  "https://i.imgflip.com/7y117f.jpg",
+        "file":  "brainrot/smurf-cat.jpg"
+    },
+    {
+        "id":  "maxwell-cat",
+        "pack":  "brainrot",
+        "name":  "Maxwell the Cat",
+        "source":  "https://i.imgflip.com/81rndk.png",
+        "file":  "brainrot/maxwell-cat.png"
+    },
+    {
+        "id":  "oiia-cat",
+        "pack":  "brainrot",
+        "name":  "OIIA Cat (Spinning Cat)",
+        "source":  "https://i.imgflip.com/9k5zbq.jpg",
+        "file":  "brainrot/oiia-cat.jpg"
+    },
+    {
+        "id":  "bombastic-side-eye-cat",
+        "pack":  "brainrot",
+        "name":  "Bombastic Side Eye Cat",
+        "source":  "https://i.imgflip.com/7zciay.png",
+        "file":  "brainrot/bombastic-side-eye-cat.png"
+    },
+    {
+        "id":  "sad-hamster",
+        "pack":  "brainrot",
+        "name":  "Sad Hamster",
+        "source":  "https://i.imgflip.com/8gmiw7.jpg",
+        "file":  "brainrot/sad-hamster.jpg"
+    },
+    {
+        "id":  "banana-cat",
+        "pack":  "brainrot",
+        "name":  "Banana Cat (Crying)",
+        "source":  "https://i.imgflip.com/7s8bhl.png",
+        "file":  "brainrot/banana-cat.png"
+    },
+    {
+        "id":  "sendung-mit-der-maus",
+        "pack":  "deutsch",
+        "name":  "Die Sendung mit der Maus",
+        "source":  "https://commons.wikimedia.org/wiki/Special:FilePath/Die_Maus_und_der_Elefant.jpg?width=960",
+        "file":  "deutsch/sendung-mit-der-maus.jpg"
+    },
+    {
+        "id":  "kalkofe",
+        "pack":  "deutsch",
+        "name":  "Kalkofes Mattscheibe (Oliver Kalkofe)",
+        "source":  "https://commons.wikimedia.org/wiki/Special:FilePath/Oliver_Kalkofe_als_Onkel_Hotte.jpg?width=960",
+        "file":  "deutsch/kalkofe.jpg"
+    }
+]
