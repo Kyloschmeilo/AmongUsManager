@@ -1,0 +1,66 @@
+# Eigene Meme-Pakete (Bilder in tools/memes/eigene-bilder/, siehe manifest.json für die Quellen).
+# boxes fehlt = Standard (Text oben + unten). Kurzschlüssel wie in vorlagen.json: x/y/w/h Anteile 0–1, r Drehung,
+# k: dark = dunkle Schrift, c Farbe, u: 1 = Großbuchstaben, f: thin = dünne Schrift.
+packs:
+  - id: spongebob
+    name: "SpongeBob"
+    desc: "Bikini Bottom: Patrick, Thaddäus, Mr. Krabs, Plankton und Schwammkopf selbst"
+    memegen: spongebob patrick stop wallet
+    templates:
+      - {id: handsome-squidward, name: "Handsome Squidward", boxes: [{"x": 0.03, "y": 0.01, "w": 0.94, "h": 0.2}, {"x": 0.03, "y": 0.5, "w": 0.94, "h": 0.2}]}
+      - {id: tired-spongebob, name: "Tired SpongeBob", boxes: [{"x": 0.03, "y": 0.01, "w": 0.94, "h": 0.25, "k": "dark"}]}
+      - {id: spongegar, name: "Caveman SpongeBob (Spongegar)"}
+      - {id: imagination-spongebob, name: "Imagination SpongeBob"}
+      - {id: ight-imma-head-out, name: "Ight Imma Head Out", boxes: [{"x": 0.03, "y": 0.01, "w": 0.94, "h": 0.23, "k": "dark"}]}
+      - {id: a-few-moments-later, name: "A Few Moments Later", boxes: [{"x": 0.03, "y": 0.01, "w": 0.94, "h": 0.2}]}
+      - {id: squidward-window, name: "Squidward am Fenster"}
+      - {id: surprised-patrick, name: "Surprised Patrick"}
+      - {id: mr-krabs-blur, name: "Confused Mr. Krabs (Blur)"}
+      - {id: savage-patrick, name: "Savage Patrick"}
+      - {id: evil-patrick, name: "Evil Patrick"}
+      - {id: mayonnaise-instrument, name: "Is Mayonnaise an Instrument?"}
+      - {id: burning-paper, name: "SpongeBob Burning Paper", boxes: [{"x": 0.1, "y": 0.07, "w": 0.3, "h": 0.38, "k": "dark", "f": "thin"}]}
+      - {id: plankton-evil-laugh, name: "Plankton Evil Laugh"}
+      - {id: krusty-krab-vs-chum-bucket, name: "Krusty Krab vs. Chum Bucket", boxes: [{"x": 0.03, "y": 0.01, "w": 0.94, "h": 0.2}, {"x": 0.03, "y": 0.5, "w": 0.94, "h": 0.2}]}
+      - {id: sweating-spongebob, name: "Sweating SpongeBob"}
+  - id: deutsch
+    name: "Deutsche Klassiker"
+    desc: "Nein! Doch! Ohh!, Trapattoni, Bernd das Brot, Stromberg und andere Legenden"
+    templates:
+      - {id: nein-doch-oh, name: "Nein! Doch! Ohh! (Louis de Funès)"}
+      - {id: trapattoni, name: "Trapattoni – Ich habe fertig"}
+      - {id: peter-lustig-abschalten, name: "Peter Lustig – Abschalten", boxes: [{"x": 0.03, "y": 0.02, "w": 0.94, "h": 0.22}]}
+      - {id: bernd-das-brot, name: "Bernd das Brot"}
+      - {id: stromberg, name: "Stromberg"}
+      - {id: schuh-des-manitu, name: "Der Schuh des Manitu"}
+      - {id: pumuckl, name: "Pumuckl"}
+      - {id: dieter-bohlen, name: "Dieter Bohlen"}
+      - {id: tagesschau-daubner, name: "Tagesschau – Susanne Daubner"}
+      - {id: ernie-bert, name: "Ernie & Bert"}
+      - {id: klopp, name: "Jürgen Klopp"}
+      - {id: peter-zwegat, name: "Peter Zwegat"}
+      - {id: loriot, name: "Loriot"}
+      - {id: heinz-erhardt, name: "Heinz Erhardt"}
+      - {id: stefan-raab, name: "Stefan Raab"}
+      - {id: lothar-matthaeus, name: "Lothar Matthäus"}
+  - id: brainrot
+    name: "Brainrot"
+    desc: "Tralalero Tralala, Tung Tung Tung Sahur, Skibidi Toilet, Gigachad und Co."
+    templates:
+      - {id: tralalero-tralala, name: "Tralalero Tralala"}
+      - {id: tung-tung-sahur, name: "Tung Tung Tung Sahur"}
+      - {id: ballerina-cappuccina, name: "Ballerina Cappuccina"}
+      - {id: bombardiro-crocodilo, name: "Bombardiro Crocodilo"}
+      - {id: brr-brr-patapim, name: "Brr Brr Patapim"}
+      - {id: lirili-larila, name: "Lirilì Larilà"}
+      - {id: chimpanzini-bananini, name: "Chimpanzini Bananini"}
+      - {id: cappuccino-assassino, name: "Cappuccino Assassino"}
+      - {id: trippi-troppi, name: "Trippi Troppi"}
+      - {id: skibidi-toilet, name: "Skibidi Toilet"}
+      - {id: gigachad, name: "Gigachad"}
+      - {id: smurf-cat, name: "Smurf Cat"}
+      - {id: maxwell-cat, name: "Maxwell the Cat"}
+      - {id: oiia-cat, name: "OIIA Cat (Spinning Cat)"}
+      - {id: bombastic-side-eye-cat, name: "Bombastic Side Eye Cat"}
+      - {id: sad-hamster, name: "Sad Hamster"}
+      - {id: banana-cat, name: "Banana Cat (Crying)"}

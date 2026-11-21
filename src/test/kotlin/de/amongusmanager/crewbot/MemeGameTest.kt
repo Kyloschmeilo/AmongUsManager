@@ -1,6 +1,7 @@
 package de.amongusmanager.crewbot
 
 import de.amongusmanager.crewbot.web.MemeGame
+import de.amongusmanager.crewbot.web.MemePhotos
 import de.amongusmanager.crewbot.web.MemeRules
 import de.amongusmanager.crewbot.web.MemeTemplates
 import de.amongusmanager.crewbot.web.WebRequest
@@ -83,7 +84,8 @@ class MemeGameTest {
         val started = act(host, "a" to "start")
         assertEquals("write", started.str("phase"))
         val tplHost = started["me"]!!.jsonObject.str("tpl")
-        assertTrue(tplHost in MemeTemplates.BY_ID)
+        // Standard: echte Meme-Pakete
+        assertTrue(tplHost in MemePhotos.BY_ID)
         // jeder hat eine andere Vorlage
         val tpls = listOf(host, b, c).map { game.templateOf(host.code, it.id) }
         assertEquals(3, tpls.toSet().size)
@@ -195,15 +197,69 @@ class MemeGameTest {
         assertEquals(listOf("https://example.org/a.jpg"), list)
         val host = create("A")
         join(host.code, "B")
-        act(host, "a" to "settings", "builtIn" to false, "custom" to "https://example.org/a.jpg")
+        act(host, "a" to "settings", "custom" to "https://example.org/a.jpg", "packs" to emptyList<String>())
         val started = act(host, "a" to "start")
         val me = started["me"]!!.jsonObject
         assertEquals("https://example.org/a.jpg", me.str("url"))
         assertEquals(2, me["captions"]!!.jsonArray.size)
-        // ohne eigene Bilder bleiben die eingebauten an
+        // ohne eigene Bilder bleibt mindestens ein Paket an
         val h2 = create("C")
-        assertNotNull(act(h2, "a" to "settings", "builtIn" to false)["error"])
-        assertTrue(act(h2, "a" to "sync")["settings"]!!.jsonObject["builtIn"]!!.jsonPrimitive.boolean)
+        assertNotNull(act(h2, "a" to "settings", "packs" to emptyList<String>())["error"])
+        assertTrue(act(h2, "a" to "sync")["settings"]!!.jsonObject["packs"]!!.jsonArray.isNotEmpty())
+    }
+
+    @Test
+    fun photoPacksAreCompleteAndServed() {
+        assertTrue(MemePhotos.ALL.size >= 100, "echte Vorlagen fehlen")
+        assertTrue(MemePhotos.PACKS.all { p -> MemePhotos.count(p.id) >= 10 })
+        assertTrue(MemePhotos.ALL.none { it.id in MemeTemplates.BY_ID }, "ids doppelt mit den Zeichnungen")
+        val root = Json.parseToJsonElement(MemePhotos.json.toString(Charsets.UTF_8)).jsonObject
+        for (t in root["templates"]!!.jsonArray.map { it.jsonObject }) {
+            val id = t.str("id")
+            assertTrue(t.str("pack") in MemePhotos.PACKS.map { it.id }, id)
+            assertTrue(t["w"]!!.jsonPrimitive.int > 100 && t["h"]!!.jsonPrimitive.int > 100, id)
+            for (b in t["boxes"]!!.jsonArray.map { it.jsonObject }) {
+                val (x, y, w, h) = listOf("x", "y", "w", "h").map { b[it]!!.jsonPrimitive.content.toDouble() }
+                assertTrue(x >= 0 && y >= 0 && w > 0 && h > 0 && x + w <= 1.0001 && y + h <= 1.0001, "$id $b")
+            }
+            val image = MemePhotos.image(id)
+            assertNotNull(image, id)
+            assertTrue(image[0] == 0xFF.toByte() && image[1] == 0xD8.toByte(), "$id ist kein JPEG")
+        }
+        fun get(path: String) = game.handle(WebRequest("GET", path, emptyMap(), emptyMap()), "1.2.3.4")
+        val list = get(MemeGame.PATH + "/vorlagen")
+        assertEquals(200, list.status)
+        assertTrue(list.headers.any { it.first == "Cache-Control" && "public" in it.second })
+        val img = get(MemeGame.PATH + "/bild/drake.jpg")
+        assertEquals(200, img.status)
+        assertEquals("image/jpeg", img.type)
+        assertEquals(404, get(MemeGame.PATH + "/bild/gibtsnicht.jpg").status)
+        assertEquals(404, get(MemeGame.PATH + "/bild/..%2Fvorlagen.json.jpg").status)
+        assertEquals(404, get(MemeGame.PATH + "/bild/../web/index.html").status)
+    }
+
+    @Test
+    fun onlyChosenPacksAreDealt() {
+        val host = create("A")
+        val b = join(host.code, "B")
+        val res = act(host, "a" to "settings", "packs" to listOf("tiere", "gibtsnicht"))
+        assertEquals(listOf("tiere"), res["settings"]!!.jsonObject["packs"]!!.jsonArray.map { it.jsonPrimitive.content })
+        val packs = res["settings"]!!.jsonObject["packList"]!!.jsonArray.map { it.jsonObject.str("id") }
+        assertTrue("zeichnungen" in packs && "klassiker" in packs)
+        // Gäste können die Pakete nicht ändern
+        act(b, "a" to "settings", "packs" to listOf("film"))
+        act(host, "a" to "start")
+        for (seat in listOf(host, b)) {
+            val tpl = game.templateOf(host.code, seat.id)
+            assertEquals("tiere", MemePhotos.BY_ID[tpl]?.pack, tpl)
+            assertEquals(MemePhotos.BY_ID[tpl]!!.slots, act(seat, "a" to "sync")["me"]!!.jsonObject["captions"]!!.jsonArray.size)
+        }
+        // nur Zeichnungen geht auch
+        val h2 = create("C")
+        join(h2.code, "D")
+        act(h2, "a" to "settings", "packs" to listOf("zeichnungen"))
+        act(h2, "a" to "start")
+        assertTrue(game.templateOf(h2.code, h2.id) in MemeTemplates.BY_ID)
     }
 
     @Test

@@ -170,6 +170,18 @@ textarea.field { resize: vertical; min-height: 54px; line-height: 1.3; }
 .meme { position: relative; width: 100%; aspect-ratio: 4 / 3; border-radius: 14px; overflow: hidden; background: #222; box-shadow: 0 0 0 4px var(--ink), 0 8px 0 4px rgba(0,0,0,.35); container-type: inline-size; }
 .meme > svg, .meme > img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .meme > img { object-fit: cover; }
+.meme.photo { aspect-ratio: var(--ar); max-width: min(100%, calc(68vh * var(--ar))); margin-inline: auto; background: #111; }
+.meme.photo > img { object-fit: fill; }
+.meme .cap.lower { text-transform: none; }
+.meme .cap.thin { font-family: var(--font); font-weight: 900; -webkit-text-stroke: .09em #000; }
+.meme .cap.dark.thin { -webkit-text-stroke: 0; }
+.packs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.pack { border: 0; border-radius: 12px; padding: 8px 12px; font: 800 14px/1.15 var(--font); text-align: left; color: var(--ink); background: rgba(27,20,51,.06); box-shadow: inset 0 0 0 2px rgba(27,20,51,.22); cursor: pointer; transition: transform .15s, background .2s; max-width: 260px; }
+.pack small { display: block; font-weight: 600; opacity: .75; font-size: 12px; margin-top: 2px; }
+.pack b { font-family: var(--display); font-weight: 400; color: var(--pink); margin-left: 4px; }
+.pack.on { background: var(--yellow); color: var(--ink); box-shadow: inset 0 0 0 3px var(--ink), 0 3px 0 rgba(0,0,0,.3); }
+.pack:not(:disabled):hover { transform: translateY(-2px) rotate(-1deg); }
+.pack:disabled { cursor: default; }
 .meme .cap {
   position: absolute; display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden;
   font-family: var(--meme); text-transform: uppercase; line-height: 1.05; color: #fff; letter-spacing: .3px;
@@ -338,7 +350,10 @@ textarea.field { resize: vertical; min-height: 54px; line-height: 1.3; }
               <label>Runden<select id="sRounds"></select></label>
               <label>Zeit zum Texten<select id="sSeconds"></select></label>
               <label>Neu würfeln (pro Spiel)<select id="sRerolls"></select></label>
-              <label class="check"><input type="checkbox" id="sBuiltIn"> Eingebaute Vorlagen</label>
+            </div>
+            <div style="margin-top:12px">
+              <div style="font-weight:800;font-size:14px">Meme-Pakete</div>
+              <div class="packs" id="packs"></div>
             </div>
             <div id="customBox" style="margin-top:12px">
               <label style="font-weight:800;font-size:14px">Eigene Bilder (https-Adressen, eine pro Zeile, bis zu 20)</label>
@@ -353,7 +368,7 @@ textarea.field { resize: vertical; min-height: 54px; line-height: 1.3; }
             </div>
           </div>
           <div class="tile dark">
-            <h2 style="font-size:15px">Ein paar der Vorlagen</h2>
+            <h2 style="font-size:15px">Ein paar Vorlagen aus den Paketen</h2>
             <div class="tpl-strip" id="tplStrip"></div>
           </div>
         </div>
@@ -674,7 +689,17 @@ const TEMPLATES = {
       blob({ x: 640, y: 300, c: '#F7A8FF', face: 'angry', s: .75, dir: -1, flip: true, arms: [[60, 10, 150, 30, 220, 60]] })) },
 };
 const CUSTOM_SLOTS = [{ x: 20, y: 12, w: 760, h: 130 }, { x: 20, y: 458, w: 760, h: 130 }];
-const slotsOf = (tpl) => (TEMPLATES[tpl] ? TEMPLATES[tpl].slots : CUSTOM_SLOTS);
+// Echte Meme-Vorlagen (Bilder + Textfelder als Anteile 0–1) liefert der Server: /api/memes/vorlagen
+let PHOTOS = {};
+const catalog = fetch(API + '/vorlagen').then((r) => r.json()).then((d) => {
+  for (const t of d.templates || []) PHOTOS[t.id] = t;
+}).catch(() => { /* ohne Liste: nur Zeichnungen/eigene Bilder richtig */ });
+const photoUrl = (id) => API + '/bild/' + encodeURIComponent(id) + '.jpg';
+const frac = (s) => ({ x: s.x / W, y: s.y / H, w: s.w / W, h: s.h / H, k: s.kind });
+/** Textfelder einer Vorlage, immer als Anteile 0–1 (x, y, w, h, k = dark/chalk, r = Drehung, c = Farbe, u = Großbuchstaben, f = thin). */
+const slotsOf = (tpl) => TEMPLATES[tpl] ? TEMPLATES[tpl].slots.map((s) => Object.assign(frac(s), { u: 1 }))
+  : PHOTOS[tpl] ? PHOTOS[tpl].boxes : CUSTOM_SLOTS.map((s) => Object.assign(frac(s), { u: 1 }));
+const tplName = (tpl) => TEMPLATES[tpl] ? TEMPLATES[tpl].name : PHOTOS[tpl] ? PHOTOS[tpl].name : 'Eigenes Bild';
 const svgCache = {};
 
 /** Meme in `host` zeichnen; liefert die Text-Elemente zurück. */
@@ -691,23 +716,32 @@ function renderMeme(host, tpl, url, captions, opts = {}) {
     img.alt = '';
     img.referrerPolicy = 'no-referrer';
     img.loading = 'lazy';
-    if (url) img.src = url;
+    const photo = PHOTOS[tpl];
+    if (photo) {
+      box.classList.add('photo');
+      box.style.setProperty('--ar', photo.w / photo.h);
+      img.src = photoUrl(tpl);
+    } else if (url) img.src = url;
+    else if (tpl && !/^u\d+$/.test(tpl)) img.src = photoUrl(tpl);
     box.style.background = '#000';
     box.appendChild(img);
   }
+  const ratio = PHOTOS[tpl] ? PHOTOS[tpl].h / PHOTOS[tpl].w : H / W;
   const caps = [];
   slotsOf(tpl).forEach((s, i) => {
     const text = (captions && captions[i]) || '';
-    const cap = el('div', 'cap' + (s.kind ? ' ' + s.kind : ''));
-    cap.style.left = (s.x / W * 100) + '%';
-    cap.style.top = (s.y / H * 100) + '%';
-    cap.style.width = (s.w / W * 100) + '%';
-    cap.style.height = (s.h / H * 100) + '%';
+    const cap = el('div', 'cap' + (s.k ? ' ' + s.k : '') + (s.u ? '' : ' lower') + (s.f ? ' ' + s.f : ''));
+    cap.style.left = (s.x * 100) + '%';
+    cap.style.top = (s.y * 100) + '%';
+    cap.style.width = (s.w * 100) + '%';
+    cap.style.height = (s.h * 100) + '%';
+    if (s.r) cap.style.transform = `rotate(${s.r}deg)`;
+    if (s.c) cap.style.color = s.c;
     if (!text && opts.placeholders) {
       cap.classList.add('empty');
       cap.textContent = 'Text ' + (i + 1);
     } else cap.textContent = text;
-    cap.dataset.h = s.h;
+    cap.dataset.h = s.h * W * ratio; // Höhe in „800 px breit“-Einheiten (für fit)
     box.appendChild(cap);
     caps.push(cap);
   });
@@ -725,11 +759,14 @@ function fit(cap) {
   let size = Math.min(84, (+cap.dataset.h) * .62) * scale;
   const min = 9 * scale + 6;
   cap.style.fontSize = size + 'px';
+  cap.style.wordBreak = 'normal'; // erst ganze Wörter versuchen, nur notfalls mitten im Wort umbrechen
+  const over = () => cap.scrollHeight > cap.clientHeight + 1 || cap.scrollWidth > cap.clientWidth + 1;
   let guard = 40;
-  while (guard-- > 0 && size > min && (cap.scrollHeight > cap.clientHeight + 1 || cap.scrollWidth > cap.clientWidth + 1)) {
+  while (guard-- > 0 && size > min && over()) {
     size *= .9;
     cap.style.fontSize = size + 'px';
   }
+  if (over()) cap.style.wordBreak = 'break-word';
 }
 let fitTimer = 0;
 addEventListener('resize', () => { clearTimeout(fitTimer); fitTimer = setTimeout(() => document.querySelectorAll('.meme .cap').forEach(fit), 120); });
@@ -798,25 +835,33 @@ buildLogo($('logoSmall'), true);
   }
 })();
 const SAMPLES = [
+  ['drake', ['Tasks machen', 'Im Meeting alle anderen beschuldigen']],
+  ['db', ['Jemand läuft allein in die Elektrik', 'Ich', 'Meine Tasks']],
+  ['fine', ['Der Impostor nach dem dritten Kill', 'Alles unter Kontrolle']],
+  ['gb', ['Tasks machen', 'Tasks schnell machen', 'Fake-Tasks erkennen', 'Einfach alle beschuldigen']],
+  ['ds', ['Noch eine Runde', 'Morgen ausgeschlafen sein', 'Ich um 2 Uhr nachts']],
+  ['woman-cat', ['Alle im Meeting', 'Ich, der nur Tasks gemacht hat']],
+  ['pigeon', ['Ich', 'Einer, der still in der Ecke steht', 'Ist das der Impostor?']],
+  // ohne Meme-Liste vom Server: die Zeichnungen
   ['knoepfe', ['Noch eine Runde', 'Morgen ausgeschlafen sein', 'Ich um 2 Uhr nachts']],
   ['feuer', ['Der Impostor nach dem dritten Kill', 'Alles unter Kontrolle']],
   ['schild', ['Ich war das NICHT', 'Ich, kurz bevor ich rausgewählt werde']],
-  ['erwartung', ['Mein Plan für heute', 'Mein Plan um 18 Uhr']],
   ['gehirn', ['Tasks machen', 'Tasks schnell machen', 'Fake-Tasks erkennen', 'Einfach alle beschuldigen']],
-  ['kurve', ['Mein Kontostand', 'Nach dem Gehalt (2 Tage lang)']],
 ];
 let sampleAt = 0;
 function showcase() {
   const host = $('showcase');
   host.replaceChildren();
+  let list = SAMPLES.filter(([tpl]) => PHOTOS[tpl]);
+  if (!list.length) list = SAMPLES.filter(([tpl]) => TEMPLATES[tpl]);
   for (let k = 0; k < 3; k++) {
-    const [tpl, caps] = SAMPLES[(sampleAt + k) % SAMPLES.length];
+    const [tpl, caps] = list[(sampleAt + k) % list.length];
     const slot = el('div');
     slot.className = 'meme-slot';
     renderMeme(slot, tpl, null, caps);
     host.appendChild(slot.firstChild);
   }
-  sampleAt = (sampleAt + 1) % SAMPLES.length;
+  sampleAt = (sampleAt + 1) % list.length;
 }
 
 // ---------- Profil ----------
@@ -981,9 +1026,48 @@ for (const [id, list] of Object.entries(OPTS)) {
   for (const v of list) { const o = el('option', null, id === 'sSeconds' ? v + ' Sekunden' : String(v)); o.value = v; sel.appendChild(o); }
 }
 function pushSettings(extra) {
-  send(Object.assign({ a: 'settings', rounds: +$('sRounds').value, seconds: +$('sSeconds').value, rerolls: +$('sRerolls').value, builtIn: $('sBuiltIn').checked }, extra || {}));
+  send(Object.assign({ a: 'settings', rounds: +$('sRounds').value, seconds: +$('sSeconds').value, rerolls: +$('sRerolls').value }, extra || {}));
 }
-['sRounds', 'sSeconds', 'sRerolls', 'sBuiltIn'].forEach((id) => $(id).onchange = () => pushSettings());
+['sRounds', 'sSeconds', 'sRerolls'].forEach((id) => $(id).onchange = () => pushSettings());
+let packKey = '';
+async function togglePack(id) {
+  const s = state && state.settings;
+  if (!s) return;
+  const next = s.packs.includes(id) ? s.packs.filter((p) => p !== id) : s.packs.concat(id);
+  SFX.click();
+  const res = await send({ a: 'settings', packs: next });
+  showErr('lobbyErr', res && res.error ? res.error : '');
+}
+function renderPacks(s, isHost) {
+  const key = JSON.stringify([s.packs, isHost, s.packList.map((p) => p.count), Object.keys(PHOTOS).length]);
+  if (key === packKey) return;
+  packKey = key;
+  const host = $('packs');
+  host.replaceChildren();
+  for (const p of s.packList) {
+    const on = s.packs.includes(p.id);
+    if (!isHost && !on) continue;
+    const b = el('button', 'pack' + (on ? ' on' : ''));
+    b.type = 'button';
+    b.disabled = !isHost;
+    b.title = p.desc;
+    b.append(document.createTextNode((on ? '✓ ' : '') + p.name), el('b', null, String(p.count)), el('small', null, p.desc));
+    b.onclick = () => togglePack(p.id);
+    host.appendChild(b);
+  }
+  if (!host.childElementCount) host.appendChild(el('span', 'muted', 'Nur eigene Bilder.'));
+  // Beispiel-Vorlagen aus den gewählten Paketen
+  const ids = Object.values(PHOTOS).filter((t) => s.packs.includes(t.pack)).map((t) => t.id)
+    .concat(s.packs.includes('zeichnungen') ? Object.keys(TEMPLATES) : []);
+  const strip = $('tplStrip');
+  strip.replaceChildren();
+  for (let i = 0; i < Math.min(8, ids.length); i++) {
+    const d = el('div');
+    renderMeme(d, ids[Math.floor(i * ids.length / Math.min(8, ids.length))], null, []);
+    strip.appendChild(d);
+  }
+  strip.parentElement.hidden = !ids.length;
+}
 let customTimer = 0;
 $('sCustom').oninput = () => { clearTimeout(customTimer); customTimer = setTimeout(() => pushSettings({ custom: $('sCustom').value }), 700); };
 $('startBtn').onclick = async () => {
@@ -993,28 +1077,20 @@ $('startBtn').onclick = async () => {
 function renderLobby(res, changed) {
   $('pLobby').hidden = false;
   const s = res.settings, isHost = res.you === res.host;
-  for (const id of ['sRounds', 'sSeconds', 'sRerolls', 'sBuiltIn', 'sCustom']) $(id).disabled = !isHost;
+  for (const id of ['sRounds', 'sSeconds', 'sRerolls', 'sCustom']) $(id).disabled = !isHost;
   if (document.activeElement !== $('sRounds')) $('sRounds').value = s.rounds;
   if (document.activeElement !== $('sSeconds')) $('sSeconds').value = s.seconds;
   if (document.activeElement !== $('sRerolls')) $('sRerolls').value = s.rerolls;
-  $('sBuiltIn').checked = s.builtIn;
   $('customBox').hidden = !isHost && s.customCount === 0;
   if (isHost && document.activeElement !== $('sCustom') && changed) $('sCustom').value = s.custom || '';
   $('sCustom').hidden = !isHost;
-  const n = (s.builtIn ? s.builtInCount : 0) + s.customCount;
+  renderPacks(s, isHost);
+  const n = s.packList.filter((p) => s.packs.includes(p.id)).reduce((a, p) => a + p.count, 0) + s.customCount;
   $('settingsInfo').textContent = `${n} Vorlagen im Topf` + (s.customCount ? ` (davon ${s.customCount} eigene Bilder)` : '') + '.';
   $('startBtn').hidden = !isHost;
   const online = res.players.filter((p) => p.on).length;
   $('startBtn').disabled = online < 2;
   $('waitHost').textContent = isHost ? (online < 2 ? 'Warte auf mindestens einen Mitspieler – schick ihnen den Code!' : '') : 'Warte, bis der Host startet …';
-  if (changed && !$('tplStrip').childElementCount) {
-    const ids = Object.keys(TEMPLATES);
-    for (let i = 0; i < 8; i++) {
-      const d = el('div');
-      renderMeme(d, ids[(i * 5) % ids.length], null, []);
-      $('tplStrip').appendChild(d);
-    }
-  }
 }
 
 // Texten
@@ -1059,7 +1135,7 @@ function renderWrite(res) {
     capsHost.replaceChildren();
     slots.forEach((s, i) => {
       const wrap = el('div');
-      const label = el('label', null, `Text ${i + 1}` + (slots.length === 2 && s.y < 100 ? ' (oben)' : slots.length === 2 && s.y > 400 ? ' (unten)' : ''));
+      const label = el('label', null, `Text ${i + 1}` + (slots.length === 2 && s.y < .25 && slots[1 - i].y > s.y ? ' (oben)' : slots.length === 2 && s.y > .6 && slots[1 - i].y < s.y ? ' (unten)' : ''));
       const ta = el('textarea', 'field');
       ta.rows = 2; ta.maxLength = 90; ta.placeholder = 'Schreib was Lustiges …';
       ta.value = me.captions[i] || '';
@@ -1070,7 +1146,7 @@ function renderWrite(res) {
       wrap.append(label, ta);
       capsHost.appendChild(wrap);
     });
-    writeRefs = renderMeme($('writeMeme'), me.tpl, me.url, me.captions, { editing: true, placeholders: true, badge: TEMPLATES[me.tpl] ? TEMPLATES[me.tpl].name : 'Eigenes Bild' });
+    writeRefs = renderMeme($('writeMeme'), me.tpl, me.url, me.captions, { editing: true, placeholders: true, badge: tplName(me.tpl) });
     writeRefs.caps.forEach((c, i) => c.onclick = () => $('cap' + i).focus());
     setTimeout(() => { const first = $('cap0'); if (first && !matchMedia('(pointer: coarse)').matches) first.focus(); }, 50);
   }
@@ -1275,17 +1351,21 @@ const params = new URLSearchParams(location.search);
 const wanted = (params.get('raum') || '').toUpperCase();
 if (wanted) $('joinCode').value = wanted;
 showcase();
+catalog.then(() => { if (!$('home').hidden) showcase(); });
 if (!reduced) setInterval(() => { if (!$('home').hidden) showcase(); }, 7000);
-if (session && (!wanted || wanted === session.room)) {
-  // nach dem Neuladen mit demselben Platz weitermachen (unbekanntes Token → zurück zum Start)
-  send({ a: 'sync' }).then((res) => { if (res && res.ok) poll(); });
-} else if (wanted.length === 4) {
-  // Link aus der Live-Leiste der Startseite (?raum=CODE): mit bekanntem Namen gleich hinein, sonst nur noch Namen eingeben
-  dcReady.then(() => {
-    if ($('name').value.trim()) enter('join');
-    else { showErr('homeErr', 'Gib deinen Namen ein und drück Enter – dann bist du in Raum ' + wanted + '.'); $('name').focus(); }
-  });
-}
+// erst die Meme-Liste, damit Textfelder der Vorlagen bekannt sind
+catalog.then(() => {
+  if (session && (!wanted || wanted === session.room)) {
+    // nach dem Neuladen mit demselben Platz weitermachen (unbekanntes Token → zurück zum Start)
+    send({ a: 'sync' }).then((res) => { if (res && res.ok) poll(); });
+  } else if (wanted.length === 4) {
+    // Link aus der Live-Leiste der Startseite (?raum=CODE): mit bekanntem Namen gleich hinein, sonst nur noch Namen eingeben
+    dcReady.then(() => {
+      if ($('name').value.trim()) enter('join');
+      else { showErr('homeErr', 'Gib deinen Namen ein und drück Enter – dann bist du in Raum ' + wanted + '.'); $('name').focus(); }
+    });
+  }
+});
 })();
 </script>
 </body>
