@@ -425,6 +425,7 @@ textarea.field { resize: vertical; min-height: 54px; line-height: 1.3; }
 <button class="sound" id="soundBtn" title="Ton an/aus">🔊</button>
 <canvas id="confetti" hidden></canvas>
 
+<script src="/spiele/spielname.js"></script>
 <script>
 (() => {
 'use strict';
@@ -824,6 +825,8 @@ function saveProfile() { localStorage.setItem('memes.profile', JSON.stringify(pr
 function drawMyAvatar() { $('myAvatar').replaceChildren(avatarSvg(profile.av)); }
 $('name').value = profile.name || '';
 $('name').oninput = () => { profile.name = $('name').value; saveProfile(); };
+// Mit Discord angemeldet: Name kommt von dort, Raum eröffnen nur angemeldet (prüft auch der Server)
+const dcReady = window.DcName ? DcName.bind($('name'), { host: true }) : Promise.resolve(null);
 document.querySelectorAll('[data-av]').forEach((b) => b.onclick = () => {
   const i = +b.dataset.av;
   profile.av[i] = (profile.av[i] + 1) % (i === 0 ? 12 : 8);
@@ -1278,8 +1281,10 @@ if (session && (!wanted || wanted === session.room)) {
   send({ a: 'sync' }).then((res) => { if (res && res.ok) poll(); });
 } else if (wanted.length === 4) {
   // Link aus der Live-Leiste der Startseite (?raum=CODE): mit bekanntem Namen gleich hinein, sonst nur noch Namen eingeben
-  if ($('name').value.trim()) enter('join');
-  else { showErr('homeErr', 'Gib deinen Namen ein und drück Enter – dann bist du in Raum ' + wanted + '.'); $('name').focus(); }
+  dcReady.then(() => {
+    if ($('name').value.trim()) enter('join');
+    else { showErr('homeErr', 'Gib deinen Namen ein und drück Enter – dann bist du in Raum ' + wanted + '.'); $('name').focus(); }
+  });
 }
 })();
 </script>

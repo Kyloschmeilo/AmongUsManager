@@ -404,6 +404,7 @@ main { max-width: 1500px; margin: 0 auto; padding: 0 20px 40px; }
 </main>
 <div class="end" id="end" hidden></div>
 
+<script src="/spiele/spielname.js"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -1533,6 +1534,8 @@ function muteLabel() { $('mute').textContent = Sound.muted ? 'Ton aus' : 'Ton an
 $('mute').addEventListener('click', () => { Sound.toggle(); muteLabel(); Sound.click(); });
 muteLabel();
 $('name').value = store('sv.name') || '';
+// Mit Discord angemeldet: Name kommt von dort, Raum eröffnen nur angemeldet (prüft auch der Server)
+const dcReady = window.DcName ? DcName.bind($('name'), { host: true, after: $('lobbyForm') }) : Promise.resolve(null);
 window.SVG = G; window.SVO = Online;
 (() => {
   const wanted = (new URLSearchParams(location.search).get('raum') || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
@@ -1540,10 +1543,12 @@ window.SVG = G; window.SVO = Online;
     G.online = true; $('code').value = wanted;
     let saved = null;
     try { saved = JSON.parse(sessionStorage.getItem('sv.room')); } catch (e) { /* egal */ }
-    if (saved && saved.code === wanted) Online.enter({ a: 'join', room: wanted, token: saved.token });
-    // Link aus der Live-Leiste der Startseite (?raum=CODE): mit bekanntem Namen gleich hinein, sonst nur noch Namen eingeben
-    else if ($('name').value.trim()) Online.enter({ a: 'join', room: wanted });
-    else $('err').textContent = 'Gib deinen Namen ein und drück Enter – dann bist du in Raum ' + wanted + '.';
+    dcReady.then(() => {
+      if (saved && saved.code === wanted) Online.enter({ a: 'join', room: wanted, token: saved.token });
+      // Link aus der Live-Leiste der Startseite (?raum=CODE): mit bekanntem Namen gleich hinein, sonst nur noch Namen eingeben
+      else if ($('name').value.trim()) Online.enter({ a: 'join', room: wanted });
+      else $('err').textContent = 'Gib deinen Namen ein und drück Enter – dann bist du in Raum ' + wanted + '.';
+    });
   }
   renderModes(); renderPick();
   if (G.online && !Online.code && !$('name').value) $('name').focus();

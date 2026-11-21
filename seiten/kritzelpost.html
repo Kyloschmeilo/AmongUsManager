@@ -162,6 +162,7 @@ footer{text-align:center;color:#fff;font-size:.8rem;opacity:.8;margin-top:26px;t
 <div id="app"></div>
 <canvas id="confetti"></canvas>
 <div id="toast" role="status"></div>
+<script src="/spiele/spielname.js"></script>
 <script>
 "use strict";
 /* Kritzelpost – Stille Post mit Zeichnungen. Server-Teil: web/Kritzelpost.kt (/api/kritzelpost). */
@@ -464,6 +465,8 @@ function render() {
 function home() {
   const preview = el("div");
   const name = el("input", { class: "field", maxlength: 16, placeholder: "Dein Name", value: me.name, autocomplete: "nickname" });
+  // Mit Discord angemeldet: Name kommt von dort, Raum erstellen nur angemeldet (prüft auch der Server)
+  const dcReady = window.DcName ? DcName.bind(name, { host: true }) : Promise.resolve(null);
   const code = el("input", { class: "field", maxlength: 4, placeholder: "CODE", value: (new URLSearchParams(location.search).get("raum") || "").toUpperCase().slice(0, 4), style: "text-transform:uppercase;letter-spacing:.3em;text-align:center;max-width:150px", autocomplete: "off" });
   const swatches = el("div", { class: "swatches" });
   const paint = () => {
@@ -488,8 +491,10 @@ function home() {
   // Link aus der Live-Leiste der Startseite (?raum=CODE): mit bekanntem Namen gleich hinein, sonst nur noch Namen eingeben
   if (pendingRoom) {
     const room = pendingRoom; pendingRoom = "";
-    if (me.name) setTimeout(() => go(true), 0);
-    else setTimeout(() => { toast("Gib deinen Namen ein und drück Enter – dann bist du in Raum " + room + "."); name.focus(); }, 0);
+    dcReady.then(() => {
+      if (name.value.trim()) go(true);
+      else { toast("Gib deinen Namen ein und drück Enter – dann bist du in Raum " + room + "."); name.focus(); }
+    });
   }
   code.addEventListener("keydown", e => { if (e.key === "Enter") go(true); });
   const steps = [["✍️", "Jeder schreibt einen völlig normalen Satz.", "#ffe14d", -2], ["🎨", "Der Nächste muss ihn zeichnen. Viel Glück.", "#4ee68a", 1.5], ["🤔", "Der Übernächste rät, was das sein soll.", "#38c6ff", -1], ["😂", "Am Ende wird aufgedeckt, wie alles entgleist ist.", "#ff4f9a", 2]];

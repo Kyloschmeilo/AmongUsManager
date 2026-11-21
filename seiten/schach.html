@@ -577,6 +577,7 @@ table.counts th { font: 800 12px/16px var(--sans); letter-spacing: .12em; text-t
 
 <div class="modal" id="endModal" hidden><div class="card" id="endCard"></div></div>
 
+<script src="/spiele/spielname.js"></script>
 <script>
 'use strict';
 /* =====================================================================================================
@@ -1258,6 +1259,7 @@ const net = { code: '', token: '', st: null, v: 0, timer: 0, busy: false, fails:
 
 async function api(body) {
   const response = await fetch(API_SPIEL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (response.status === 401) return response.json(); // „Raum erstellen nur mit Discord-Anmeldung“ – Text anzeigen
   if (!response.ok) throw new Error('HTTP ' + response.status);
   return response.json();
 }
@@ -2319,6 +2321,8 @@ function floaters() {
 function init() {
   floaters();
   $('nameInput').value = store.get(SPEICHER.name, '');
+  // Mit Discord angemeldet: Name kommt von dort, Raum erstellen nur angemeldet (prüft auch der Server)
+  const dcReady = window.DcName ? DcName.bind($('nameInput'), { host: true, after: $('nameInput').parentElement }) : Promise.resolve(null);
   const timePick = () => renderChips($('timeChips'), TIMES.map((t, i) => [i, timeLabel(t)]), Number(store.get(SPEICHER.time, '2')), i => { store.set(SPEICHER.time, String(i)); timePick(); });
   const colorPick = () => renderChips($('colorChips'), [['random', 'Zufall'], ['white', 'Weiß'], ['black', 'Schwarz']], store.get(SPEICHER.color, 'random'), c => { store.set(SPEICHER.color, c); colorPick(); });
   const levelPick = () => {
@@ -2378,9 +2382,11 @@ function init() {
   const saved = JSON.parse(store.get(SPEICHER.room, 'null') || 'null');
   if (fromLink) {
     $('codeInput').value = fromLink.toUpperCase().slice(0, 4);
-    if (saved && saved.code === fromLink.toUpperCase()) joinRoom(fromLink, true);
-    else if (store.get(SPEICHER.name, '')) joinRoom(fromLink, true);
-    else { $('nameInput').focus(); toast('Gib deinen Namen ein und klick auf „Beitreten“.'); }
+    dcReady.then(() => {
+      if (saved && saved.code === fromLink.toUpperCase()) joinRoom(fromLink, true);
+      else if ($('nameInput').value.trim()) joinRoom(fromLink, true);
+      else { $('nameInput').focus(); toast('Gib deinen Namen ein und klick auf „Beitreten“.'); }
+    });
   } else if (saved && saved.code) {
     joinRoom(saved.code, true);
   }
