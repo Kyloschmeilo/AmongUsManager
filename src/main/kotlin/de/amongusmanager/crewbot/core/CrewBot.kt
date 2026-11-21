@@ -34,6 +34,8 @@ import de.amongusmanager.crewbot.services.GameStatsService
 import de.amongusmanager.crewbot.services.LevelService
 import de.amongusmanager.crewbot.services.LinkService
 import de.amongusmanager.crewbot.services.LobbyAnnouncer
+import de.amongusmanager.crewbot.services.LobbyNotifier
+import de.amongusmanager.crewbot.services.LobbyPingStore
 import de.amongusmanager.crewbot.services.MinecraftService
 import de.amongusmanager.crewbot.services.ModRoundService
 import de.amongusmanager.crewbot.services.ModSettings
@@ -46,6 +48,7 @@ import de.amongusmanager.crewbot.services.WelcomeService
 import de.amongusmanager.crewbot.services.WorkerManager
 import de.amongusmanager.crewbot.ui.Tone
 import de.amongusmanager.crewbot.ui.buildLobbyEmbed
+import de.amongusmanager.crewbot.ui.buildLobbyPingEmbed
 import de.amongusmanager.crewbot.ui.notify
 import de.amongusmanager.crewbot.ui.views.ControlPanel
 import de.amongusmanager.crewbot.ui.views.EventButtons
@@ -112,6 +115,11 @@ class CrewBot(val db: Database) {
     val playerInfo = PlayerInfoService(db, links, levels, gameStats, roundHistory, ::playerRoleLabel) // CrewStats-Komfort
     val linkCodes = LinkCodes() // /verknuepfen-code
     val lobby = LobbyAnnouncer({ jda }, Channels.CODES, links, bets, { event, host -> buildLobbyEmbed(event, host) }, scope)
+    val lobbyPings = LobbyPingStore(db) // /lobby-benachrichtigung (Opt-in)
+    val lobbyNotifier = LobbyNotifier({ jda }, lobbyPings, links, { event, ping ->
+        val host = event.sender.takeIf { it.isNotEmpty() }?.let { links.userFor(it) }?.let { "<@$it>" } ?: event.host.ifEmpty { "?" }
+        buildLobbyPingEmbed(event, ping, host, modApi.websiteUrl())
+    }, scope)
 
     // Minecraft-Plugin (CoreSMP): Rohdaten kommen im Inbox-Channel an, Ankündigungen gehen in den /dc-Channel
     val minecraft = MinecraftService(db, Channels.MINECRAFT, Channels.MINECRAFT_INBOX)

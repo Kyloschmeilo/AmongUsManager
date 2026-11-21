@@ -305,7 +305,9 @@ class DrawGameTest {
         assertTrue(Files.isRegularFile(pagesDir.resolve("kritzeln.html")), "seiten/kritzeln.html fehlt")
         val html = Files.readString(pagesDir.resolve("kritzeln.html"))
         assertContains(html, DrawGame.PATH)
-        assertFalse(Regex("<script[^>]+src=|<link[^>]+stylesheet").containsMatchIn(html), "Seite soll ohne fremde Dateien auskommen")
+        // einzige Ausnahme: der gemeinsame Ton-/Musik-Schalter aller Spiele (liegt im Website-JAR)
+        val own = html.replace("<script src=\"/seiten/spiele-ton.js\"", "<script")
+        assertFalse(Regex("<script[^>]+src=|<link[^>]+stylesheet").containsMatchIn(own), "Seite soll ohne fremde Dateien auskommen")
 
         val store = StatsStore(DirectorySource(Files.createTempDirectory("runden")))
         store.refresh()

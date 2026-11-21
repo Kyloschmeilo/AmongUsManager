@@ -124,7 +124,7 @@ function HeroMap({ mapId }: { mapId: number }) {
       </MapView>
       </Vision>
       <figcaption>
-        {m.map.map} aus {num(m.map.rounds)} Runden: je heller, desto öfter lief jemand dort lang. Jedes rote Kreuz ist ein Kill.
+        {m.map.map} aus {num(m.map.rounds)} Runden: je kräftiger die Farbe, desto öfter lief jemand dort lang. Jedes rote Kreuz ist ein Kill.
         Mit der Maus siehst du nur so weit wie ein Crewmate bei Licht aus.
       </figcaption>
     </figure>

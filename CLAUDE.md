@@ -609,6 +609,22 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   X-Forwarded-For/-Host/-Proto eines Reverse-Proxys zählt nur mit `WEB_TRUST_PROXY=true` (sonst Fälschung möglich). Ohne die JAR
   ändert sich nichts. Gleiche `.env` (ADMIN_PASSWORD …), Daten in `data/corehold/`. Test: `CoreHoldBridgeTest`.
 
+- **Komfort: Hell/Dunkel, Ton/Musik, Lobby-DMs** (21.11.2026, Kilian wählte aus einer Ideenliste Punkt 5 „Komfort“):
+  **Hell/Dunkel** für Stats-Website und Spiele-Startseite (`web/src/lib/theme.tsx`, Knopf Sonne/Mond oben rechts, `data-theme="light"`
+  am `<html>`, eine Einstellung `spiele.thema` im localStorage für beide, Standard Dunkel). Helle Farben in `web/src/theme.css`
+  (Stats) bzw. am Ende von `start/start.css`; das Crew-Band „N an Bord“ bleibt im hellen Design dunkel (All). Neue fest codierte
+  Farben in CSS brauchen eine helle Variante dort. **Ton/Musik in allen Spielen**: `src/main/resources/seiten/spiele-ton.js`
+  (`/seiten/spiele-ton.js`, im Website-JAR), im `<head>` jeder Spielseite VOR deren Skripten eingebunden. Ersetzt
+  `window.AudioContext` durch eine Unterklasse, merkt sich jeden Context und hält ihn bei „Ton aus“ an (auch `resume()` der Spiele
+  wirkt dann nicht) – Spiele brauchen keinen eigenen Code, ihre eigenen Ton-Knöpfe gelten zusätzlich. Musik = live erzeugte
+  Web-Audio-Musik (Akkorde + Bass + Pentatonik-Melodie, `data-stimmung` locker|flott|ruhig), Standard aus, startet erst nach einer
+  Eingabe, pausiert im Hintergrund-Tab. Knöpfe im Shadow DOM, Position `data-ecke`/`data-abstand` (Mampf über den Stats, Ballerbude
+  über der Minimap), `data-ohne-ton` = nur Musik (Nudelsalat, Geheimfunk haben keine Töne). Neue Spiele: Zeile mit einbinden.
+  **Lobby-DMs** (`/lobby-benachrichtigung`, Mod-Modul, `modules/LobbyPingCommands.kt`, `services/LobbyPing.kt`): Opt-in, Modus
+  alle | freunde (≤ 15 Freunde per `freund:@Name`, `entfernen:True`) | aus, Einstellungen in `settings` `lobby.ping` (JSON).
+  Bei jeder Lobby-Meldung der Mod (`state` open, nicht voll) DM an Abonnenten, außer wer hostet/drin ist; Freunde = Host oder in
+  `list` (Friendcode → `/verknuepfen`). Je Code eine DM, sonst ≥ 5 min Pause (nur im Speicher). Beim Einschalten Test-DM, ob DMs
+  offen sind. Test: `LobbyPingTest`. Mit echtem Discord ungetestet.
 - **Alle Spiele zusammen** (14.11.2026, Kilian: „eine Zip mit allem auch den games“): Integrations-Branch führt #17–#27 zusammen.
   Jedes Spiel hängt sich gleich in `StatsServer` ein: Konstruktor-Parameter (null = aus), eine Zeile im Routing vor dem
   GET-Check, eigene Handler-Funktion; SSE-Spiele erhöhen den Thread-Pool (`Ballerbude.MAX_PLAYERS + NoodleGame.MAX_CLIENTS +

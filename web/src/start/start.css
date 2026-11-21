@@ -238,3 +238,29 @@ a { color: inherit; text-decoration: none; }
   .st-live__label { border-right: 0; border-bottom: 2px dashed rgba(255, 255, 255, .15); padding: 4px 4px 10px; flex-direction: row; align-items: baseline; gap: 10px; }
   .st-lobby { width: 230px; }
 }
+
+/* ---------- Hell/Dunkel (21.11.2026, Komfort-Ideen; Einstellung gilt auch für /amongus, lib/theme.tsx) ---------- */
+.st-head { position: relative; }
+.st-theme {
+  position: absolute; top: 18px; right: 0; z-index: 2; display: grid; place-items: center; width: 48px; height: 48px; padding: 0;
+  cursor: pointer; border: 3px solid var(--line); border-radius: 14px; background: #ffd23f; color: var(--line);
+  box-shadow: 4px 4px 0 var(--line); transition: transform .15s ease-out, box-shadow .15s ease-out, background .15s ease-out;
+}
+.st-theme svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
+.st-theme[aria-pressed='true'] { background: #b08cff; }
+.st-theme[aria-pressed='true'] svg { fill: currentColor; stroke: none; }
+.st-theme:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--line); }
+.st-theme:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--line); }
+@media (prefers-reduced-motion: no-preference) {
+  .st-theme:hover svg { animation: st-spin .6s cubic-bezier(.3, 1.5, .5, 1); }
+  @keyframes st-spin { from { rotate: -90deg; scale: .6; } to { rotate: 0deg; scale: 1; } }
+}
+@media (max-width: 720px) { .st-theme { top: 10px; width: 42px; height: 42px; } }
+
+html[data-theme='light'] { --bg: #fff1dc; --bg-2: #ffffff; --muted: #5a5378; color-scheme: light; }
+html[data-theme='light'] body { color: var(--line); background-image: radial-gradient(rgba(18, 15, 36, .1) 1.5px, transparent 1.6px); }
+html[data-theme='light'] .st-idle b, html[data-theme='light'] .st-foot a:hover { color: var(--line); }
+html[data-theme='light'] .st-live__label { border-color: rgba(18, 15, 36, .18); }
+html[data-theme='light'] .st-team--crew { color: #1c7499; }
+html[data-theme='light'] .st-team--impostor { color: #c9362b; }
+html[data-theme='light'] .st-team--neutral { color: #8549bb; }

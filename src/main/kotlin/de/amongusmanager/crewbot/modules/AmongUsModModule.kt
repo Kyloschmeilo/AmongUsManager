@@ -97,6 +97,7 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "
     private val roundLock = Mutex() // Runden nacheinander auswerten (doppelt gesendete Runden z√§hlen nur einmal)
     private val wishes = RoleWishCommands(bot) // /rollenwunsch, /rolle-zuweisen
     private val autoJoin = AutoJoinCommands(bot) // /autojoin + Lobby-Anfragen der Mod
+    private val lobbyPing = LobbyPingCommands(bot) // /lobby-benachrichtigung
 
     override val commands = listOf(
         // ==========================================
@@ -325,7 +326,7 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "
                 null
             }
         },
-    ) + wishes.commands + autoJoin.commands
+    ) + wishes.commands + autoJoin.commands + lobbyPing.commands
 
     override suspend fun onReady() {
         wishes.startExpiry()
@@ -388,6 +389,7 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "
         LobbyEvent.parse(message.contentRaw)?.let { lobby ->
             if (isFresh(message)) {
                 bot.lobby.apply(lobby)
+                bot.lobbyNotifier.onLobby(lobby) // DMs f√ºr /lobby-benachrichtigung
                 try {
                     bot.lobbyStore.save(lobby) // Auto-Join √ºber die Website
                 } catch (e: Exception) {
