@@ -851,7 +851,8 @@ let sampleAt = 0;
 function showcase() {
   const host = $('showcase');
   host.replaceChildren();
-  const list = SAMPLES.filter(([tpl]) => (Object.keys(PHOTOS).length ? PHOTOS[tpl] : TEMPLATES[tpl]));
+  let list = SAMPLES.filter(([tpl]) => PHOTOS[tpl]);
+  if (!list.length) list = SAMPLES.filter(([tpl]) => TEMPLATES[tpl]);
   for (let k = 0; k < 3; k++) {
     const [tpl, caps] = list[(sampleAt + k) % list.length];
     const slot = el('div');

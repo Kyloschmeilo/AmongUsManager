@@ -39,7 +39,10 @@ def fetch(tid):
             with open(os.path.join(CACHE, "img", tid + "." + ext), "wb") as f:
                 f.write(data)
             break
-    return yml, glob.glob(os.path.join(CACHE, "img", tid + ".*"))[0]
+    images = glob.glob(os.path.join(CACHE, "img", tid + ".*"))
+    if not images:
+        raise SystemExit(f"Kein Bild für {tid} geladen (default.jpg/png/gif/webp fehlt oder Netzfehler)")
+    return yml, images[0]
 
 PACKS = [
     ("klassiker", "Klassiker", "Die bekannten Bild-Memes mit Text oben und unten", """
