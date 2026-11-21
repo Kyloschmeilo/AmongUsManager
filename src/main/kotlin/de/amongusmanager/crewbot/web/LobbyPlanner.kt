@@ -54,6 +54,7 @@ data class Plan(
 
 /** Gespeicherte Planungen (Website-Datenbank). */
 class LobbyPlans(private val db: Database, private val clock: () -> Instant = Instant::now) {
+    private val createLock = Any()
     private val random = SecureRandom()
 
     init {
@@ -86,16 +87,20 @@ class LobbyPlans(private val db: Database, private val clock: () -> Instant = In
         if (times.size > MAX_SLOTS) throw PlanException("Höchstens $MAX_SLOTS Termine.")
         if (times.first().isBefore(now.minus(Duration.ofMinutes(5)))) throw PlanException("Termine müssen in der Zukunft liegen.")
         if (times.last().isAfter(now.plus(MAX_AHEAD))) throw PlanException("Termine höchstens ${MAX_AHEAD.toDays()} Tage im Voraus.")
-        if (active().count { it.ownerId == ownerId } >= MAX_OPEN_PER_USER) {
-            throw PlanException("Du hast schon $MAX_OPEN_PER_USER laufende Planungen – lösch erst eine alte.")
-        }
-        val id = (1..8).map { ID_CHARS[random.nextInt(ID_CHARS.length)] }.joinToString("")
-        db.transaction {
-            db.update(
-                "INSERT INTO web_plans (id, owner_id, title, note, created_at, chosen_slot, deleted) VALUES (?, ?, ?, ?, ?, NULL, 0)",
-                id, ownerId, cleanTitle, cleanNote, now,
-            )
-            times.forEachIndexed { i, t -> db.update("INSERT INTO web_plan_slots (plan_id, slot_id, starts_at) VALUES (?, ?, ?)", id, i + 1, t) }
+        // Zählen und Anlegen zusammen, damit zwei gleichzeitige Anfragen die Grenze nicht überspringen
+        val id = synchronized(createLock) {
+            if (active().count { it.ownerId == ownerId } >= MAX_OPEN_PER_USER) {
+                throw PlanException("Du hast schon $MAX_OPEN_PER_USER laufende Planungen – lösch erst eine alte.")
+            }
+            val newId = (1..8).map { ID_CHARS[random.nextInt(ID_CHARS.length)] }.joinToString("")
+            db.transaction {
+                db.update(
+                    "INSERT INTO web_plans (id, owner_id, title, note, created_at, chosen_slot, deleted) VALUES (?, ?, ?, ?, ?, NULL, 0)",
+                    newId, ownerId, cleanTitle, cleanNote, now,
+                )
+                times.forEachIndexed { i, t -> db.update("INSERT INTO web_plan_slots (plan_id, slot_id, starts_at) VALUES (?, ?, ?)", newId, i + 1, t) }
+            }
+            newId
         }
         return get(id)!!
     }

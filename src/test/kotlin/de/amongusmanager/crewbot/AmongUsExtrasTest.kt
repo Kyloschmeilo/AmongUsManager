@@ -224,6 +224,22 @@ class AmongUsExtrasTest {
         assertEquals(mapOf(a to 0, b to 2), plans.votes(plan.id)[KILIAN])
     }
 
+    @Test
+    fun concurrentCreatesKeepThePlanLimit() {
+        val db = Database.inMemory(botSchema = false).also { opened += it }
+        val plans = LobbyPlans(db, clock)
+        val slot = listOf(now.plusSeconds(86_400))
+        repeat(LobbyPlans.MAX_OPEN_PER_USER - 1) { plans.create(KILIAN, "Abend $it", "", slot) }
+        val start = java.util.concurrent.CountDownLatch(1)
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(8)
+        val results = (1..8).map { n -> pool.submit<Boolean> { start.await(); runCatching { plans.create(KILIAN, "Gleichzeitig $n", "", slot) }.isSuccess } }
+        start.countDown()
+        val ok = results.count { it.get() }
+        pool.shutdown()
+        assertEquals(1, ok)
+        assertEquals(LobbyPlans.MAX_OPEN_PER_USER, plans.active().count { it.ownerId == KILIAN })
+    }
+
     private companion object {
         const val KILIAN = 111111111111111111L
         const val MIA = 222222222222222222L
