@@ -1027,22 +1027,32 @@ function pushSettings(extra) {
 }
 ['sRounds', 'sSeconds', 'sRerolls'].forEach((id) => $(id).onchange = () => pushSettings());
 let packKey = '';
+// Noch nicht bestätigte Paket-Auswahl: schnelle Klicks bauen aufeinander auf statt auf dem letzten Server-Stand.
+let pendingPacks = null;
 async function togglePack(id) {
   const s = state && state.settings;
   if (!s) return;
-  const next = s.packs.includes(id) ? s.packs.filter((p) => p !== id) : s.packs.concat(id);
+  const base = pendingPacks || s.packs;
+  const next = base.includes(id) ? base.filter((p) => p !== id) : base.concat(id);
+  pendingPacks = next;
   SFX.click();
+  renderPacks(s, true);
   const res = await send({ a: 'settings', packs: next });
+  if (pendingPacks === next || (res && res.error)) {
+    pendingPacks = null;
+    if (state && state.settings) renderPacks(state.settings, true);
+  }
   showErr('lobbyErr', res && res.error ? res.error : '');
 }
 function renderPacks(s, isHost) {
-  const key = JSON.stringify([s.packs, isHost, s.packList.map((p) => p.count), Object.keys(PHOTOS).length]);
+  const packs = (isHost && pendingPacks) || s.packs;
+  const key = JSON.stringify([packs, isHost, s.packList.map((p) => p.count), Object.keys(PHOTOS).length]);
   if (key === packKey) return;
   packKey = key;
   const host = $('packs');
   host.replaceChildren();
   for (const p of s.packList) {
-    const on = s.packs.includes(p.id);
+    const on = packs.includes(p.id);
     if (!isHost && !on) continue;
     const b = el('button', 'pack' + (on ? ' on' : ''));
     b.type = 'button';
@@ -1054,8 +1064,8 @@ function renderPacks(s, isHost) {
   }
   if (!host.childElementCount) host.appendChild(el('span', 'muted', 'Nur eigene Bilder.'));
   // Beispiel-Vorlagen aus den gewählten Paketen
-  const ids = Object.values(PHOTOS).filter((t) => s.packs.includes(t.pack)).map((t) => t.id)
-    .concat(s.packs.includes('zeichnungen') ? Object.keys(TEMPLATES) : []);
+  const ids = Object.values(PHOTOS).filter((t) => packs.includes(t.pack)).map((t) => t.id)
+    .concat(packs.includes('zeichnungen') ? Object.keys(TEMPLATES) : []);
   const strip = $('tplStrip');
   strip.replaceChildren();
   for (let i = 0; i < Math.min(8, ids.length); i++) {
