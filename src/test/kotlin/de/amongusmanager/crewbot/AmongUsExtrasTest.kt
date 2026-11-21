@@ -209,6 +209,21 @@ class AmongUsExtrasTest {
         assertTrue(String(sixth.body).contains("laufende Planungen"))
     }
 
+    @Test
+    fun changingAnswersKeepsTheVoterOrder() {
+        val db = Database.inMemory(botSchema = false).also { opened += it }
+        val plans = LobbyPlans(db, clock)
+        val plan = plans.create(KILIAN, "Spieleabend", "", listOf(now.plusSeconds(86_400), now.plusSeconds(2 * 86_400)))
+        val (a, b) = plan.slots.map { it.id }
+        plans.vote(plan, KILIAN, mapOf(a to 2))
+        now = now.plusSeconds(60)
+        plans.vote(plan, MIA, mapOf(a to 1))
+        now = now.plusSeconds(60)
+        plans.vote(plan, KILIAN, mapOf(a to 0, b to 2))
+        assertEquals(listOf(KILIAN, MIA), plans.votes(plan.id).keys.toList())
+        assertEquals(mapOf(a to 0, b to 2), plans.votes(plan.id)[KILIAN])
+    }
+
     private companion object {
         const val KILIAN = 111111111111111111L
         const val MIA = 222222222222222222L

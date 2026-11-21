@@ -170,7 +170,8 @@ export function RoleRandomizerPage() {
     const modOf = new Map<number, Pick>();
     for (const mod of shuffle(picks.filter((p) => p.pool === 'MODIFIER'), rnd)) {
       const free = shuffle(list.map((_, i) => i).filter((i) => !modOf.has(i) && (!AS_MODIFIER.has(mod.role.id) || order[i].team === 'CREW')), rnd);
-      if (free.length) modOf.set(free[0], mod);
+      // Lovers = zwei Spieler; reicht es nicht für alle Plätze, bekommt ihn keiner
+      if (free.length >= mod.slots) free.slice(0, mod.slots).forEach((i) => modOf.set(i, mod));
     }
     return list.map((name, i) => ({ name, seat: order[i], modifier: modOf.get(i) ?? null }));
   }, [names, picks, plainImpostors, seed]);

@@ -126,8 +126,12 @@ class LobbyPlans(private val db: Database, private val clock: () -> Instant = In
         val valid = plan.slots.map { it.id }.toSet()
         if (answers.keys.any { it !in valid }) throw PlanException("Diesen Termin gibt es nicht.")
         if (answers.values.any { it != null && it !in PlanAnswer.NO..PlanAnswer.YES }) throw PlanException("Ungültige Antwort.")
-        val now = clock()
         db.transaction {
+            // Reihenfolge der Abstimmenden bleibt die der ersten Stimme, auch wenn jemand später ändert
+            val first = db.query("SELECT MIN(voted_at) AS t FROM web_plan_votes WHERE plan_id = ? AND voter_id = ?", plan.id, voterId) {
+                it.long("t")
+            }.firstOrNull()?.takeIf { it > 0 }
+            val now = first?.let { Instant.ofEpochMilli(it) } ?: clock()
             for ((slot, answer) in answers) {
                 db.update("DELETE FROM web_plan_votes WHERE plan_id = ? AND slot_id = ? AND voter_id = ?", plan.id, slot, voterId)
                 if (answer != null) {
