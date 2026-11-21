@@ -432,6 +432,7 @@ textarea.field { resize: vertical; min-height: 54px; line-height: 1.3; }
           </div>
           <h2 style="font-family:var(--display);text-transform:uppercase;margin:24px 0 0">Die besten Memes</h2>
           <div class="gallery" id="gallery"></div>
+          <p class="muted" id="galleryNote" style="text-align:center;margin-top:14px" hidden>Die besten Memes landen in der <a href="/community/memes" target="_blank" rel="noopener" style="color:inherit;font-weight:800">Community-Galerie</a>.</p>
         </div>
       </div>
     </div>
@@ -1300,10 +1301,107 @@ function renderFinal(res, changed) {
     g.appendChild(fig);
   }
   if (!(res.gallery || []).length) g.appendChild(el('p', 'muted', 'Diesmal gab es keine Memes.'));
+  $('galleryNote').hidden = !(res.share || []).length;
+  if (isHost) shareBest(res);
   SFX.big();
   confetti();
 }
 $('againBtn').onclick = () => send({ a: 'again' });
+
+// ---------- Community-Galerie ----------
+// Am Ende einer Partie schickt der Browser des Hosts die besten Memes als Bild an /api/community/meme. Der Server prüft,
+// dass sie zu den besten dieser Partie gehören, und nimmt Autor + Punkte aus dem Spiel. Fremde Bilder (eigene Bild-Adressen
+// des Hosts) lassen sich nicht abmalen – die bleiben draußen.
+function loadImage(src) {
+  return new Promise((ok, fail) => { const i = new Image(); i.onload = () => ok(i); i.onerror = fail; i.src = src; });
+}
+/** Meme als JPEG (data-URL) wie auf der Seite: Bild + Texte, 800 px breit; null = geht nicht. */
+async function memeImage(m) {
+  const photo = PHOTOS[m.tpl];
+  let img, w = W, h = H;
+  if (TEMPLATES[m.tpl]) {
+    const svg = (svgCache[m.tpl] || (svgCache[m.tpl] = TEMPLATES[m.tpl].svg()));
+    const withNs = svg.includes('xmlns=') ? svg : svg.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+    img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(withNs));
+  } else if (photo) {
+    img = await loadImage(photoUrl(m.tpl));
+    h = Math.round(W * photo.h / photo.w);
+  } else return null;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
+  if (photo) ctx.drawImage(img, 0, 0, w, h);
+  else {
+    // wie object-fit: cover
+    const s = Math.max(w / img.width, h / img.height);
+    ctx.drawImage(img, (w - img.width * s) / 2, (h - img.height * s) / 2, img.width * s, img.height * s);
+  }
+  const css = getComputedStyle(document.documentElement);
+  const fam = (name) => css.getPropertyValue(name).trim() || 'sans-serif';
+  slotsOf(m.tpl).forEach((s, i) => {
+    let text = ((m.captions || [])[i] || '').trim();
+    if (!text) return;
+    const kind = s.k || '';
+    const upper = s.u && kind !== 'dark' && kind !== 'chalk';
+    if (upper) text = text.toUpperCase();
+    const bx = s.x * w, by = s.y * h, bw = s.w * w, bh = s.h * h;
+    const family = kind === 'dark' ? fam('--display') : kind === 'chalk' ? '"Comic Sans MS", "Chalkboard SE", ' + fam('--font') : s.f ? fam('--font') : fam('--meme');
+    const weight = kind === 'chalk' ? '700 ' : s.f ? '900 ' : '';
+    const pad = w * .03;
+    let size = Math.min(84, bh * .62);
+    let lines = [];
+    const wrap = () => {
+      ctx.font = weight + size + 'px ' + family;
+      lines = [];
+      for (const para of text.split('\n')) {
+        let line = '';
+        for (const word of para.split(/\s+/)) {
+          const next = line ? line + ' ' + word : word;
+          if (line && ctx.measureText(next).width > bw - 2 * pad) { lines.push(line); line = word; } else line = next;
+        }
+        lines.push(line);
+      }
+      return lines.length * size * 1.05 <= bh && lines.every((l) => ctx.measureText(l).width <= bw - 2 * pad);
+    };
+    let guard = 40;
+    while (!wrap() && guard-- > 0 && size > 10) size *= .9;
+    ctx.save();
+    ctx.translate(bx + bw / 2, by + bh / 2);
+    if (s.r) ctx.rotate(s.r * Math.PI / 180);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    const color = s.c || (kind === 'dark' ? '#15112A' : kind === 'chalk' ? '#F4F7EE' : '#fff');
+    const stroke = kind === 'dark' || kind === 'chalk' ? 0 : size * (s.f ? .09 : .13);
+    const lh = size * 1.05;
+    lines.forEach((l, k) => {
+      const y = (k - (lines.length - 1) / 2) * lh;
+      if (stroke) { ctx.lineWidth = stroke; ctx.strokeStyle = '#000'; ctx.strokeText(l, 0, y); }
+      ctx.fillStyle = color; ctx.fillText(l, 0, y);
+    });
+    ctx.restore();
+  });
+  try { return c.toDataURL('image/jpeg', .86); } catch (e) { return null; } // z.B. Safari bei SVG-Bildern
+}
+async function shareBest(res) {
+  if (!session || !res.game) return;
+  const key = 'memes.shared.' + res.game;
+  const done = new Set(JSON.parse(sessionStorage.getItem(key) || '[]'));
+  for (const n of res.share || []) {
+    if (done.has(n)) continue;
+    done.add(n);
+    sessionStorage.setItem(key, JSON.stringify([...done]));
+    const m = (res.gallery || []).find((x) => x.n === n);
+    if (!m) continue;
+    try {
+      const image = await memeImage(m);
+      if (!image) continue;
+      await fetch('/api/community/meme', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room: session.room, token: session.token, n, image }),
+      });
+    } catch (e) { /* Galerie ist nur ein Extra */ }
+  }
+}
 
 // Zeitbalken
 let lastSec = -1;

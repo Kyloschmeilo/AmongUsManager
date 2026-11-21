@@ -58,6 +58,8 @@ class StatsServer(
     private val shipGame: ShipGame? = null,
     /** Online-Schach zu zweit (/api/schach, Seite seiten/schach.html), null = aus. */
     private val chessGame: ChessGame? = null,
+    /** Community-Bereich: Galerien, Regeln & FAQ, Neuigkeiten (/api/community, Seite /community), null = aus. */
+    private val community: Community? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
@@ -108,6 +110,7 @@ class StatsServer(
             if (path == MemeGame.PATH || path.startsWith(MemeGame.PATH + "/")) return memeGame(exchange, method, path)
             if (path == ShipGame.PATH) return shipGame(exchange, method, path)
             if (path == ChessGame.PATH) return chessGame(exchange, method, path)
+            if (path == Community.PATH || path.startsWith(Community.PATH + "/")) return community(exchange, method, path)
             if (method != "GET" && method != "HEAD") {
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
@@ -431,6 +434,26 @@ class StatsServer(
         respond(exchange, response.status, response.type, response.body, cache = "no-store")
     }
 
+    // ---------- Community ----------
+
+    private fun community(exchange: HttpExchange, method: String, path: String) {
+        val handler = community ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
+        val body = if (method == "POST") {
+            readBody(exchange, Community.MAX_BODY) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store")
+        } else {
+            ByteArray(0)
+        }
+        val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
+        val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
+        val response = handler.handle(WebRequest(method, path, parseQuery(exchange.requestURI.rawQuery), headers, body), client)
+        for ((name, value) in response.headers) {
+            if (name.equals("Cache-Control", ignoreCase = true)) continue
+            exchange.responseHeaders.add(name, value)
+        }
+        val cache = response.headers.firstOrNull { it.first.equals("Cache-Control", ignoreCase = true) }?.second ?: "no-store"
+        respond(exchange, response.status, response.type, response.body, cache = cache)
+    }
+
     // ---------- Geheimfunk ----------
 
     private fun wordGame(exchange: HttpExchange, method: String, path: String) {
@@ -650,13 +673,19 @@ class StatsServer(
      * alte Adressen der Stats-Website (/spieler/abc, /runden …) leiten nach /amongus/… weiter.
      */
     private fun rootFile(exchange: HttpExchange, path: String) {
+        if (path == COMMUNITY_BASE || path.startsWith("$COMMUNITY_BASE/")) {
+            // Community-Bereich (dritter Einstieg der Vite-Seite, web/community.html), Unterseiten macht die Seite selbst
+            val page = static.get(COMMUNITY_PAGE)
+                ?: return respond(exchange, 404, "text/plain; charset=utf-8", "Nicht gefunden".toByteArray(), cache = "no-cache")
+            return respond(exchange, 200, page.type, page.bytes, cache = "no-cache", gzipped = page.gzipped)
+        }
         if (path == "/" || path == "/index.html") {
             val start = static.get(START_PAGE)
                 ?: return respond(exchange, 404, "text/plain; charset=utf-8", "Nicht gefunden".toByteArray(), cache = "no-cache")
             return respond(exchange, 200, start.type, start.bytes, cache = "no-cache", gzipped = start.gzipped)
         }
         val file = static.get(path)
-        if (file != null && path != START_PAGE) {
+        if (file != null && path != START_PAGE && path != COMMUNITY_PAGE) {
             val cache = if (path.startsWith("/assets/")) "public, max-age=31536000, immutable" else "no-cache"
             return respond(exchange, 200, file.type, file.bytes, cache = cache, gzipped = file.gzipped)
         }
@@ -739,6 +768,10 @@ class StatsServer(
 
         /** Startseite mit allen Spielen (zweiter Einstieg der Vite-Seite, web/start.html). */
         const val START_PAGE = "/start.html"
+
+        /** Community-Bereich (Galerien, Regeln & FAQ, Neuigkeiten), dritter Einstieg der Vite-Seite (web/community.html). */
+        const val COMMUNITY_BASE = "/community"
+        const val COMMUNITY_PAGE = "/community.html"
 
         // Alles kommt vom eigenen Server (auch die Schriften) – keine fremden Anfragen aus dem Browser
         private const val CSP = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; " +

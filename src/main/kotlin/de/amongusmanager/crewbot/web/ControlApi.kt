@@ -107,6 +107,23 @@ class ControlApi(
         return json(reply.status, enrich(reply.body) as JsonObject)
     }
 
+    private val adminCache = ConcurrentHashMap<Long, Pair<Boolean, Instant>>()
+
+    /**
+     * Hat diese Discord-ID im Discord das Recht ADMINISTRATOR? Fragt den Bot (wie das Admin-Panel), merkt sich die Antwort
+     * eine Minute. Bot offline → false (dann geht nur, was ohne Admin geht).
+     */
+    fun isAdmin(userId: Long): Boolean {
+        adminCache[userId]?.let { (admin, at) -> if (at.plus(ADMIN_CACHE).isAfter(clock())) return admin }
+        val reply = meCache[userId]?.takeIf { it.second.plus(ME_CACHE).isAfter(clock()) }?.first
+            ?: link.call(userId, "me", JsonObject(emptyMap())).also { if (it.status == 200) meCache[userId] = it to clock() }
+        val admin = reply.status == 200 && (reply.body["admin"] as? JsonPrimitive)?.content == "true"
+        if (adminCache.size > 5000) adminCache.clear()
+        // Fehler (Bot offline) nur kurz merken
+        adminCache[userId] = admin to if (reply.status == 200) clock() else clock().minus(ADMIN_CACHE).plusSeconds(10)
+        return admin
+    }
+
     /** Höchstens [RATE] Aufträge pro Minute und Person. */
     private fun allow(userId: Long): Boolean {
         val now = clock()
@@ -148,6 +165,7 @@ class ControlApi(
         private const val RATE = 60
         private val ME_CACHE: Duration = Duration.ofSeconds(20)
         private val GUEST_CACHE: Duration = Duration.ofSeconds(10)
+        private val ADMIN_CACHE: Duration = Duration.ofMinutes(1)
 
         /** Nicht angemeldet (Discord-ID 0): nur die Event-Liste ansehen. */
         const val GUEST = 0L

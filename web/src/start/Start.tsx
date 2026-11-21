@@ -192,11 +192,19 @@ export function Start() {
             }} />
           ))}
         </section>
+
+        <nav className="st-community" aria-label="Community">
+          <span className="st-community__label">Community</span>
+          <a href="/community/memes">Meme-Galerie</a>
+          <a href="/community/zeichnungen">Zeichnungen</a>
+          <a href="/community/regeln">Regeln &amp; FAQ</a>
+          <a href="/community/neuigkeiten">Neuigkeiten</a>
+        </nav>
       </main>
 
       <footer className="st-foot wrap">
         <span>Spieleabend · Among-Us-Daten von der Mod CrewStats</span>
-        <a href={`${APP}/hilfe`}>Hilfe &amp; Mods</a>
+        <span><a href="/community">Community</a> · <a href={`${APP}/hilfe`}>Hilfe &amp; Mods</a></span>
       </footer>
     </div>
   );

@@ -626,6 +626,22 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   Seiten: `GET /api/spielname` + `/spiele/spielname.js` (`DcName.bind`: Feld ausfüllen + sperren, Hinweis mit „Mit Discord anmelden“;
   Auto-Beitritt per `?raum=` wartet auf `DcName.ready`). Neue Spiele: Pfade in `GameLogin.kindOf` eintragen, Skript einbinden.
   Test: `GameLoginTest`; alle 9 Spiele mit Playwright gegen die echte JAR geprüft (Gast/angemeldet, Live-Beitritt).
+- **Community-Bereich** (21.11.2026, Kilian wählte aus einer Ideenliste „Community“: Meme-Galerie, Kritzelkiste-Galerie, Regeln + FAQ,
+  Neuigkeiten mit Changelog): Seite **`/community`** (dritter Vite-Einstieg `web/community.html` + `web/src/community/`, Unterseiten
+  `/memes`, `/zeichnungen`, `/regeln`, `/neuigkeiten` per React Router mit `basename`, `StatsServer.COMMUNITY_BASE`), **Standard-Design**
+  (Dark forest, Chakra Petch/Hanken Grotesk/Martian Mono über @fontsource). Server `web/Community.kt` (`/api/community`, Daten in
+  `data/website.db`: `web_gallery` mit Bild als BLOB, `web_gallery_likes`, `web_community_texts`, `web_community_news`), Texte
+  `web/CommunityContent.kt` (Regeln/FAQ-Vorschläge + feste Neuigkeiten – neue Funktionen dort oben anhängen). Woher die Bilder kommen:
+  **Kritzelkiste** – `DrawGame` merkt sich je Zug Striche + 🔥/💀, am Ende gehen höchstens 3 gefeierte (`DrawRules.bestPictures`) an
+  `Community.drawings`, der Server malt sie selbst als PNG (`web/DrawingRender.kt`, gleiche Palette/Stifte/Eimer wie die Seite, Test prüft
+  das). **Meme-Schmiede** – die Vorlagen zeichnet nur die Seite, deshalb schickt am Ende der Browser des **Hosts** die besten Memes
+  (`share` in der FINAL-Antwort, höchstens 4, nur mit Punkten) als JPEG an `POST /api/community/meme`; `MemeGame.share` prüft Raum, Token
+  und dass das Meme zu den besten gehört, Autor/Punkte kommen vom Server. Eigene Bild-Adressen des Hosts lassen sich nicht abmalen (bleiben
+  draußen). Herzen nur angemeldet (eins je Konto, wer wem geht nie raus). **Admins** (Recht ADMINISTRATOR im Discord, gefragt über den
+  Bot = `ControlApi.isAdmin`, 1 min gemerkt; ohne Bot-Datenbank `COMMUNITY_ADMINS` in der .env) blenden Bilder aus/ein oder löschen
+  sie, überschreiben Regeln/FAQ (null = zurück zum Vorschlag) und schreiben/löschen Neuigkeiten; ausgeblendete Bilder liefert die
+  Website nur noch Admins aus. Changelog = `content/Changelog.kt` des Bots. Startseite: Leiste „Community“ unter den Spielen.
+  Tests: `CommunityTest`; mit zwei Chromium-Browsern eine Meme-Partie und per API eine Kritzelkiste-Partie gespielt.
 - **Alle Spiele zusammen** (14.11.2026, Kilian: „eine Zip mit allem auch den games“): Integrations-Branch führt #17–#27 zusammen.
   Jedes Spiel hängt sich gleich in `StatsServer` ein: Konstruktor-Parameter (null = aus), eine Zeile im Routing vor dem
   GET-Check, eigene Handler-Funktion; SSE-Spiele erhöhen den Thread-Pool (`Ballerbude.MAX_PLAYERS + NoodleGame.MAX_CLIENTS +

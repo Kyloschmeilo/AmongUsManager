@@ -100,6 +100,12 @@ object DrawRules {
     fun cleanChat(raw: String): String = raw.filter { !it.isISOControl() && it != '‮' }.trim().replace(Regex("\\s+"), " ").take(100)
 
     /** Eigene Wörter des Hosts: durch Komma oder Zeilenumbruch getrennt, höchstens 200 Stück mit je 2–30 Zeichen. */
+    /** Für die Galerie: höchstens drei Zeichnungen, die mindestens einmal gefeiert wurden (mehr 🔥 als 💀), die beliebtesten zuerst. */
+    fun bestPictures(pictures: List<DrawGame.Picture>): List<DrawGame.Picture> = pictures
+        .filter { it.likes >= 1 && it.likes > it.dislikes }
+        .sortedWith(compareByDescending<DrawGame.Picture> { it.likes - it.dislikes }.thenByDescending { it.guessed })
+        .take(3)
+
     fun customWords(raw: String): List<String> = raw.split(',', '\n', ';')
         .map { part -> part.filter { !it.isISOControl() }.trim().replace(Regex("\\s+"), " ") }
         .filter { it.length in 2..30 && normalize(it).isNotEmpty() }
@@ -110,7 +116,21 @@ object DrawRules {
 class DrawGame(
     private val clock: () -> Long = System::currentTimeMillis,
     private val random: Random = SecureRandom().asKotlinRandom(),
+    /** Beliebteste Zeichnungen einer beendeten Partie (Community-Galerie), null = keine Galerie. */
+    private val gallery: ((List<Picture>) -> Unit)? = null,
 ) {
+    /** Fertige Zeichnung eines Zugs (Striche wie gespeichert, Wort, Zeichner, Reaktionen). */
+    class Picture(
+        val source: String,
+        val word: String,
+        val drawer: String,
+        val ops: List<JsonObject>,
+        val likes: Int,
+        val dislikes: Int,
+        val guessed: Int,
+        val guessers: Int,
+    )
+
     enum class Phase { LOBBY, CHOOSE, DRAW, REVEAL, FINAL }
 
     internal class Player(val id: Int, val token: String, var name: String, var avatar: List<Int>) {
@@ -158,6 +178,11 @@ class DrawGame(
         var chatSeq = 0
         val settings = Settings()
         var active = 0L
+        /** Kennung der laufenden Partie (neu bei jedem Start) – Galerie-Einträge sind daran eindeutig. */
+        var gameId = ""
+        var likes = 0
+        var dislikes = 0
+        val pictures = ArrayList<Picture>()
     }
 
     private val rooms = HashMap<String, Room>()
@@ -287,6 +312,8 @@ class DrawGame(
         room.drawn.clear()
         room.used.clear()
         room.note = ""
+        room.gameId = (1..10).map { CODE_LETTERS[random.nextInt(CODE_LETTERS.length)] }.joinToString("")
+        room.pictures.clear()
         system(room, "sys", null, "Los geht's! ${room.settings.rounds} ${if (room.settings.rounds == 1) "Runde" else "Runden"}, jeder malt einmal pro Runde.")
         nextTurn(room, now)
         return null
@@ -323,6 +350,7 @@ class DrawGame(
     private fun like(room: Room, player: Player, value: Int) {
         if (room.phase != Phase.DRAW || player.id == room.drawer || player.liked) return
         player.liked = true
+        if (value < 0) room.dislikes++ else room.likes++
         line(room, if (value < 0) "dislike" else "like", player, if (value < 0) "findet das Bild fragwürdig" else "feiert das Bild", 0)
     }
 
@@ -403,6 +431,8 @@ class DrawGame(
         room.drawn += next.id
         room.drawer = next.id
         room.turn++
+        room.likes = 0
+        room.dislikes = 0
         clearCanvas(room)
         for (p in room.players.values) {
             p.guessed = false
@@ -440,6 +470,13 @@ class DrawGame(
             drawer.gain = DrawRules.drawerPoints(guessers.map { it.gain })
             drawer.score += drawer.gain
         }
+        if (room.word.isNotEmpty() && drawer != null && DrawingRender.hasContent(room.ops)) {
+            val others = room.players.values.filter { it.id != room.drawer }
+            room.pictures += Picture(
+                "kritzel:${room.gameId}:${room.turn}", room.word, drawer.name, room.ops.toList(),
+                room.likes, room.dislikes, others.count { it.guessed }, others.size,
+            )
+        }
         room.reason = reason
         room.phase = Phase.REVEAL
         room.deadline = now + DrawRules.REVEAL_MS
@@ -455,6 +492,13 @@ class DrawGame(
         room.choices = emptyList()
         val winner = room.players.values.maxByOrNull { it.score }
         if (winner != null && winner.score > 0) system(room, "sys", null, "${winner.name} gewinnt mit ${winner.score} Punkten!")
+        val best = DrawRules.bestPictures(room.pictures)
+        room.pictures.clear()
+        val share = gallery
+        if (best.isNotEmpty() && share != null) {
+            runCatching { share(best) }
+            system(room, "sys", null, if (best.size == 1) "Die beliebteste Zeichnung kommt in die Community-Galerie." else "Die ${best.size} beliebtesten Zeichnungen kommen in die Community-Galerie.")
+        }
     }
 
     private fun toLobby(room: Room) {
