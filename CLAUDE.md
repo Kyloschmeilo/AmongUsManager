@@ -295,6 +295,11 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   antworten mit einem Hinweis statt „Interaktion fehlgeschlagen“, Embeds werden nie über Discords
   6000-Zeichen-Grenze gebaut (`safeBuild`).
 
+## Design-Systeme (22.11.2026, Kilian: „baue ein design system zum beschreiben der spiele website und eins nur fuer den amongus teil“)
+- `docs/design/spiele-website.md` (Startseite + Browserspiele: Sticker-Look, Lilita One/Barlow) und `docs/design/amongus.md`
+  (`/amongus`: Almanach-Look, Barlow Condensed, Farbe nur mit Bedeutung), je mit Farben (Dunkel + Hell), Schrift, Abständen,
+  Bausteinen, Bewegung, Do/Don't. Bei sichtbaren Änderungen an `start.css`/`styles.css`/`theme.css` mitziehen.
+
 ## Stats-Website (01.11.2026, Kilian: „Mach jetzt die website“, mit GSAP, Lenis, React Bits)
 - **Eigenes JAR** `StatsWebsite.jar` (`gradlew statsWebsiteJar`, Main `web/StatsWebsite.kt`), läuft als **eigener
   Pelican-Server** (Java-Egg, JARFILE `StatsWebsite.jar`, eigener Port, 256–512 MB RAM). Liest die Bot-Datenbank
