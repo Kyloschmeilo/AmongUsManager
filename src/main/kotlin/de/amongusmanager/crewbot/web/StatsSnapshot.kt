@@ -254,6 +254,84 @@ class StatsSnapshot private constructor(
         return bytes(obj("total" to filtered.size, "offset" to offset, "items" to page.map { roundItem(it) }))
     }
 
+    private val roleDetailCache = ConcurrentHashMap<String, ByteArray>()
+    private val recapCache = ConcurrentHashMap<String, ByteArray>()
+
+    /** Rollen-Wiki: wer eine Rolle am meisten spielt, letzte Runden damit, Maps ([ids] = statIds aus dem Lexikon). */
+    fun roleDetailJson(ids: List<String>): ByteArray {
+        val set = ids.map { it.trim() }.filter { it.isNotEmpty() && it.length <= 60 }.take(8).toSortedSet()
+        val cacheKey = set.joinToString(",")
+        roleDetailCache[cacheKey]?.let { return it }
+        val body = bytes(roleDetail(set))
+        if (roleDetailCache.size < 500) roleDetailCache[cacheKey] = body
+        return body
+    }
+
+    /** Monatsrückblick (Monat "2026-11", null = neuester Monat mit Runden), null = Monat ungültig. */
+    fun recapJson(month: String?): ByteArray? {
+        val cacheKey = month ?: ""
+        recapCache[cacheKey]?.let { return it }
+        val body = MonthlyRecap.build(this, month)?.let { bytes(it) } ?: return null
+        if (recapCache.size < 200) recapCache[cacheKey] = body
+        return body
+    }
+
+    /** Kurzangaben eines Spielers für andere Auswertungen (Name, Farbe, Bild), null = unbekannt. */
+    internal fun refOf(key: String): JsonObject? = ref(key)
+
+    /** Von Admins aus Bestenlisten ausgenommen. */
+    internal fun isHidden(key: String): Boolean = key in hidden
+
+    internal fun roundItemOf(view: RoundView): JsonObject = roundItem(view)
+
+    private fun roleDetail(ids: Set<String>): JsonObject {
+        val perPlayer = LinkedHashMap<String, IntArray>() // games, wins, kills
+        val perMap = HashMap<Int, IntArray>()
+        val recent = ArrayList<JsonObject>()
+        var games = 0
+        var wins = 0
+        var kills = 0
+        var survived = 0
+        var first: Instant? = null
+        for (view in views) {
+            val holders = ArrayList<JsonObject>()
+            view.round.players.forEachIndexed { index, p ->
+                if (roleIdOf(p) !in ids && p.modifiers.none { "tor:$it" in ids }) return@forEachIndexed
+                val key = view.keys[index]
+                games++
+                if (p.won) wins++
+                kills += p.kills
+                if (!p.isDead && !p.disconnected) survived++
+                perPlayer.getOrPut(key) { IntArray(3) }.let { it[0]++; if (p.won) it[1]++; it[2] += p.kills }
+                perMap.getOrPut(view.round.mapId) { IntArray(2) }.let { it[0]++; if (p.won) it[1]++ }
+                holders += obj(
+                    "key" to key, "name" to p.name, "colorId" to (p.colorId ?: players[key]?.colorId), "team" to p.team, "won" to p.won,
+                    "role" to roleName(roleIdOf(p)), "kills" to p.kills,
+                )
+            }
+            if (holders.isEmpty()) continue
+            first = view.round.endedAt
+            if (recent.size < 8) recent += JsonObject(roundItem(view) + ("holders" to holders.toJson()))
+        }
+        return obj(
+            "ids" to ids.toList(),
+            "games" to games,
+            "wins" to wins,
+            "kills" to kills,
+            "survived" to survived,
+            "firstPlayedAt" to first,
+            "lastPlayedAt" to recent.firstOrNull()?.get("endedAt"),
+            "players" to perPlayer.entries.filter { it.key !in hidden }
+                .sortedWith(compareByDescending<Map.Entry<String, IntArray>> { it.value[0] }.thenByDescending { it.value[1] })
+                .take(10)
+                .mapNotNull { (key, v) -> ref(key)?.let { JsonObject(it + mapOf("games" to v[0].toJson(), "wins" to v[1].toJson(), "kills" to v[2].toJson())) } },
+            "maps" to perMap.entries.sortedByDescending { it.value[0] }.map { (id, v) ->
+                obj("mapId" to id, "name" to (MAP_NAMES[id] ?: maps[id]?.name ?: "?"), "games" to v[0], "wins" to v[1])
+            },
+            "rounds" to recent,
+        )
+    }
+
     private fun overview(): JsonObject {
         val rounds = views.map { it.round }
         val teams = linkedMapOf(CREW to 0, IMPOSTOR to 0, NEUTRAL to 0, UNKNOWN to 0)

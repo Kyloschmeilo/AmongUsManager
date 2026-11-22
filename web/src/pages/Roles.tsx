@@ -2,13 +2,15 @@
 // wurden (/api/roles). Rollen, die in Runden vorkommen, aber nicht im Lexikon stehen, kommen hinten dran.
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Search } from 'lucide-react';
+import { ArrowRight, Dices, Search } from 'lucide-react';
 import { useApi, type RolesResponse } from '../lib/api';
 import { num, pct } from '../lib/format';
 import { LEXICON_TEAM_LABEL, RichText, lexiconPillClass, type LexiconRole, type LexiconTeam } from '../lib/guides';
 import { Async, Empty, Segmented } from '../components/ui';
 import { Reveal, Title } from '../components/motion';
+import { RoleIcon, rolePath, type RoleImage } from '../lib/roleArt';
 import '../guides.css';
+import '../extras.css';
 
 type TeamFilter = 'all' | LexiconTeam;
 type SourceFilter = 'all' | 'game' | 'tor';
@@ -16,6 +18,8 @@ type Sort = 'played' | 'az';
 
 interface RoleEntry {
   key: string;
+  slug: string | null;
+  images: RoleImage[];
   name: string;
   team: LexiconTeam;
   source: 'game' | 'tor';
@@ -37,6 +41,8 @@ function buildEntries(lexicon: LexiconRole[], stats: RolesResponse | null): Role
   const entries: RoleEntry[] = lexicon.map((role) => {
     const entry: RoleEntry = {
       key: role.id,
+      slug: role.slug,
+      images: role.images ?? [],
       name: role.name,
       team: role.team,
       source: role.source,
@@ -66,6 +72,8 @@ function buildEntries(lexicon: LexiconRole[], stats: RolesResponse | null): Role
     const team: LexiconTeam = row.team === 'IMPOSTOR' ? 'IMPOSTOR' : row.team === 'NEUTRAL' ? 'NEUTRAL' : row.team === 'CREW' ? 'CREW' : 'MODIFIER';
     entries.push({
       key: id,
+      slug: null,
+      images: [],
       name: row.name,
       team,
       source: id.startsWith('tor:') ? 'tor' : 'game',
@@ -110,6 +118,10 @@ export function RolesPage() {
           <div className="row">
             <span className="pill pill--mono">{num(entries.length)} Rollen</span>
             <span className="pill pill--plain">{num(played)} schon gespielt</span>
+            <Link className="text-link" to="/rollen/zufall">
+              <Dices className="icon icon--sm" aria-hidden="true" />
+              Rollen-Zufallsgenerator
+            </Link>
             <Link className="text-link" to="/rollen/balancing">
               Balancing: Siegquoten der Rollen
               <ArrowRight className="icon icon--sm" aria-hidden="true" />
@@ -189,13 +201,16 @@ function RoleGrid({ entries, team, source, sort, query }: { entries: RoleEntry[]
     <div className="grid grid--3">
       {roles.map((r) => (
         <div key={r.key} className={`panel role-card${r.games === 0 ? ' role-card--unplayed' : ''}`}>
+          <div className="role-card__head">
+          <RoleIcon role={{ name: r.name, team: r.team, images: r.images }} />
           <div className="row" style={{ gap: 8 }}>
             <span className={lexiconPillClass(r.team)}>{LEXICON_TEAM_LABEL[r.team]}</span>
             {r.source === 'tor' && <span className="pill pill--plain">The Other Roles</span>}
             {r.ghost && <span className="pill pill--plain">Nach dem Tod</span>}
           </div>
+          </div>
           <div className="stack" style={{ gap: 2 }}>
-            <h3>{r.name}</h3>
+            <h3>{r.slug ? <Link className="role-card__link" to={rolePath({ id: r.key, slug: r.slug })}>{r.name}</Link> : r.name}</h3>
             {r.variants.length > 0 && <span className="caption">Im Spiel: {r.variants.join(' · ')}</span>}
           </div>
           {r.description && <p className="role-card__text"><RichText text={r.description} /></p>}

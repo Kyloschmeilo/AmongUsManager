@@ -23,6 +23,10 @@ import { EventsPage } from './pages/Events';
 import { AdminPage } from './pages/Admin';
 import { SideRails } from './components/SideRails';
 import { LobbiesPage } from './pages/Lobbies';
+import { RoleWikiPage } from './pages/RoleWiki';
+import { RoleRandomizerPage } from './pages/RoleRandomizer';
+import { PlanPage, PlannerPage } from './pages/Planner';
+import { RecapPage } from './pages/Recap';
 import './control.css';
 import './rails.css';
 
@@ -30,8 +34,10 @@ const NAV = [
   { to: '/', label: 'Übersicht', end: true },
   { to: '/lobbys', label: 'Live' },
   { to: '/events', label: 'Events' },
+  { to: '/planer', label: 'Planer' },
   { to: '/bestenliste', label: 'Bestenliste' },
   { to: '/runden', label: 'Runden' },
+  { to: '/rueckblick', label: 'Rückblick' },
   { to: '/maps', label: 'Maps' },
   { to: '/rollen', label: 'Rollen' },
   { to: '/hilfe', label: 'Hilfe & Mods' }
@@ -165,6 +171,12 @@ export function App() {
           <Route path="/maps/:mapId" element={<MapPage />} />
           <Route path="/rollen" element={<RolesPage />} />
           <Route path="/rollen/balancing" element={<BalancePage />} />
+          <Route path="/rollen/zufall" element={<RoleRandomizerPage />} />
+          <Route path="/rollen/:slug" element={<RoleWikiPage />} />
+          <Route path="/planer" element={<PlannerPage />} />
+          <Route path="/planer/:id" element={<PlanPage />} />
+          <Route path="/rueckblick" element={<RecapPage />} />
+          <Route path="/rueckblick/:month" element={<RecapPage />} />
           <Route path="/hilfe" element={<TutorialsPage />} />
           <Route path="/hilfe/downloads" element={<DownloadsPage />} />
           <Route path="/downloads" element={<Navigate to="/hilfe/downloads" replace />} />

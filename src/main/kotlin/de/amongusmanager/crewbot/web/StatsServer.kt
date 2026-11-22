@@ -58,6 +58,8 @@ class StatsServer(
     private val shipGame: ShipGame? = null,
     /** Online-Schach zu zweit (/api/schach, Seite seiten/schach.html), null = aus. */
     private val chessGame: ChessGame? = null,
+    /** Lobby-Planer mit Terminabstimmung (/api/planer), null = aus. */
+    private val planner: LobbyPlanner? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
@@ -100,6 +102,7 @@ class StatsServer(
             if (path == VoiceChat.PATH || path.startsWith(VoiceChat.PATH + "/")) return voice(exchange, method, path)
             if (arena != null && arena.handles(path)) return arena(exchange, arena, method, path)
             if (path == CrackVoting.PATH || path.startsWith(CrackVoting.PATH + "/")) return crack(exchange, method, path)
+            if (path == LobbyPlanner.PATH || path.startsWith(LobbyPlanner.PATH + "/")) return planner(exchange, method, path)
             if (kritzelpost != null && kritzelpost.handles(path)) return kritzelpost(exchange, method, path, kritzelpost)
             if (path == NoodleGame.PATH || path.startsWith(NoodleGame.PATH + "/")) return noodles(exchange, method, path)
             if (path == DrawGame.PATH) return drawGame(exchange, method, path)
@@ -351,6 +354,22 @@ class StatsServer(
         respond(exchange, response.status, response.type, response.body, cache = "no-store")
     }
 
+    // ---------- Lobby-Planer ----------
+
+    private fun planner(exchange: HttpExchange, method: String, path: String) {
+        val handler = planner
+        if (handler == null || !handler.handles(path)) {
+            if (path == LobbyPlanner.PATH && (method == "GET" || method == "HEAD")) {
+                return respond(exchange, 200, TYPE_JSON, bytes(obj("plans" to emptyList<Any>(), "loggedIn" to false, "loginEnabled" to false)), cache = "no-store")
+            }
+            return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
+        }
+        val body = if (method == "POST") readBody(exchange) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store") else ByteArray(0)
+        val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
+        val response = handler.handle(WebRequest(method, path, emptyMap(), headers, body))
+        respond(exchange, response.status, response.type, response.body, cache = "no-store")
+    }
+
     // ---------- Kritzelpost ----------
 
     private fun kritzelpost(exchange: HttpExchange, method: String, path: String, handler: Kritzelpost) {
@@ -556,6 +575,9 @@ class StatsServer(
             parts == listOf("maps") -> snapshot.mapsJson
             parts.size == 2 && parts[0] == "maps" -> parts[1].toIntOrNull()?.let { snapshot.mapJson(it) }
             parts == listOf("roles") -> snapshot.rolesJson
+            parts == listOf("roles", "detail") -> snapshot.roleDetailJson(query["ids"].orEmpty().split(','))
+            parts == listOf("recap") -> snapshot.recapJson(null)
+            parts.size == 2 && parts[0] == "recap" -> snapshot.recapJson(parts[1])
             parts == listOf("balance") -> snapshot.balanceJson
             else -> null
         }
@@ -789,6 +811,7 @@ class StaticFiles(private val root: String) {
         "json", "webmanifest" -> "application/json; charset=utf-8"
         "svg" -> "image/svg+xml"
         "png" -> "image/png"
+        "webp" -> "image/webp"
         "ico" -> "image/x-icon"
         "woff2" -> "font/woff2"
         "woff" -> "font/woff"

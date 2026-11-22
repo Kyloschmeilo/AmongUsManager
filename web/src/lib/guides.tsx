@@ -29,6 +29,10 @@ export interface LexiconRole {
   variants: string[];
   /** Ids in /api/roles (Rollen) bzw. "tor:" + id (Modifikatoren). */
   statIds: string[];
+  /** Adresse im Rollen-Wiki (/rollen/<slug>). */
+  slug: string;
+  /** Fähigkeiten-Bilder (The Other Roles), das erste ist das Hauptbild. */
+  images: { file: string; label: string }[];
 }
 
 export interface DownloadFile {

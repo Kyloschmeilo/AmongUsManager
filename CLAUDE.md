@@ -412,6 +412,22 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   den Snapshot (`crackWins`/`crackVotes`/`crackPolls`, Profil `crack`), Bestenliste Bereich „Crack-Voting“ (`crackwins`,
   `crackvotes`, `crackrate`). Frontend `components/Crack.tsx`, `lib/crack.ts`, `crack.css`: Abschnitt auf der Runden-Seite
   (`#crack`), Hinweis-Streifen auf der Startseite, Abschnitt im Profil. Tests: `CrackVotingTest`.
+- **Among-Us-Extras** (21.11.2026, Kilian wählte aus einer Ideenliste: Rollen-Wiki mit Bildern, Rollen-Zufallsgenerator,
+  Lobby-Planer mit Terminabstimmung, Rückblick „Runde des Monats“). **Rollen-Wiki** `/rollen/<slug>` (`pages/RoleWiki.tsx`): Lexikon
+  hat jetzt `slug` (TOR-id klein, Spielrollen `among-us-<id>`) + `images`; Bilder = Fähigkeiten-Knöpfe aus den eingebetteten
+  Ressourcen der TheOtherRoles.dll (GMIA 1.4.1, GPL-3.0, per dnfile ausgelesen, als WebP in `web/public/role-icons/`, Zuordnung
+  `web/RoleArt.kt`; Rollen ohne Knopf = leerer Knopf `blank` + Anfangsbuchstaben). Statistik je Rolle `/api/roles/detail?ids=<statIds>`
+  (`StatsSnapshot.roleDetailJson`: Top-Spieler ohne ausgenommene, Maps, letzte 8 Runden mit `holders`). **Zufallsgenerator**
+  `/rollen/zufall` (`pages/RoleRandomizer.tsx`, nur im Browser, Einstellungen + Startwert in der Adresse = teilbar): Mafia 3, Bomber/Mimic
+  2 Impostor-Plätze, Sidekick/Pursuer/Immoralist nie, Madmate als Modifikator (nur an Crew), optional Namen → Plätze zuteilen.
+  **Lobby-Planer** `/planer`, `/planer/<id>` (`web/LobbyPlanner.kt`, `pages/Planner.tsx`): Doodle-artig, Tabellen `web_plans`,
+  `web_plan_slots`, `web_plan_votes` in `data/website.db`; nur angemeldet, Ja/Vielleicht/Nein, ≤ 12 Termine, ≤ 90 Tage voraus, ≤ 5
+  laufende je Nutzer, Ersteller legt fest/löscht, verschwindet 2 Tage nach dem letzten Termin aus der Liste. Event Maker: „Als
+  Discord-Event posten“ → `/events?start=<datetime-local>` füllt den Start vor. Namen = Discord-Anzeigename, nie IDs.
+  **Monatsrückblick** `/rueckblick[/<JJJJ-MM>]`, `/api/recap[/<Monat>]` (`web/MonthlyRecap.kt`, `pages/Recap.tsx`): Monat des
+  Spieleabends, Runde des Monats per `spectacle()` (Kills, Doppel-Kills, Rauswürfe, Sondersieg, knappes Ende, Länge – mit Gründen),
+  4 weitere Kandidaten, 8 Auszeichnungen (ohne ausgenommene Spieler), Momente, Rollen/Maps, Neu dabei. Nav: „Planer“, „Rückblick“.
+  Stil in `web/src/extras.css`. Tests: `AmongUsExtrasTest`. Mit 113 erfundenen Runden + Playwright geprüft, nicht mit echten Daten.
 - **Abzeichen im Profil** (03.11.2026, Kilian: Erfolge/Abzeichen wie „5 Impostor-Siege in Folge“): `web/Badges.kt` berechnet
   26 Abzeichen live aus den Runden (nichts gespeichert, gilt rückwirkend, auch für unverknüpfte Spieler) in vier Gruppen
   (Serien, Momente, Laufbahn, Pech gehabt), je drei Stufen Bronze/Silber/Gold mit der Runde, in der sie erreicht wurden, und
