@@ -9,9 +9,10 @@
  * Gleiches Muster wie die Kritzelkiste (DrawGame): kein WebSocket, der Browser fragt per kleiner POST-Anfrage ("sync")
  * nach, alles liegt nur im Speicher, ohne Anmeldung (Raum-Code aus 4 Buchstaben, Token aus create/join).
  * Der Server entscheidet alles; fremde Texte gehen erst beim Zeigen raus, der Autor erst beim Aufdecken.
- * Die Vorlagen selbst zeichnet die Seite (SVG); der Server kennt nur ihre ids und die Anzahl der Textfelder
- * ([MemeTemplates], `MemeGameTest` prüft, dass Seite und Server dieselben haben). Der Host kann eigene Bilder per
- * https-Adresse dazunehmen (zwei Textfelder oben/unten), die Browser laden sie dann direkt.
+ * Vorlagen kommen in Paketen: echte Meme-Bilder ([MemePhotos], Bilder liefert die Website selbst aus) und die eigenen
+ * Blob-Zeichnungen (Paket „zeichnungen“, zeichnet die Seite als SVG; der Server kennt nur ids und Anzahl der Textfelder,
+ * [MemeTemplates], `MemeGameTest` prüft, dass Seite und Server dieselben haben). Der Host wählt die Pakete und kann eigene
+ * Bilder per https-Adresse dazunehmen (zwei Textfelder oben/unten), die Browser laden sie dann direkt.
  */
 package de.amongusmanager.crewbot.web
 
@@ -44,6 +45,21 @@ object MemeTemplates {
 
     /** Eigene Bilder haben immer zwei Textfelder (oben/unten). */
     const val CUSTOM_SLOTS = 2
+
+    /** Paket der Blob-Zeichnungen (neben den Paketen aus [MemePhotos]). */
+    const val DRAWN_PACK = "zeichnungen"
+
+    /** Alle Pakete: id → (Name, Beschreibung, Anzahl). */
+    fun packs(): List<Triple<String, Pair<String, String>, Int>> =
+        MemePhotos.PACKS.map { Triple(it.id, it.name to it.desc, MemePhotos.count(it.id)) } +
+            Triple(DRAWN_PACK, "Blob-Zeichnungen" to "Selbst gezeichnete Vorlagen mit bunten Blob-Figuren", ALL.size)
+
+    /** Standard: alle echten Meme-Pakete (ohne Bilder im JAR: die Zeichnungen). */
+    fun defaultPacks(): Set<String> = MemePhotos.PACKS.map { it.id }.toSet().ifEmpty { setOf(DRAWN_PACK) }
+
+    /** Vorlagen-ids der gewählten Pakete. */
+    fun idsOf(packs: Set<String>): List<String> =
+        MemePhotos.ALL.filter { it.pack in packs }.map { it.id } + (if (DRAWN_PACK in packs) ALL.map { it.id } else emptyList())
 }
 
 /** Reine Regeln (getestet in `MemeGameTest`). */
@@ -114,7 +130,7 @@ class MemeGame(
         var rounds = 3
         var seconds = 75
         var rerolls = 2
-        var builtIn = true
+        var packs: Set<String> = MemeTemplates.defaultPacks()
         var custom: List<String> = emptyList()
     }
 
@@ -142,8 +158,25 @@ class MemeGame(
     private val rooms = HashMap<String, Room>()
     private val created = HashMap<String, ArrayDeque<Long>>()
 
-    @Synchronized
     fun handle(request: WebRequest, client: String): WebResponse {
+        if (request.path != PATH) return assets(request)
+        return play(request, client)
+    }
+
+    /** Vorlagen-Liste und Bilder der echten Memes (unveränderlich, dürfen gecacht werden). */
+    private fun assets(request: WebRequest): WebResponse {
+        if (request.method != "GET" && request.method != "HEAD") return WebResponse(405, body = bytes(obj("error" to "Nur GET")), headers = listOf("Allow" to "GET", NO_STORE))
+        val rest = request.path.removePrefix("$PATH/")
+        if (rest == "vorlagen") return WebResponse(200, body = MemePhotos.json, headers = listOf("Cache-Control" to "public, max-age=3600"))
+        if (rest.startsWith("bild/") && rest.endsWith(".jpg")) {
+            val bytes = MemePhotos.image(rest.removePrefix("bild/").removeSuffix(".jpg"))
+            if (bytes != null) return WebResponse(200, type = "image/jpeg", body = bytes, headers = listOf("Cache-Control" to "public, max-age=604800"))
+        }
+        return WebResponse(404, body = bytes(obj("error" to "Nicht gefunden")), headers = listOf(NO_STORE))
+    }
+
+    @Synchronized
+    private fun play(request: WebRequest, client: String): WebResponse {
         if (request.method == "GET" || request.method == "HEAD") return status()
         if (request.method != "POST") return WebResponse(405, body = bytes(obj("error" to "Nur POST")), headers = listOf("Allow" to "GET, POST", NO_STORE))
         val body = try {
@@ -283,11 +316,16 @@ class MemeGame(
         body.int("rounds")?.let { s.rounds = it.coerceIn(1, 8) }
         body.int("seconds")?.let { s.seconds = it.coerceIn(30, 180) }
         body.int("rerolls")?.let { s.rerolls = it.coerceIn(0, 5) }
-        body.bool("builtIn")?.let { s.builtIn = it }
         body.str("custom")?.let { s.custom = MemeRules.customImages(it) }
-        if (!s.builtIn && s.custom.isEmpty()) {
-            s.builtIn = true
-            return "Ohne eigene Bilder bleiben die eingebauten Vorlagen an."
+        (body["packs"] as? JsonArray)?.let { list ->
+            val known = MemeTemplates.packs().map { it.first }.toSet()
+            val wanted = list.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.filter { it in known }.toSet()
+            if (wanted.isEmpty() && s.custom.isEmpty()) return "Wähl mindestens ein Paket (oder trag eigene Bilder ein)."
+            s.packs = wanted
+        }
+        if (s.packs.isEmpty() && s.custom.isEmpty()) {
+            s.packs = MemeTemplates.defaultPacks()
+            return "Ohne eigene Bilder braucht es mindestens ein Paket."
         }
         return null
     }
@@ -341,9 +379,10 @@ class MemeGame(
     // ---------- Ablauf ----------
 
     private fun pool(room: Room): List<String> =
-        (if (room.settings.builtIn) MemeTemplates.ALL.map { it.id } else emptyList()) + room.settings.custom.indices.map { "u$it" }
+        MemeTemplates.idsOf(room.settings.packs) + room.settings.custom.indices.map { "u$it" }
 
-    internal fun slotsOf(template: String): Int = MemeTemplates.BY_ID[template]?.slots ?: MemeTemplates.CUSTOM_SLOTS
+    internal fun slotsOf(template: String): Int =
+        MemeTemplates.BY_ID[template]?.slots ?: MemePhotos.BY_ID[template]?.slots ?: MemeTemplates.CUSTOM_SLOTS
 
     private fun urlOf(room: Room, template: String): String? =
         if (template.startsWith("u")) room.settings.custom.getOrNull(template.drop(1).toIntOrNull() ?: -1) else null
@@ -531,9 +570,9 @@ class MemeGame(
                 "playing" to p.playing, "done" to p.done, "on" to (now - p.lastSeen < OFFLINE_MS))
         }
         out["settings"] = obj(
-            "rounds" to s.rounds, "seconds" to s.seconds, "rerolls" to s.rerolls, "builtIn" to s.builtIn,
+            "rounds" to s.rounds, "seconds" to s.seconds, "rerolls" to s.rerolls, "packs" to s.packs.toList(),
             "customCount" to s.custom.size, "custom" to if (me.id == room.host) s.custom.joinToString("\n") else null,
-            "builtInCount" to MemeTemplates.ALL.size,
+            "packList" to MemeTemplates.packs().map { (id, text, n) -> obj("id" to id, "name" to text.first, "desc" to text.second, "count" to n) },
         )
         when (room.phase) {
             Phase.WRITE -> if (me.playing) {

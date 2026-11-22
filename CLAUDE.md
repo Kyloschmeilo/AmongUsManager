@@ -575,8 +575,16 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   `rerolls`-mal pro Spiel neu würfeln, schreibt die Texte (max. 90 Zeichen, 3 Zeilen) → alle Memes nacheinander ohne Namen,
   die anderen bewerten 1–4 (25/50/100/150 Punkte), Emojis fliegen lassen → Aufdecken mit Autor/Punkten → Zwischenstand →
   am Ende Podest + Galerie (bestes je Runde + Top 3). Fremde Texte gehen erst beim Zeigen raus, der Autor erst beim Aufdecken,
-  eigene Stimme zählt nicht; Host kann „Weiter“ drücken. Vorlagen zeichnet die Seite als SVG (Blob-Figuren, `TEMPLATES` in der
-  HTML – neue Vorlage dort UND in `MemeTemplates.ALL`, `MemeGameTest` prüft beides), Texte immer per `textContent`. Eigene Bilder:
+  eigene Stimme zählt nicht; Host kann „Weiter“ drücken. Texte immer per `textContent`. **Meme-Pakete** (21.11.2026, Kilian: „nicht
+  diese komischen bilder … richtig pakete mit echten memes“): 160 echte Vorlagen aus der memegen-Sammlung
+  (github.com/jacebrowning/memegen, `templates/`: Bild + Textfeld-Lage als Anteile, Drehung, Farbe) in den Paketen Klassiker,
+  Vergleiche & Bildfolgen, Filme & Serien, Tiere; dazu (21.11.2026, Kilian: „mach noch ein Spongebob, ein deutsche klassiker, Brainrot“, dann „noch so 5 mehr“) eigene Pakete SpongeBob, Deutsche Klassiker, Brainrot, Gaming, Anime, Fußball, Reaktionen, Schule & Alltag aus `tools/memes/eigene.yml` (Bilder von imgflip u.a., über Kilians PC geladen – die Cloud erreicht imgflip nicht – und als Originale in `tools/memes/eigene-bilder/` mit Quellen in `manifest.json`; Textfelder selbst festgelegt, ohne Angabe oben + unten), zusammen 340 Vorlagen (Standard: alle Foto-Pakete an) + „zeichnungen“ (die alten Blob-SVGs, `TEMPLATES` in der HTML
+  – neue Zeichnung dort UND in `MemeTemplates.ALL`, `MemeGameTest` prüft beides). `tools/memes/build_memes.py` (Pakete = Listen von
+  memegen-ids, Politik/Anzügliches bewusst weggelassen) lädt, verkleinert (≤ 720 px) und schreibt `src/main/resources/web-memes/`
+  (`vorlagen.json` + `<id>.jpg`, ~14 MB, nur im Website-JAR); `web/MemePhotos.kt` liest sie, `GET /api/memes/vorlagen` und
+  `/api/memes/bild/<id>.jpg` liefern sie (gecacht) – die Browser fragen nirgends sonst an. Bildrechte: Meme-Vorlagen sind Film-/
+  Fotostills Dritter, Nutzung als Meme (Pastiche, § 51a UrhG) auf einer privaten Spieleseite. Lobby: Pakete als Schalter (nur Host),
+  Server prüft (`packs`, mind. ein Paket oder eigene Bilder). Eigene Bilder:
   Host trägt bis zu 20 https-Adressen ein (je 2 Textfelder), die Browser laden sie direkt. Startseiten-Kachel in `games.tsx`
   (`memes.html`); CoreHold ist nur noch breit, wenn das Raster dadurch aufgeht (`wideFits` in `Start.tsx`). Tests: `MemeGameTest`;
   mit drei Chromium-Browsern (Desktop + Handy) eine ganze Partie gespielt. Mit echten Spielern ungetestet.
