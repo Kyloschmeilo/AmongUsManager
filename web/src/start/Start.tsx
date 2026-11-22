@@ -6,6 +6,7 @@ import type { Overview, RoundItem } from '../lib/api';
 import { playerColor } from '../lib/colors';
 import { ThemeToggle } from '../lib/theme';
 import { Community } from './Community';
+import { markEntered } from './entered';
 import { GAMES, joinHref, liveOf, type Game, type LiveGame, type LiveRoom } from './games';
 
 const APP = '/amongus';
@@ -135,12 +136,12 @@ export function Start() {
     if (!ready || started.current || !el) return;
     started.current = true;
     setShown(true);
-    if (reduced()) { entered = true; return; }
+    if (reduced()) { entered = true; markEntered(); return; }
     // CSS-Übergänge auf transform würden GSAP ausbremsen – während des Einflugs aus (Klasse sofort setzen, React zieht nach)
     el.classList.add('st-entering');
     el.classList.remove('st-wait');
     setEntering(true);
-    const done = () => { setEntering(false); entered = true; };
+    const done = () => { setEntering(false); entered = true; markEntered(); };
     const ctx = gsap.context(() => {
       gsap.timeline({ onComplete: done })
         .from('.st-word span', { y: -60, rotate: () => gsap.utils.random(-25, 25), opacity: 0, duration: 0.7, ease: 'back.out(2.2)', stagger: 0.045 }, 0)
