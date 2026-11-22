@@ -173,7 +173,8 @@ export function Community() {
 
 function Changelog({ log }: { log: Overview['changelog'] }) {
   const [all, setAll] = useState(false);
-  const lines = log.sections.flatMap((s) => s.lines.map((line) => ({ section: s.title, line })));
+  // Abschnittstitel ohne vorangestelltes Emoji (Discord-Embed) – auf der Seite sind Emojis keine Icons
+  const lines = log.sections.flatMap((s) => s.lines.map((line) => ({ section: s.title.replace(/^[^\p{L}\p{N}]+/u, ''), line })));
   const shown = all ? lines : lines.slice(0, 3);
   return (
     <div className={'st-cm__card st-cm__log' + (all ? '' : ' is-short')}>

@@ -115,6 +115,15 @@ eine gestrichelte Linie; rechts eine waagerecht scrollende Reihe aus Karten:
 - **Bald** – Spiel ohne Datei: entsättigt (`saturate(.35) brightness(.8)`), ohne Hover.
 - **Neu** – unbekannte Datei in `seiten/`, Titel/Beschreibung aus `<title>`/`<meta name="description">`.
 
+### Community (`.st-cm`, unter den Kacheln)
+Kasten wie die Live-Leiste (`--bg-2`, Kontur, harter Schatten, links das Label „Community“ in Lilita One 30 px, gestrichelt
+getrennt). Rechts drei Sticker-Karten (14 px Radius, 4 px Schatten, heben sich beim Hover): **Memes** in der Kachelfarbe der
+Meme-Schmiede, **Zeichnungen** in der Farbe der Kritzelkiste – jeweils mit dem Icon des Spiels oben rechts (wackelt beim
+Hover) und der Anzahl als Etikett –, **Changelog** auf Papier mit gelben Kästchen als Aufzählung. Vorschaubilder sind kleine
+Sticker (12 px Radius, 3 px Schatten, eindrücken beim Klick), Herzen als SVG-Icon in einem Papier-Chip. Großansicht: Papier-Karte
+mit 8-px-Schatten, gelbe Blätter-Knöpfe, Schließen als Papier-Knopf. Moderation über `.st-chip`. Die Karten springen nach dem
+Seiten-Einflug herein (`whenEntered` in `start/entered.ts`).
+
 ### Knöpfe (`.st-btn`)
 Papier-Füllung, 3 px Kontur, 12 px Radius, 3 px harter Schatten, Barlow 600.
 - Hover: hebt sich 2 px nach links oben, Schatten 5 px, Füllung Gelb.

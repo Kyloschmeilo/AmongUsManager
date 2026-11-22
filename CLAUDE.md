@@ -665,8 +665,8 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   offen sind. Test: `LobbyPingTest`. Mit echtem Discord ungetestet.
 - **Community auf der Startseite** (21.11.2026, Kilian wählte aus einer Ideenliste „Community“; 22.11.2026: „der bereich soll nur aus
   den Zeichnungen und Memes und changelog bestehen … klein auf die main page“ – keine eigene Seite, keine Regeln/FAQ/Neuigkeiten mehr):
-  Abschnitt `#community` unter den Spielkacheln der Startseite (`web/src/start/Community.tsx`, Stil `.st-cm*` in `start.css`, buntes
-  Startseiten-Design): je 6 neueste Memes und Zeichnungen als Vorschaubilder + Changelog des Bots (`content/Changelog.kt`, 3 Zeilen,
+  Abschnitt `#community` unter den Spielkacheln der Startseite (`web/src/start/Community.tsx`, Stil `.st-cm*` in `start.css`, seit 22.11.2026 nach
+  `docs/design/spiele-website.md`: Kasten wie die Live-Leiste, Galerien als Sticker in der Farbe ihres Spiels): je 6 neueste Memes und Zeichnungen als Vorschaubilder + Changelog des Bots (`content/Changelog.kt`, 3 Zeilen,
   „Alles zeigen“). Klick = Großansicht, blättert (Pfeile/Tasten) durch die ganze Galerie und lädt nach. `/community…` leitet nach
   `/#community`. Server `web/Community.kt` (`/api/community`, Daten in `data/website.db`: `web_gallery` mit Bild als BLOB,
   `web_gallery_likes`). Woher die Bilder kommen: **Kritzelkiste** – `DrawGame` merkt sich je Zug Striche + 🔥/💀, am Ende gehen höchstens
