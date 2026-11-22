@@ -27,6 +27,7 @@ import { RoleWikiPage } from './pages/RoleWiki';
 import { RoleRandomizerPage } from './pages/RoleRandomizer';
 import { PlanPage, PlannerPage } from './pages/Planner';
 import { RecapPage } from './pages/Recap';
+import { ThemeToggle } from './lib/theme';
 import './control.css';
 import './rails.css';
 
@@ -150,6 +151,7 @@ export function App() {
               <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="6" height="6" rx="1.5" /><rect x="9" y="1" width="6" height="6" rx="1.5" /><rect x="1" y="9" width="6" height="6" rx="1.5" /><rect x="9" y="9" width="6" height="6" rx="1.5" /></svg>
               <span>Alle Spiele</span>
             </a>
+            <ThemeToggle className="topbar__theme" />
             <AccountButton />
           </div>
         </div>

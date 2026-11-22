@@ -4,6 +4,7 @@ import gsap from 'gsap';
 import type { LiveLobby, LobbiesResponse } from '../lib/lobbies';
 import type { Overview, RoundItem } from '../lib/api';
 import { playerColor } from '../lib/colors';
+import { ThemeToggle } from '../lib/theme';
 import { GAMES, joinHref, liveOf, type Game, type LiveGame, type LiveRoom } from './games';
 
 const APP = '/amongus';
@@ -164,6 +165,7 @@ export function Start() {
     <div className={`st${shown ? '' : ' st-wait'}${entering ? ' st-entering' : ''}`} ref={root}>
       <Confetti />
       <header className="st-head wrap">
+        <ThemeToggle className="st-theme" />
         <h1 className="st-word" aria-label="Spieleabend">
           {'Spieleabend'.split('').map((c, i) => <span key={i} style={{ '--i': i } as CSSProperties} aria-hidden="true">{c}</span>)}
         </h1>

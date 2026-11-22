@@ -7,6 +7,9 @@ import '@fontsource/barlow/latin-600.css';
 import '@fontsource/barlow-condensed/latin-600.css';
 import './start.css';
 import { Start } from './Start';
+import { initTheme } from '../lib/theme';
+
+initTheme();
 
 createRoot(document.getElementById('start')!).render(
   <StrictMode>
