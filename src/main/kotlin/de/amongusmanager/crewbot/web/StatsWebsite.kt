@@ -20,6 +20,8 @@
  * CrewStats-Spieleranfragen (Auto-Join, Stats, Verknüpfen): POST /api/mod/<Schlüssel>, siehe services/ModApi.kt.
  * Live-Lobbys mit „Beitreten“: /api/lobbies, siehe LiveLobbies.kt.
  * Proximity-Voice im Live-Tab: /api/voice (SSE + WebRTC im Browser), Positionen vom Host über die Mod-API, siehe VoiceChat.kt.
+ * Community-Bereich (/community, /api/community): Galerien (Memes, Zeichnungen), Regeln & FAQ, Neuigkeiten, siehe Community.kt.
+ *   COMMUNITY_ADMINS     – optional: Discord-IDs (kommagetrennt), die auch ohne Bot moderieren dürfen
  * Crack-Voting nach jeder Runde (15 min, Stimmen in data/website.db): /api/crack, siehe CrackVoting.kt.
  * Lobby-Planer mit Terminabstimmung (data/website.db): /api/planer, siehe LobbyPlanner.kt. Monatsrückblick: /api/recap.
  * Bot steuern (Event-Tab, Admin-Panel): die Website schreibt Aufträge in die Tabelle web_requests der Bot-Datenbank,
@@ -120,6 +122,12 @@ fun main() {
 
     // Geheimfunk (Wort-Ratespiel, /spiele/geheimfunk.html): Räume nur im Speicher, braucht keine Datenbank
     val wordGame = WordGame()
+    // Community-Bereich (/community): Galerie, Regeln & FAQ, Neuigkeiten in data/website.db; Admin = Recht ADMINISTRATOR im
+    // Discord (fragt den Bot) oder Discord-ID in COMMUNITY_ADMINS
+    val memeGame = MemeGame()
+    val envAdmins = Community.adminIds(Env.get("COMMUNITY_ADMINS"))
+    val community = Community(CommunityStore(accountsDb), auth, accounts, memeGame, isAdmin = { id -> id in envAdmins || control?.isAdmin(id) == true })
+    val drawGame = DrawGame(gallery = community::drawings)
     val coreHold = CoreHoldBridge.fromEnv({ Env.get(it) }, BotPaths.projectDir)
     val port = webPort()
     val server = try {
@@ -137,12 +145,13 @@ fun main() {
             arena = Ballerbude(),
             kritzelpost = Kritzelpost(),
             noodles = noodles,
-            drawGame = DrawGame(),
+            drawGame = drawGame,
             mampf = mampf,
             wordGame = wordGame,
-            memeGame = MemeGame(),
+            memeGame = memeGame,
             shipGame = ShipGame(),
             chessGame = ChessGame(),
+            community = community,
         )
     } catch (e: Exception) {
         log.error("❌ Port {} ist nicht frei: {}", port, e.message)

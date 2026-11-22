@@ -5,6 +5,7 @@ import type { LiveLobby, LobbiesResponse } from '../lib/lobbies';
 import type { Overview, RoundItem } from '../lib/api';
 import { playerColor } from '../lib/colors';
 import { ThemeToggle } from '../lib/theme';
+import { Community } from './Community';
 import { GAMES, joinHref, liveOf, type Game, type LiveGame, type LiveRoom } from './games';
 
 const APP = '/amongus';
@@ -194,11 +195,13 @@ export function Start() {
             }} />
           ))}
         </section>
+
+        <Community />
       </main>
 
       <footer className="st-foot wrap">
         <span>Spieleabend · Among-Us-Daten von der Mod CrewStats</span>
-        <a href={`${APP}/hilfe`}>Hilfe &amp; Mods</a>
+        <span><a href="#community">Community</a> · <a href={`${APP}/hilfe`}>Hilfe &amp; Mods</a></span>
       </footer>
     </div>
   );

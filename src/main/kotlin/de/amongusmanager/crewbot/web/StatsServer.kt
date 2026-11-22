@@ -60,6 +60,8 @@ class StatsServer(
     private val chessGame: ChessGame? = null,
     /** Lobby-Planer mit Terminabstimmung (/api/planer), null = aus. */
     private val planner: LobbyPlanner? = null,
+    /** Community: Galerien + Changelog für die Startseite (/api/community), null = aus. */
+    private val community: Community? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
     private val server: HttpServer = HttpServer.create(InetSocketAddress(host, port), 64)
@@ -111,6 +113,7 @@ class StatsServer(
             if (path == MemeGame.PATH || path.startsWith(MemeGame.PATH + "/")) return memeGame(exchange, method, path)
             if (path == ShipGame.PATH) return shipGame(exchange, method, path)
             if (path == ChessGame.PATH) return chessGame(exchange, method, path)
+            if (path == Community.PATH || path.startsWith(Community.PATH + "/")) return community(exchange, method, path)
             if (method != "GET" && method != "HEAD") {
                 exchange.responseHeaders.add("Allow", "GET, HEAD")
                 return respond(exchange, 405, TYPE_JSON, error("Nur GET"), cache = "no-store")
@@ -450,6 +453,26 @@ class StatsServer(
         respond(exchange, response.status, response.type, response.body, cache = "no-store")
     }
 
+    // ---------- Community ----------
+
+    private fun community(exchange: HttpExchange, method: String, path: String) {
+        val handler = community ?: return respond(exchange, 404, TYPE_JSON, error("Nicht gefunden"), cache = "no-store")
+        val body = if (method == "POST") {
+            readBody(exchange, Community.MAX_BODY) ?: return respond(exchange, 413, TYPE_JSON, error("Zu groß"), cache = "no-store")
+        } else {
+            ByteArray(0)
+        }
+        val headers = exchange.requestHeaders.entries.associate { (name, values) -> name.lowercase() to values.joinToString("; ") }
+        val client = exchange.remoteAddress?.address?.hostAddress ?: "?"
+        val response = handler.handle(WebRequest(method, path, parseQuery(exchange.requestURI.rawQuery), headers, body), client)
+        for ((name, value) in response.headers) {
+            if (name.equals("Cache-Control", ignoreCase = true)) continue
+            exchange.responseHeaders.add(name, value)
+        }
+        val cache = response.headers.firstOrNull { it.first.equals("Cache-Control", ignoreCase = true) }?.second ?: "no-store"
+        respond(exchange, response.status, response.type, response.body, cache = cache)
+    }
+
     // ---------- Geheimfunk ----------
 
     private fun wordGame(exchange: HttpExchange, method: String, path: String) {
@@ -672,6 +695,10 @@ class StatsServer(
      * alte Adressen der Stats-Website (/spieler/abc, /runden …) leiten nach /amongus/… weiter.
      */
     private fun rootFile(exchange: HttpExchange, path: String) {
+        if (path == COMMUNITY_BASE || path.startsWith("$COMMUNITY_BASE/")) {
+            // Community steht seit 22.11.2026 als Abschnitt auf der Startseite (keine eigene Seite mehr)
+            return redirect(exchange, "/#community")
+        }
         if (path == "/" || path == "/index.html") {
             val start = static.get(START_PAGE)
                 ?: return respond(exchange, 404, "text/plain; charset=utf-8", "Nicht gefunden".toByteArray(), cache = "no-cache")
@@ -761,6 +788,9 @@ class StatsServer(
 
         /** Startseite mit allen Spielen (zweiter Einstieg der Vite-Seite, web/start.html). */
         const val START_PAGE = "/start.html"
+
+        /** Alte Adresse des Community-Bereichs → Abschnitt auf der Startseite. */
+        const val COMMUNITY_BASE = "/community"
 
         // Alles kommt vom eigenen Server (auch die Schriften) – keine fremden Anfragen aus dem Browser
         private const val CSP = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; " +

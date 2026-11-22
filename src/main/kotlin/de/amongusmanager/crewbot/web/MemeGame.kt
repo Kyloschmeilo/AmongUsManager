@@ -153,7 +153,12 @@ class MemeGame(
         var reactSeq = 0
         val settings = Settings()
         var active = 0L
+        /** Kennung der laufenden Partie (neu bei jedem Start) – Galerie-Einträge sind daran eindeutig. */
+        var gameId = ""
     }
+
+    /** Ein Meme, das in die Community-Galerie darf (Bild schickt der Browser des Hosts, siehe [Community]). */
+    class Share(val source: String, val author: String, val round: Int, val points: Int, val votes: Int, val captions: List<String>)
 
     private val rooms = HashMap<String, Room>()
     private val created = HashMap<String, ArrayDeque<Long>>()
@@ -305,6 +310,7 @@ class MemeGame(
         room.used.clear()
         room.memes.clear()
         room.note = ""
+        room.gameId = (1..10).map { CODE_LETTERS[random.nextInt(CODE_LETTERS.length)] }.joinToString("")
         nextRound(room, now)
         return null
     }
@@ -594,10 +600,10 @@ class MemeGame(
                 round.maxByOrNull { it.points }?.takeIf { it.points > 0 }?.let { out["best"] = memeJson(it, true) }
             }
             Phase.FINAL -> {
-                // Bestes Meme je Runde + die drei besten insgesamt (ohne Doppelte), mit Autor
-                val best = (1..room.round).mapNotNull { r -> room.memes.filter { it.round == r }.maxByOrNull { it.points } }
-                val top = room.memes.sortedByDescending { it.points }.take(3)
-                out["gallery"] = (top + best).distinctBy { it.n }.sortedByDescending { it.points }.take(8).map { memeJson(it, true) }
+                out["gallery"] = finalGallery(room).map { memeJson(it, true) }
+                // diese Memes darf der Host-Browser als Bild in die Community-Galerie stellen
+                out["share"] = sharePicks(room).map { it.n }
+                out["game"] = room.gameId
             }
             else -> Unit
         }
@@ -605,6 +611,29 @@ class MemeGame(
         out["reactSeq"] = room.reactSeq
         if (since >= 0) out["reactions"] = room.reactions.filter { it.n > since }.map { obj("n" to it.n, "e" to it.emoji, "id" to it.from) }
         return obj(*out.map { it.key to it.value }.toTypedArray())
+    }
+
+    /** Bestes Meme je Runde + die drei besten insgesamt (ohne Doppelte), mit Autor. */
+    private fun finalGallery(room: Room): List<Meme> {
+        val best = (1..room.round).mapNotNull { r -> room.memes.filter { it.round == r }.maxByOrNull { it.points } }
+        val top = room.memes.sortedByDescending { it.points }.take(3)
+        return (top + best).distinctBy { it.n }.sortedByDescending { it.points }.take(8)
+    }
+
+    /** Für die Galerie: die besten je Runde, nur mit Punkten und Text (höchstens vier je Partie). */
+    private fun sharePicks(room: Room): List<Meme> =
+        finalGallery(room).filter { it.points > 0 && it.captions.any { c -> c.isNotBlank() } }.take(MAX_SHARE)
+
+    /**
+     * Darf dieses Meme in die Galerie? Nur am Ende einer Partie, nur für Spieler des Raums und nur für die besten
+     * ([sharePicks]) – der Autor-Name und die Punkte kommen vom Server, nicht vom Browser.
+     */
+    @Synchronized
+    fun share(code: String, token: String, n: Int): Share? {
+        val room = rooms[code.uppercase()] ?: return null
+        if (room.phase != Phase.FINAL || token.isEmpty() || room.players.values.none { it.token == token }) return null
+        val meme = sharePicks(room).firstOrNull { it.n == n } ?: return null
+        return Share("memes:${room.gameId}:${meme.n}", meme.authorName, meme.round, meme.points, meme.votes.size, meme.captions)
     }
 
     private fun json(status: Int, body: JsonObject) = WebResponse(status, body = bytes(body), headers = listOf(NO_STORE))
@@ -643,5 +672,6 @@ class MemeGame(
         const val EMOJIS = 6
         const val REACT_GAP_MS = 350L
         const val REACT_KEEP = 80
+        const val MAX_SHARE = 4
     }
 }
