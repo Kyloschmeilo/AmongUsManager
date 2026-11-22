@@ -1,15 +1,14 @@
 /*
- * Community-Bereich der Website (/community, 21.11.2026, Kilian): Galerien mit den besten Memes der Meme-Schmiede und den
- * beliebtesten Zeichnungen der Kritzelkiste, Server-Regeln + FAQ und Neuigkeiten (feste Liste, Beiträge der Admins,
- * /changelog des Bots).
+ * Community-Abschnitt der Spiele-Startseite (21./22.11.2026, Kilian: „nur aus den Zeichnungen und Memes und changelog“,
+ * klein auf der Startseite statt eigener Seite): Galerien mit den besten Memes der Meme-Schmiede und den beliebtesten
+ * Zeichnungen der Kritzelkiste plus /changelog des Bots.
  *
- *   GET  /api/community                    Übersicht: ich (angemeldet/Admin), Regeln, FAQ, Neuigkeiten, Changelog, neueste Bilder
+ *   GET  /api/community                    Übersicht: ich (angemeldet/Admin), Changelog, neueste Bilder
  *   GET  /api/community/galerie?art=memes|zeichnungen&sort=neu|beste&offset=0
  *   GET  /api/community/bild/<id>          das Bild (versteckte nur für Admins)
  *   POST /api/community/herz               {id, on}  – nur angemeldet
  *   POST /api/community/meme               {room, token, n, image}  – vom Host-Browser der Meme-Schmiede am Ende einer Partie
- *   POST /api/community/admin              {a: hide|show|delete, id} | {a: texts, rules, faq} | {a: news.add, title, text} |
- *                                          {a: news.delete, id}  – nur Admins (Recht ADMINISTRATOR im Discord, fragt den Bot)
+ *   POST /api/community/admin              {a: hide|show|delete, id}  – nur Admins (Recht ADMINISTRATOR im Discord, fragt den Bot)
  *
  * Woher die Bilder kommen: Kritzelkiste-Zeichnungen malt der Server selbst aus den Strichen (DrawingRender), Memes schickt
  * der Browser des Hosts als Bild (die Vorlagen zeichnet nur die Seite) – der Server prüft dabei, dass Raum, Spieler und
@@ -22,7 +21,6 @@ import de.amongusmanager.crewbot.content.Changelog
 import de.amongusmanager.crewbot.core.parseJson
 import de.amongusmanager.crewbot.db.Database
 import de.amongusmanager.crewbot.db.Row
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -38,14 +36,12 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import javax.imageio.ImageIO
 
-/** Gespeicherte Galerie, Herzen, Texte und Beiträge (Website-Datenbank). */
+/** Gespeicherte Galerie und Herzen (Website-Datenbank). */
 class CommunityStore(private val db: Database, private val clock: () -> Instant = Instant::now) {
     class Item(
         val id: Long, val kind: String, val title: String, val author: String, val info: String,
         val createdAt: Instant, val width: Int, val height: Int, val hidden: Boolean, val likes: Int,
     )
-
-    class Post(val id: Long, val title: String, val text: String, val author: String, val createdAt: Instant)
 
     init {
         db.update(
@@ -58,14 +54,6 @@ class CommunityStore(private val db: Database, private val clock: () -> Instant 
         db.update(
             "CREATE TABLE IF NOT EXISTS web_gallery_likes (item_id INTEGER NOT NULL, voter_id INTEGER NOT NULL, " +
                 "liked_at INTEGER NOT NULL, PRIMARY KEY (item_id, voter_id))",
-        )
-        db.update(
-            "CREATE TABLE IF NOT EXISTS web_community_texts (name TEXT PRIMARY KEY, body TEXT NOT NULL, " +
-                "updated_by INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
-        )
-        db.update(
-            "CREATE TABLE IF NOT EXISTS web_community_news (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, " +
-                "body TEXT NOT NULL, author TEXT NOT NULL, author_id INTEGER NOT NULL, created_at INTEGER NOT NULL)",
         )
     }
 
@@ -134,34 +122,12 @@ class CommunityStore(private val db: Database, private val clock: () -> Instant 
         db.update("DELETE FROM web_gallery WHERE id = ?", id) > 0
     }
 
-    fun text(name: String): String? = db.queryOne("SELECT body FROM web_community_texts WHERE name = ?", name) { it.string("body") }
-
-    fun setText(name: String, body: String?, by: Long) {
-        db.transaction {
-            db.update("DELETE FROM web_community_texts WHERE name = ?", name)
-            if (body != null) db.update("INSERT INTO web_community_texts (name, body, updated_by, updated_at) VALUES (?, ?, ?, ?)", name, body, by, clock())
-        }
-    }
-
-    fun posts(): List<Post> = db.query("SELECT id, title, body, author, created_at FROM web_community_news ORDER BY created_at DESC LIMIT 100") {
-        Post(it.long("id"), it.string("title"), it.string("body"), it.string("author"), it.instant("created_at"))
-    }
-
-    fun addPost(title: String, body: String, author: String, authorId: Long): Long =
-        db.insert("INSERT INTO web_community_news (title, body, author, author_id, created_at) VALUES (?, ?, ?, ?, ?)", title, body, author, authorId, clock())
-
-    fun deletePost(id: Long): Boolean = db.update("DELETE FROM web_community_news WHERE id = ?", id) > 0
 }
 
 /** Prüfregeln (ohne Datenbank, getestet in `CommunityTest`). */
 object CommunityRules {
     const val MAX_IMAGE = 900 * 1024
     const val MAX_SIDE = 1600
-    const val MAX_ENTRY_TITLE = 80
-    const val MAX_ENTRY_TEXT = 1200
-    const val MAX_ENTRIES = 30
-    const val MAX_POST_TITLE = 100
-    const val MAX_POST_TEXT = 2000
 
     class Decoded(val bytes: ByteArray, val type: String, val width: Int, val height: Int)
 
@@ -189,20 +155,6 @@ object CommunityRules {
         return tidy.trim().take(max).trim()
     }
 
-    /** Liste aus {title, text} (Regeln/FAQ aus dem Admin-Editor), leere Einträge fallen weg. */
-    fun entries(raw: Any?): List<CommunityContent.Entry>? {
-        val list = raw as? JsonArray ?: return null
-        return list.mapNotNull { element ->
-            val o = element as? JsonObject ?: return@mapNotNull null
-            val title = clean((o["title"] as? JsonPrimitive)?.contentOrNull ?: "", MAX_ENTRY_TITLE, lines = false)
-            val text = clean((o["text"] as? JsonPrimitive)?.contentOrNull ?: "", MAX_ENTRY_TEXT, lines = true)
-            if (title.isEmpty() && text.isEmpty()) null else CommunityContent.Entry(title, text)
-        }.take(MAX_ENTRIES)
-    }
-
-    fun entriesJson(entries: List<CommunityContent.Entry>): JsonArray = JsonArray(entries.map { obj("title" to it.title, "text" to it.text) })
-
-    fun parseEntries(stored: String?): List<CommunityContent.Entry>? = stored?.let { runCatching { entries(parseJson(it)) }.getOrNull() }
 }
 
 class Community(
@@ -283,10 +235,8 @@ class Community(
 
     private fun overview(request: WebRequest): JsonObject {
         val (user, admin) = viewer(request)
-        val rules = CommunityRules.parseEntries(store.text(RULES)) ?: CommunityContent.RULES
-        val faq = CommunityRules.parseEntries(store.text(FAQ)) ?: CommunityContent.FAQ
-        val latestMemes = store.list("meme", best = false, withHidden = false, offset = 0, limit = 4)
-        val latestDrawings = store.list("drawing", best = false, withHidden = false, offset = 0, limit = 4)
+        val latestMemes = store.list("meme", best = false, withHidden = admin, offset = 0, limit = LATEST)
+        val latestDrawings = store.list("drawing", best = false, withHidden = admin, offset = 0, limit = LATEST)
         val liked = if (user != null) store.likedBy(user, (latestMemes + latestDrawings).map { it.id }) else emptySet()
         return obj(
             "me" to obj(
@@ -297,27 +247,11 @@ class Community(
             ),
             "counts" to obj("memes" to store.count("meme", false), "drawings" to store.count("drawing", false)),
             "latest" to obj("memes" to latestMemes.map { itemJson(it, liked, admin) }, "drawings" to latestDrawings.map { itemJson(it, liked, admin) }),
-            "rules" to CommunityRules.entriesJson(rules),
-            "faq" to CommunityRules.entriesJson(faq),
-            "customRules" to (store.text(RULES) != null),
-            "customFaq" to (store.text(FAQ) != null),
-            "news" to news(),
             "changelog" to obj(
                 "version" to Changelog.VERSION,
                 "sections" to Changelog.sections.map { obj("title" to it.title, "lines" to it.lines) },
             ),
         )
-    }
-
-    private fun news(): JsonArray {
-        val fixed = CommunityContent.NEWS.map { n ->
-            Triple(n.date, 0L, obj("id" to null, "date" to n.date, "title" to n.title, "text" to n.text, "link" to n.link, "author" to null))
-        }
-        val own = store.posts().map { p ->
-            val day = p.createdAt.atZone(BERLIN).toLocalDate().toString()
-            Triple(day, p.createdAt.toEpochMilli(), obj("id" to p.id, "date" to day, "title" to p.title, "text" to p.text, "link" to null, "author" to p.author))
-        }
-        return JsonArray((own + fixed).sortedWith(compareByDescending<Triple<String, Long, JsonObject>> { it.first }.thenByDescending { it.second }).map { it.third })
     }
 
     private fun gallery(request: WebRequest): JsonObject {
@@ -387,7 +321,6 @@ class Community(
     }
 
     private fun admin(body: JsonObject, user: Long): WebResponse {
-        val name = accounts?.discordUser(user)?.shownName ?: "Admin"
         return when (body.str("a")) {
             "hide", "show" -> {
                 val id = body.long("id") ?: return json(400, obj("error" to "Ungültige Eingabe"))
@@ -399,30 +332,6 @@ class Community(
                 val id = body.long("id") ?: return json(400, obj("error" to "Ungültige Eingabe"))
                 if (!store.delete(id)) return json(404, obj("error" to "Dieses Bild gibt es nicht mehr."))
                 log.info("Galerie: Bild {} gelöscht (Admin {})", id, shortHash("log:$user"))
-                json(200, obj("ok" to true))
-            }
-            "texts" -> {
-                for ((field, key) in listOf("rules" to RULES, "faq" to FAQ)) {
-                    if (!body.containsKey(field)) continue
-                    val value = body[field]
-                    if (value is JsonPrimitive && value.contentOrNull == null) {
-                        store.setText(key, null, user) // null = zurück zum Standard
-                        continue
-                    }
-                    val entries = CommunityRules.entries(value) ?: return json(400, obj("error" to "Ungültige Liste"))
-                    store.setText(key, CommunityRules.entriesJson(entries).toString(), user)
-                }
-                json(200, obj("ok" to true))
-            }
-            "news.add" -> {
-                val title = CommunityRules.clean(body.str("title") ?: "", CommunityRules.MAX_POST_TITLE, lines = false)
-                val text = CommunityRules.clean(body.str("text") ?: "", CommunityRules.MAX_POST_TEXT, lines = true)
-                if (title.isEmpty() || text.isEmpty()) return json(400, obj("error" to "Titel und Text bitte ausfüllen."))
-                json(200, obj("ok" to true, "id" to store.addPost(title, text, name, user)))
-            }
-            "news.delete" -> {
-                val id = body.long("id") ?: return json(400, obj("error" to "Ungültige Eingabe"))
-                if (!store.deletePost(id)) return json(404, obj("error" to "Diesen Beitrag gibt es nicht mehr."))
                 json(200, obj("ok" to true))
             }
             else -> json(400, obj("error" to "Unbekannte Aktion"))
@@ -452,12 +361,12 @@ class Community(
         const val PATH = "/api/community"
         const val PAGE = 24
 
+        /** So viele neueste Bilder je Art zeigt der kleine Abschnitt auf der Startseite. */
+        const val LATEST = 6
+
         /** Größter Anfrage-Inhalt (Meme als Bild, base64). */
         const val MAX_BODY = 1_300_000
-        private const val RULES = "rules"
-        private const val FAQ = "faq"
         private val NO_STORE = "Cache-Control" to "no-store"
-        private val BERLIN = java.time.ZoneId.of("Europe/Berlin")
 
         /** Admins aus der .env (COMMUNITY_ADMINS=Discord-ID,Discord-ID) – falls der Bot nicht erreichbar ist. */
         fun adminIds(raw: String): Set<Long> = raw.split(',', ' ', ';').mapNotNull { it.trim().toLongOrNull() }.toSet()

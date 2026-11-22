@@ -58,7 +58,7 @@ class StatsServer(
     private val shipGame: ShipGame? = null,
     /** Online-Schach zu zweit (/api/schach, Seite seiten/schach.html), null = aus. */
     private val chessGame: ChessGame? = null,
-    /** Community-Bereich: Galerien, Regeln & FAQ, Neuigkeiten (/api/community, Seite /community), null = aus. */
+    /** Community: Galerien + Changelog für die Startseite (/api/community), null = aus. */
     private val community: Community? = null,
 ) {
     private val log = LoggerFactory.getLogger(StatsServer::class.java)
@@ -674,10 +674,8 @@ class StatsServer(
      */
     private fun rootFile(exchange: HttpExchange, path: String) {
         if (path == COMMUNITY_BASE || path.startsWith("$COMMUNITY_BASE/")) {
-            // Community-Bereich (dritter Einstieg der Vite-Seite, web/community.html), Unterseiten macht die Seite selbst
-            val page = static.get(COMMUNITY_PAGE)
-                ?: return respond(exchange, 404, "text/plain; charset=utf-8", "Nicht gefunden".toByteArray(), cache = "no-cache")
-            return respond(exchange, 200, page.type, page.bytes, cache = "no-cache", gzipped = page.gzipped)
+            // Community steht seit 22.11.2026 als Abschnitt auf der Startseite (keine eigene Seite mehr)
+            return redirect(exchange, "/#community")
         }
         if (path == "/" || path == "/index.html") {
             val start = static.get(START_PAGE)
@@ -685,7 +683,7 @@ class StatsServer(
             return respond(exchange, 200, start.type, start.bytes, cache = "no-cache", gzipped = start.gzipped)
         }
         val file = static.get(path)
-        if (file != null && path != START_PAGE && path != COMMUNITY_PAGE) {
+        if (file != null && path != START_PAGE) {
             val cache = if (path.startsWith("/assets/")) "public, max-age=31536000, immutable" else "no-cache"
             return respond(exchange, 200, file.type, file.bytes, cache = cache, gzipped = file.gzipped)
         }
@@ -769,9 +767,8 @@ class StatsServer(
         /** Startseite mit allen Spielen (zweiter Einstieg der Vite-Seite, web/start.html). */
         const val START_PAGE = "/start.html"
 
-        /** Community-Bereich (Galerien, Regeln & FAQ, Neuigkeiten), dritter Einstieg der Vite-Seite (web/community.html). */
+        /** Alte Adresse des Community-Bereichs → Abschnitt auf der Startseite. */
         const val COMMUNITY_BASE = "/community"
-        const val COMMUNITY_PAGE = "/community.html"
 
         // Alles kommt vom eigenen Server (auch die Schriften) – keine fremden Anfragen aus dem Browser
         private const val CSP = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; " +

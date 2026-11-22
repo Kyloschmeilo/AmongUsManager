@@ -6,7 +6,6 @@ import de.amongusmanager.crewbot.web.ArchiveEntry
 import de.amongusmanager.crewbot.web.AuthConfig
 import de.amongusmanager.crewbot.web.BotLevel
 import de.amongusmanager.crewbot.web.Community
-import de.amongusmanager.crewbot.web.CommunityContent
 import de.amongusmanager.crewbot.web.CommunityRules
 import de.amongusmanager.crewbot.web.CommunityStore
 import de.amongusmanager.crewbot.web.DiscordApi
@@ -179,7 +178,7 @@ class CommunityTest {
         assertEquals(1, received.size, "nur die gefeierte Zeichnung")
         assertEquals(1, received[0].likes)
         assertTrue(received[0].source.startsWith("kritzel:"))
-        assertTrue(state["chat"].toString().contains("Community-Galerie"))
+        assertTrue(state["chat"].toString().contains("Startseite (Community)"))
 
         // Regeln: ohne 🔥 nichts, mehr 💀 als 🔥 nichts, höchstens drei
         fun pic(likes: Int, dislikes: Int) = DrawGame.Picture("s$likes$dislikes", "Wort", "A", listOf(line()), likes, dislikes, 0, 1)
@@ -267,7 +266,7 @@ class CommunityTest {
     }
 
     @Test
-    fun adminsModerateImagesTextsAndNews() {
+    fun adminsModerateImages() {
         val s = Setup()
         val id = s.drawing("kritzel:a:1", "Banane")
         val other = s.drawing("kritzel:a:2", "Apfel")
@@ -291,30 +290,11 @@ class CommunityTest {
         assertEquals(200, s.call("POST", "${Community.PATH}/admin", user = admin, body = """{"a":"delete","id":$other}""").status)
         assertEquals(404, s.call("GET", "${Community.PATH}/bild/$other").status)
 
-        // Regeln überschreiben, leere Einträge fallen weg, Steuerzeichen raus; null = Standard
-        val rules = """{"a":"texts","rules":[{"title":"Sei nett\u0007","text":"Zeile 1\nZeile 2"},{"title":"","text":""}]}"""
-        assertEquals(200, s.call("POST", "${Community.PATH}/admin", user = admin, body = rules).status)
-        var overview = s.call("GET", Community.PATH).json()
-        assertEquals(listOf("Sei nett"), overview["rules"]!!.jsonArray.map { it.jsonObject["title"]!!.jsonPrimitive.content })
-        assertEquals("Zeile 1\nZeile 2", overview["rules"]!!.jsonArray[0].jsonObject["text"]!!.jsonPrimitive.content)
-        assertTrue(overview["customRules"]!!.jsonPrimitive.boolean)
-        assertEquals(CommunityContent.FAQ.size, overview["faq"]!!.jsonArray.size, "FAQ unverändert")
-        s.call("POST", "${Community.PATH}/admin", user = admin, body = """{"a":"texts","rules":null}""")
-        overview = s.call("GET", Community.PATH).json()
-        assertEquals(CommunityContent.RULES.size, overview["rules"]!!.jsonArray.size)
-
-        // Neuigkeiten: eigener Beitrag steht oben (neuestes Datum), lässt sich löschen
-        now = Instant.parse("2026-12-01T10:00:00Z")
-        assertEquals(400, s.call("POST", "${Community.PATH}/admin", user = admin, body = """{"a":"news.add","title":"","text":"x"}""").status)
-        val post = s.call("POST", "${Community.PATH}/admin", user = admin, body = """{"a":"news.add","title":"Turnier am Freitag","text":"Anmeldung im Discord"}""").json()
-        overview = s.call("GET", Community.PATH).json()
-        val first = overview["news"]!!.jsonArray.first().jsonObject
-        assertEquals("Turnier am Freitag", first["title"]!!.jsonPrimitive.content)
-        assertEquals("2026-12-01", first["date"]!!.jsonPrimitive.content)
-        assertEquals(CommunityContent.NEWS.size + 1, overview["news"]!!.jsonArray.size)
+        // Changelog des Bots steht in der Übersicht, Regeln/FAQ/Neuigkeiten gibt es nicht mehr
+        val overview = s.call("GET", Community.PATH).json()
         assertNotNull(overview["changelog"]!!.jsonObject["version"])
-        s.call("POST", "${Community.PATH}/admin", user = admin, body = """{"a":"news.delete","id":${post["id"]!!.jsonPrimitive.content}}""")
-        assertEquals(CommunityContent.NEWS.size, s.call("GET", Community.PATH).json()["news"]!!.jsonArray.size)
+        assertNull(overview["rules"])
+        assertEquals(400, s.call("POST", "${Community.PATH}/admin", user = admin, body = """{"a":"news.add","title":"x","text":"x"}""").status)
         assertFalse(s.call("GET", Community.PATH, user = player).json()["me"]!!.jsonObject["admin"]!!.jsonPrimitive.boolean)
         assertTrue(s.call("GET", Community.PATH, user = admin).json()["me"]!!.jsonObject["admin"]!!.jsonPrimitive.boolean)
     }
@@ -334,7 +314,7 @@ class CommunityTest {
     }
 
     @Test
-    fun serverShipsTheCommunityPage() {
+    fun serverServesCommunityApi() {
         val s = Setup()
         s.drawing("kritzel:a:1", "Banane")
         val server = StatsServer(s.stats, 0, "127.0.0.1", community = s.community)
@@ -342,10 +322,10 @@ class CommunityTest {
         try {
             val http = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NEVER).build()
             fun get(path: String) = http.send(HttpRequest.newBuilder(URI("http://127.0.0.1:${server.port}$path")).build(), HttpResponse.BodyHandlers.ofString())
-            for (path in listOf("/community", "/community/memes", "/community/regeln")) {
+            for (path in listOf("/community", "/community/memes")) {
                 val page = get(path)
-                assertEquals(200, page.statusCode(), path)
-                assertTrue(page.body().contains("id=\"community\""), path)
+                assertEquals(302, page.statusCode(), path)
+                assertEquals("/#community", page.headers().firstValue("Location").orElse(""), path)
             }
             val api = get("/api/community/galerie")
             assertEquals(200, api.statusCode())

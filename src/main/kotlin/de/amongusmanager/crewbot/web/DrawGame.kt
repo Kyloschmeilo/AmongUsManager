@@ -497,7 +497,7 @@ class DrawGame(
         val share = gallery
         if (best.isNotEmpty() && share != null) {
             runCatching { share(best) }
-            system(room, "sys", null, if (best.size == 1) "Die beliebteste Zeichnung kommt in die Community-Galerie." else "Die ${best.size} beliebtesten Zeichnungen kommen in die Community-Galerie.")
+            system(room, "sys", null, if (best.size == 1) "Die beliebteste Zeichnung kommt auf die Startseite (Community)." else "Die ${best.size} beliebtesten Zeichnungen kommen auf die Startseite (Community).")
         }
     }
 

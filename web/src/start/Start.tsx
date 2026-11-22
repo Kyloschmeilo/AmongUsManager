@@ -4,6 +4,7 @@ import gsap from 'gsap';
 import type { LiveLobby, LobbiesResponse } from '../lib/lobbies';
 import type { Overview, RoundItem } from '../lib/api';
 import { playerColor } from '../lib/colors';
+import { Community } from './Community';
 import { GAMES, joinHref, liveOf, type Game, type LiveGame, type LiveRoom } from './games';
 
 const APP = '/amongus';
@@ -193,18 +194,12 @@ export function Start() {
           ))}
         </section>
 
-        <nav className="st-community" aria-label="Community">
-          <span className="st-community__label">Community</span>
-          <a href="/community/memes">Meme-Galerie</a>
-          <a href="/community/zeichnungen">Zeichnungen</a>
-          <a href="/community/regeln">Regeln &amp; FAQ</a>
-          <a href="/community/neuigkeiten">Neuigkeiten</a>
-        </nav>
+        <Community />
       </main>
 
       <footer className="st-foot wrap">
         <span>Spieleabend · Among-Us-Daten von der Mod CrewStats</span>
-        <span><a href="/community">Community</a> · <a href={`${APP}/hilfe`}>Hilfe &amp; Mods</a></span>
+        <span><a href="#community">Community</a> · <a href={`${APP}/hilfe`}>Hilfe &amp; Mods</a></span>
       </footer>
     </div>
   );

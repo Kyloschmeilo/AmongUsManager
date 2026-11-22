@@ -12,7 +12,7 @@ export default defineConfig({
     assetsInlineLimit: 0,
     chunkSizeWarningLimit: 900,
     rollupOptions: {
-      input: { app: 'index.html', start: 'start.html', community: 'community.html' }
+      input: { app: 'index.html', start: 'start.html' }
     }
   },
   server: {
