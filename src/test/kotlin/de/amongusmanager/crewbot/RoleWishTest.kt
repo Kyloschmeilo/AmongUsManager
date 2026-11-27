@@ -380,6 +380,30 @@ open class RoleWishTest {
     // ---------- Protokoll ----------
 
     @Test
+    fun jesterProtocolRoundTrip() {
+        val token = "geheimer-token"
+        val request = WishProtocol.parse(WishProtocol.seal(WishProtocol.JESTER, """{"players":["a#1234","b#5678"]}""", token))!!
+        assertEquals(WishProtocol.JESTER, request.kind)
+        assertEquals(listOf("a#1234", "b#5678"), WishProtocol.requestPlayers(WishProtocol.open(request, token)))
+
+        val reply = Json.parseToJsonElement(WishProtocol.jesterReply(listOf("a#1234"), token)).jsonObject
+        assertEquals(WishProtocol.JESTER_REPLY, reply["crewstats"]!!.jsonPrimitive.content)
+        assertTrue("a#1234" !in reply.toString(), "verknüpfte Friendcodes stehen nicht im Klartext im Channel")
+        val plain = WishProtocol.open(
+            de.amongusmanager.crewbot.services.WishMessage(WishProtocol.JESTER_REPLY, reply["data"]!!.jsonPrimitive.content), token,
+        )
+        assertEquals("""{"linked":["a#1234"]}""", plain)
+
+        val pick = WishProtocol.parse(WishProtocol.seal(WishProtocol.JESTER_PICK, """{"fc":"a#1234","code":"ABCDEF"}""", token))!!
+        assertEquals(WishProtocol.JESTER_PICK, pick.kind)
+        assertEquals("a#1234", WishProtocol.jesterPick(WishProtocol.open(pick, token)).friendCode)
+        assertEquals("ABCDEF", WishProtocol.jesterPick(WishProtocol.open(pick, token)).lobbyCode)
+        assertFailsWith<WishProtocolError> { WishProtocol.jesterPick("""{"code":"ABCDEF"}""") }
+        // Antworten des Bots selbst werden nicht als Mod-Nachricht erkannt
+        assertNull(WishProtocol.parse(reply.toString()))
+    }
+
+    @Test
     fun protocolRoundTrip() {
         val token = "geheimer-token"
         val request = WishProtocol.parse(WishProtocol.seal(WishProtocol.REQUEST, """{"players":["a#1234","b#5678",""]}""", token))!!

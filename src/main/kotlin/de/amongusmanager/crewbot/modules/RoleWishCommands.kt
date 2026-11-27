@@ -30,6 +30,7 @@ import de.amongusmanager.crewbot.services.WishProtocolError
 import de.amongusmanager.crewbot.ui.Palette
 import de.amongusmanager.crewbot.ui.ROLE_WISH_RULES
 import de.amongusmanager.crewbot.ui.Tone
+import de.amongusmanager.crewbot.ui.buildJesterEmbed
 import de.amongusmanager.crewbot.ui.buildWishOverviewEmbed
 import de.amongusmanager.crewbot.ui.buildWishStatusEmbed
 import de.amongusmanager.crewbot.ui.notify
@@ -256,7 +257,12 @@ class RoleWishCommands(private val bot: CrewBot) {
         }
         try {
             val plaintext = WishProtocol.open(wish, token)
-            if (wish.kind == WishProtocol.REQUEST) answer(message, webhookId, token, plaintext, fresh) else applyResults(message, plaintext)
+            when (wish.kind) {
+                WishProtocol.REQUEST -> answer(message, webhookId, token, plaintext, fresh)
+                WishProtocol.JESTER -> answerJester(message, webhookId, token, plaintext, fresh)
+                WishProtocol.JESTER_PICK -> notifyJester(message, plaintext, fresh)
+                else -> applyResults(message, plaintext)
+            }
         } catch (e: WishProtocolError) {
             log.warn("Rollenwünsche: ungültige Nachricht der Mod ({})", e.message)
             delete(message)
@@ -286,6 +292,52 @@ class RoleWishCommands(private val bot: CrewBot) {
             delay(REQUEST_CLEANUP_MS)
             delete(message)
         }
+    }
+
+    // ---------- Jester-Modus (CrewStats, normales Among Us ohne Rollen-Mod) ----------
+
+    /** Welche Spieler der Lobby verknüpft sind – nur unter ihnen wählt die Mod den Jester (sonst erführe er es nie). */
+    private suspend fun answerJester(message: Message, webhookId: Long, token: String, plaintext: String, fresh: Boolean) {
+        if (!fresh) {
+            delete(message)
+            return
+        }
+        val players = WishProtocol.requestPlayers(plaintext)
+        val linked = players.filter { bot.links.userFor(it) != null }
+        try {
+            WebhookClient.createClient(message.jda, webhookId.toString(), token)
+                .editMessageById(message.idLong, WishProtocol.jesterReply(linked, token)).await()
+        } catch (e: Exception) {
+            e.rethrowIfCancelled()
+            log.warn("Jester: Antwort an die Mod fehlgeschlagen: {}", e.describe())
+        }
+        bot.scope.launch {
+            delay(REQUEST_CLEANUP_MS)
+            delete(message)
+        }
+    }
+
+    /** Die Mod hat den Jester gewählt: ihm (und nur ihm) per DM Bescheid sagen. Im Log steht kein Name. */
+    private suspend fun notifyJester(message: Message, plaintext: String, fresh: Boolean) {
+        val pick = WishProtocol.jesterPick(plaintext)
+        delete(message)
+        if (!fresh) return // Runde ist vermutlich schon weiter – eine späte DM würde nur verwirren
+        val userId = bot.links.userFor(pick.friendCode)
+        val sent = userId != null && dmJester(message.jda, userId, pick.lobbyCode)
+        log.info("Jester: DM {}", if (sent) "geschickt" else "nicht möglich")
+        bot.audit.log(
+            Actor.of(message.jda.selfUser), "🃏 Jester vergeben",
+            if (sent) "Der Jester hat eine DM bekommen (wer es ist, bleibt geheim)." else "⚠️ DM an den Jester ging nicht (DMs zu oder nicht verknüpft).",
+        )
+    }
+
+    private suspend fun dmJester(jda: JDA, userId: Long, lobbyCode: String): Boolean = try {
+        val user = jda.retrieveUserById(userId).await()
+        user.openPrivateChannel().await().sendMessageEmbeds(buildJesterEmbed(lobbyCode)).await()
+        true
+    } catch (e: Exception) {
+        e.rethrowIfCancelled()
+        false
     }
 
     /** Rückmeldung nach der Rollenvergabe: Erfülltes verbuchen, Unmögliches erstatten (+ DM an den Spieler). */
