@@ -44,6 +44,9 @@ object PlayerInfoProtocol {
     const val LINK = "link"
     const val LINK_REPLY = "link-reply"
 
+    /** Fehler in link-reply für Spieler, die ein Admin per /crewstats-sperre gesperrt hat. */
+    const val BLOCKED = "blocked"
+
     /** Liest eine Anfrage der Mod; null = keine (oder kaputte) Komfort-Anfrage. Ungültige Friendcodes fallen raus. */
     fun parse(text: String): PlayerInfoRequest? {
         val data = parseJsonOrNull(text) as? JsonObject ?: return null
@@ -106,9 +109,12 @@ class PlayerInfoService(
     private val stats: GameStatsService,
     private val history: RoundHistoryService,
     private val roleLabel: (ModPlayer) -> String,
+    /** Gesperrte Spieler (/crewstats-sperre) erscheinen wie Unverknüpfte. */
+    private val bans: PlayerBans? = null,
     private val clock: () -> Instant = Instant::now,
 ) {
     fun info(friendCode: String, withLastRound: Boolean): PlayerInfo {
+        if (bans?.isCodeBanned(friendCode) == true) return PlayerInfo(linked = false)
         val userId = links.userFor(friendCode) ?: return PlayerInfo(linked = false)
         val level = levels.get(userId)
         val game = stats.get(userId)

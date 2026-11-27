@@ -17,6 +17,7 @@ package de.amongusmanager.crewbot.web
 import de.amongusmanager.crewbot.core.parseJson
 import de.amongusmanager.crewbot.db.Database
 import de.amongusmanager.crewbot.services.LinkService
+import de.amongusmanager.crewbot.services.PlayerBans
 import de.amongusmanager.crewbot.services.LobbyEvent
 import de.amongusmanager.crewbot.services.LobbyStore
 import de.amongusmanager.crewbot.services.normalizeFriendCode
@@ -84,6 +85,7 @@ class LiveLobbies(
     private val log = LoggerFactory.getLogger(LiveLobbies::class.java)
     private val lobbies = LobbyStore(db)
     private val links = LinkService(db)
+    private val bans = PlayerBans(db, links)
     private val calls = ConcurrentHashMap<Long, ArrayDeque<Instant>>()
     private val codesCache = ConcurrentHashMap<Long, Pair<List<String>, Instant>>()
 
@@ -183,6 +185,7 @@ class LiveLobbies(
             picks.cancel(userId)
             return json(200, obj("ok" to true, "message" to "Abgebrochen."))
         }
+        if (bans.isUserBanned(userId)) return json(403, obj("error" to PlayerBans.BANNED_TEXT))
         val myCodes = codesOf(userId, fresh = true)
         if (myCodes.isEmpty()) {
             return json(409, obj("error" to "Verknüpfe zuerst deinen Among-Us-Account: /verknuepfen im Discord oder per Code aus dem F7-Menü von CrewStats."))

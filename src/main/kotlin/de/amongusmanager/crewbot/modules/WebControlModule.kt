@@ -222,6 +222,8 @@ class WebControlModule(private val bot: CrewBot) : CrewModule("Website", "🌐")
         val friendCode = p.text("fc")?.let(::normalizeFriendCode)?.takeIf(::isValidFriendCode)
         val text = if (friendCode == null) {
             PlayerInfoProtocol.linkReply(null, linked = false, error = "friendcode")
+        } else if (bot.bans.isCodeBanned(friendCode)) {
+            PlayerInfoProtocol.linkReply(null, linked = false, error = PlayerInfoProtocol.BLOCKED) // /crewstats-sperre
         } else {
             PlayerInfoProtocol.linkReply(bot.linkCodes.create(friendCode), linked = bot.links.userFor(friendCode) != null)
         }

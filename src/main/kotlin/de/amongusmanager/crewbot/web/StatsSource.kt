@@ -11,6 +11,7 @@ import de.amongusmanager.crewbot.core.parseJson
 import de.amongusmanager.crewbot.db.Database
 import de.amongusmanager.crewbot.services.HistoryRound
 import de.amongusmanager.crewbot.services.LeaderboardExclusions
+import de.amongusmanager.crewbot.services.PlayerBans
 import de.amongusmanager.crewbot.services.RoundHistoryService
 import kotlinx.serialization.json.JsonObject
 import org.slf4j.LoggerFactory
@@ -85,8 +86,13 @@ class DatabaseSource(private val db: Database) : StatsSource {
         return db.query("SELECT user_id, xp, level FROM players") { it.long("user_id") to BotLevel(it.int("level"), it.int("xp")) }.toMap()
     }
 
-    override fun hiddenPlayers(): Set<String> =
-        if (hasTable("settings")) LeaderboardExclusions.parse(db.getSetting(LeaderboardExclusions.KEY)) else emptySet()
+    /** Ausgenommene + für CrewStats gesperrte Spieler (services/PlayerBans.kt). */
+    override fun hiddenPlayers(): Set<String> {
+        if (!hasTable("settings")) return emptySet()
+        val hidden = LeaderboardExclusions.parse(db.getSetting(LeaderboardExclusions.KEY))
+        val bans = PlayerBans.parse(db.getSetting(PlayerBans.KEY))
+        return if (bans.isEmpty()) hidden else hidden + PlayerBans.keysOf(bans, friendLinks())
+    }
 }
 
 /** Liest alle *.json-Dateien eines Ordners (mit Unterordnern) als Runden – Empfangszeit = Änderungszeit der Datei. */

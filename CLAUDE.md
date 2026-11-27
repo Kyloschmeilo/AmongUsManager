@@ -111,6 +111,17 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   kostenlos, haben Vorrang, ersetzen (und erstatten) den Wunsch des Spielers; Admins sehen bei vollen
   Rollen, wer sie hat. XP zurück (+ DM), wenn die Mod den Wunsch nicht erfüllen kann; offene Wünsche
   verfallen um 6 Uhr mit Erstattung (Schleife jede Minute, ohne DM). Tabelle `role_wishes` (Schema v2).
+- **CrewStats-Sperre** (27.11.2026, Kilian: „baue eine sperr funktion ein das jeglich ein gaben von einer Person geblockt werden
+  koennen bei Crewstats“): `/crewstats-sperre aktion:sperren|entsperren|liste spieler:@ | friendcode: grund:` (Admin, Mod-Modul,
+  `modules/BanCommands.kt`, `services/PlayerBans.kt`, `bot.bans`). Liste in `settings` `crewstats.bans` (JSON, Konto ODER Friendcode;
+  Konto-Sperre gilt für alle, auch später verknüpfte Friendcodes). Wirkung: Mod-Meldungen mit gesperrtem Absender (Auto-Mute `sender`,
+  Lobby `sender`, Runde mit gesperrtem `isHost`-Spieler, ab Rundenformat 2) werden gelöscht/ignoriert; in fremden Runden zählen Gesperrte
+  wie Unverknüpfte (keine XP/Stats/Erfolge); `reserve` gibt ihnen keine Rollenwünsche; Stats-/Link-/Auto-Join-Anfragen ihrer Mod →
+  „unverknüpft“, `error":"blocked"` bzw. keine Lobby (Webhook + Website); Befehle `CREWSTATS_INPUT_COMMANDS` (verknuepfen, -code,
+  rollenwunsch, special-rollenwunsch, autojoin, lobby-benachrichtigung) gesperrt (Admins ausgenommen); Website: nicht in Bestenlisten
+  (`hiddenPlayers` = Ausnahmen + Sperren), kein Live-Beitreten, kein Proximity-Voice (Host-Meldung → `blocked`). Bisherige XP/Stats
+  bleiben. **Nicht** blockiert: Chat/Stimmen im Spiel selbst (Chat geht vom Client direkt an alle, nicht über den Host) und
+  Rundeneinstellungen (ohne Absender). Test: `PlayerBansTest`.
 - **Special-Rollen-Wünsche** (02.11.2026, Kilian: „adde bei rollen wunsch und zuweisung die Special rollen als extra Command“):
   `/special-rollenwunsch` (alle) und `/special-rolle-zuweisen` (Admin) für Rollen von The Other Roles, Auswahl per
   Autocomplete (`SlashCommand.autocomplete`, >25 Rollen). Gespeichert als `role_name = "tor:<id>"` (`TOR_WISH_ROLES` in

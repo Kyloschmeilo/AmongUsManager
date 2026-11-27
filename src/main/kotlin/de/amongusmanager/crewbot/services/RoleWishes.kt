@@ -99,6 +99,8 @@ class RoleWishService(
     /** Die zuletzt gemeldeten Lobby-Einstellungen (Anzahl Impostor, Rollen-Anzahl/-Chance). */
     private val settings: () -> GameSettings?,
     private val clock: () -> Instant = Instant::now,
+    /** Gesperrte Spieler (/crewstats-sperre) bekommen keine Wünsche/Zuweisungen an die Mod. */
+    private val bans: PlayerBans? = null,
 ) {
     // ---------- Lesen ----------
 
@@ -225,7 +227,9 @@ class RoleWishService(
         val now = clock()
         val seen = HashSet<Long>()
         val result = ArrayList<ReservedWish>()
+        val banned = bans?.bannedCodes(friendCodes).orEmpty()
         for (code in friendCodes.map(::normalizeFriendCode).distinct()) {
+            if (code in banned) continue
             val userId = links.userFor(code) ?: continue
             if (!seen.add(userId)) continue
             val wish = pendingOf(userId) ?: continue

@@ -46,7 +46,15 @@ class ModRoundService(
     private val achievements: AchievementService,
     private val archive: RoundArchiveService? = null,
     private val clock: () -> Instant = Instant::now,
+    /** Gesperrte Spieler (/crewstats-sperre) zählen wie Unverknüpfte: keine XP, Stats, Erfolge. */
+    private val bans: PlayerBans? = null,
 ) {
+    /** Der aufzeichnende Host, falls er per /crewstats-sperre gesperrt ist – dann zählt die ganze Runde nicht. */
+    fun bannedHost(round: ModRound): ModPlayer? {
+        val host = round.players.firstOrNull { it.isHost } ?: return null
+        return host.takeIf { bans?.isCodeBanned(it.friendCode) == true }
+    }
+
     fun isKnown(gameId: String): Boolean =
         db.queryOne("SELECT 1 AS found FROM mod_rounds WHERE game_id = ?", gameId) { true } != null
 
@@ -64,11 +72,14 @@ class ModRoundService(
         if (raw != null) archive?.store(round.gameId, round.formatVersion, raw)
 
         val discordIds = LinkedHashMap<Int, Long>()
+        val banned = bans?.bannedCodes(round.players.map { it.friendCode }).orEmpty()
         for (player in round.players) {
+            if (normalizeFriendCode(player.friendCode) in banned) continue
             val userId = links.userFor(player.friendCode)
             if (userId != null) discordIds[player.playerId] = userId
         }
-        val unlinked = round.players.filter { it.playerId !in discordIds }
+        // Gesperrte nicht als „nicht verknüpft“ listen (der Hinweis lädt zum Verknüpfen ein)
+        val unlinked = round.players.filter { it.playerId !in discordIds && normalizeFriendCode(it.friendCode) !in banned }
 
         val outcome = if (round.decided) {
             // Sieg-XP nach dem eigenen Team (mit The Other Roles kann ein Jester oder Jackal gewinnen)

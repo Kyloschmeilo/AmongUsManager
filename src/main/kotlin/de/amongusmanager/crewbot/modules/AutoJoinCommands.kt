@@ -132,7 +132,8 @@ class AutoJoinCommands(private val bot: CrewBot) {
             delete(message)
             return
         }
-        val current = bot.lobby.current()
+        // Gesperrte (/crewstats-sperre) bekommen keine Lobby
+        val current = if (bot.bans.isCodeBanned(AutoJoinProtocol.friendCodeOf(message.contentRaw))) null else bot.lobby.current()
         if (reply(message, webhookId, AutoJoinProtocol.reply(current))) {
             log.info("Auto-Join: Lobby {} an die Mod geschickt", current?.first?.let { "${it.code} (${it.state})" } ?: "–")
         }
@@ -148,6 +149,8 @@ class AutoJoinCommands(private val bot: CrewBot) {
             is PlayerInfoRequest.Link ->
                 if (request.friendCode.isEmpty()) {
                     PlayerInfoProtocol.linkReply(null, linked = false, error = "friendcode")
+                } else if (bot.bans.isCodeBanned(request.friendCode)) {
+                    PlayerInfoProtocol.linkReply(null, linked = false, error = PlayerInfoProtocol.BLOCKED) // /crewstats-sperre
                 } else {
                     val linked = bot.links.userFor(request.friendCode) != null
                     PlayerInfoProtocol.linkReply(bot.linkCodes.create(request.friendCode), linked)
