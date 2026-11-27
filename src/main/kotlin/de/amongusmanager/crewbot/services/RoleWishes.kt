@@ -379,10 +379,20 @@ class WishProtocolError(message: String) : Exception(message)
 /** Eine (noch verschlüsselte) Rollenwunsch-Nachricht der Mod. */
 data class WishMessage(val kind: String, val data: String)
 
+/** Jester-Modus: wer diese Runde Jester ist (Friendcode) und in welcher Lobby. */
+data class JesterPick(val friendCode: String, val lobbyCode: String)
+
 object WishProtocol {
     const val REQUEST = "wishes"
     const val REPLY = "wishes-reply"
     const val RESULT = "wishes-result"
+
+    /** Jester-Modus (CrewStats, normales Among Us): Mod fragt, wer in der Lobby verknüpft ist … */
+    const val JESTER = "jester"
+    const val JESTER_REPLY = "jester-reply"
+
+    /** … und meldet nach der Rollenvergabe, wer Jester ist – der Bot schickt ihm eine DM. */
+    const val JESTER_PICK = "jester-pick"
 
     /** Discord erlaubt höchstens 2000 Zeichen pro Nachricht. */
     const val MAX_CONTENT = 2000
@@ -396,7 +406,7 @@ object WishProtocol {
     fun parse(text: String): WishMessage? {
         val data = parseJsonOrNull(text) as? JsonObject ?: return null
         val kind = data.string("crewstats")
-        if (kind != REQUEST && kind != RESULT) return null
+        if (kind != REQUEST && kind != RESULT && kind != JESTER && kind != JESTER_PICK) return null
         return WishMessage(kind, data.string("data") ?: return null)
     }
 
@@ -462,6 +472,17 @@ object WishProtocol {
             if (content.length <= MAX_CONTENT || included.isEmpty()) return content to included
             included = included.dropLast(1)
         }
+    }
+
+    /** Antwort auf eine Jester-Anfrage: welche der Friendcodes mit Discord verknüpft sind (nur die bekommen eine DM). */
+    fun jesterReply(linked: List<String>, webhookToken: String): String =
+        seal(JESTER_REPLY, buildJsonObject { putJsonArray("linked") { linked.forEach { add(JsonPrimitive(it)) } } }.toString(), webhookToken)
+
+    /** Jester der Runde: Friendcode und Lobby-Code. */
+    fun jesterPick(plaintext: String): JesterPick {
+        val data = parseJsonOrNull(plaintext) as? JsonObject ?: throw WishProtocolError("Jester-Meldung ist kein JSON-Objekt")
+        val friendCode = data.string("fc")?.takeIf { it.isNotBlank() } ?: throw WishProtocolError("'fc' fehlt")
+        return JesterPick(friendCode, data.string("code") ?: "")
     }
 
     /** Rückmeldung der Mod nach der Rollenvergabe. */

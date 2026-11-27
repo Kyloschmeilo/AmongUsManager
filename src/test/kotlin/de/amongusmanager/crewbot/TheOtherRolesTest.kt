@@ -116,6 +116,23 @@ open class TheOtherRolesTest {
     }
 
     @Test
+    fun crewStatsJesterModeWinsLikeTorJester() {
+        // Jester-Modus von CrewStats im normalen Among Us: gleiche Felder, aber ohne Rollen-Mod ("mod" fehlt)
+        val s = services()
+        s.levels.addXp(900, 50)
+        s.bets.place(900, Team.CREW, 10)
+        val raw = torRound("j1", "NEUTRAL", "JesterWin", setOf(2), "").replace("\"mod\": \"TheOtherRoles GMIA 1.4.1\",", "")
+        val round = ModRound.parse(raw)
+        assertNull(round.mod)
+        assertTrue(round.neutralWin)
+        val outcome = assertNotNull(s.modRounds.applyWithoutRoles(round).outcome)
+        assertEquals(listOf(102L), outcome.winners.map { it.first })
+        assertEquals(Rules.NEUTRAL_WIN_XP, outcome.xpOf(102))
+        assertEquals(1, s.levels.get(102).wins)
+        assertEquals(0, s.levels.get(101).wins)
+    }
+
+    @Test
     fun jesterWinGivesNeutralXpBonusesAndLosesAllBets() {
         val s = services()
         s.levels.addXp(900, 50)

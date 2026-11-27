@@ -128,6 +128,17 @@ Seit 10.10.2026 in Kotlin; der alte Python-Bot (discord.py) liegt im Git-Tag `py
   AES-256-GCM (Schlüssel SHA-256 von `"crewstats-wishes:" + Webhook-Token`, Art als AAD), damit im Channel
   niemand die Wünsche sieht. Abgeholte Wünsche sind bis zur Rückmeldung (max. 3 min) gesperrt.
   Im Log-Channel stehen nur Anzahlen, keine Wünsche einzelner Spieler.
+- **Jester-Modus** (27.11.2026, Kilian: „eine Jester mod … die nur ich brauche und dann irgendwie an den Jester eine nachricht
+  per dc“, „er soll einfach gewinnen wenn er raus gevoted wird“; CrewStats 1.13.0 `Jester.cs`/`JesterRules.cs`, Config
+  `[Jester] Enabled` (Standard aus) + `Chance`): für **normales Among Us ohne TOR**, nur der Host braucht die Mod. Start-Knopf →
+  Mod fragt verschlüsselt `jester` {players} (gleicher ?wait=true-Ablauf wie Rollenwünsche), Bot antwortet `jester-reply` {linked}
+  (`RoleWishCommands.answerJester`). Im Intro wählt der Host-Mod mit `RandomNumberGenerator` einen verknüpften Crewmate (≥ 3 Crew)
+  und schickt `jester-pick` {fc, code} → Bot DM (`ui/JesterUi.kt`), im Log-Channel kein Name; auch der Host erfährt nichts. Jester
+  rausgewählt (`PlayerControl.Exiled`-Postfix) → `CheckEndCriteria` gesperrt, nach 0,3 s Jester `ImpostorGhost` + alle Impostor
+  `CrewmateGhost` (RpcSetRole, canOverride), nach 1,2 s `RpcEndGame(ImpostorsByVote)` → jedes Spiel ohne Mod zeigt nur den Jester
+  als Gewinner. Rundendaten wie TOR-Jester (Team NEUTRAL, modRole `jester`, `JesterWin`, ohne `mod`) → Neutral-Sieg-XP, Wetten
+  verloren. Bewusst fair: kein fester Jester für eine Person. **Im echten Spiel ungetestet** (ob offizielle Server Geister-Rollen an
+  Lebende durchlassen, ist offen; Modded NA hat kein Anti-Cheat).
 - **`/changelog`** (Admin, Modul Admin): postet `content/Changelog.kt` als Embed in den Channel, in dem er
   ausgeführt wird (Kilian macht das einmal pro Update). **Bei jedem Update den Inhalt ersetzen** (nicht anhängen):
   nur Neues seit dem letzten Changelog, kurz, für Spieler; `VERSION` = `version` in `build.gradle.kts`
