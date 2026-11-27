@@ -46,6 +46,7 @@ data class ModPlayer(
     val modRole: String? = null, // The Other Roles: Rolle am Spielende (nameKey, z.B. "sheriff")
     val modStartRole: String? = null, // The Other Roles: Rolle beim Start, falls sie sich geändert hat
     val modifiers: List<String> = emptyList(), // The Other Roles: z.B. "lover", "mini", "madmate"
+    val isHost: Boolean = false, // ab Rundenformat 2: der aufzeichnende Host
 ) {
     val isImpostor: Boolean get() = team == Team.IMPOSTOR.value
     val isNeutral: Boolean get() = team == NEUTRAL_TEAM
@@ -69,6 +70,7 @@ data class ModPlayer(
             modRole = data.optionalString("modRole"),
             modStartRole = data.optionalString("modStartRole"),
             modifiers = data.strings("modifiers"),
+            isHost = data["isHost"].pyTruthy(),
         )
     }
 }

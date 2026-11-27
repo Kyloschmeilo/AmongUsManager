@@ -23,7 +23,7 @@ class CommandsGoldenTest {
     private val bot = CrewBot(Database.inMemory())
 
     private val NEW_IN_KOTLIN = setOf("autojoin", "rollen-panel", "rollenwunsch", "rolle-zuweisen", "changelog", "spieleabend-recap",
-        "special-rolle", "tutorial", "special-rollenwunsch", "special-rolle-zuweisen", "verknuepfen-code", "lobby-benachrichtigung")
+        "special-rolle", "tutorial", "special-rollenwunsch", "special-rolle-zuweisen", "verknuepfen-code", "lobby-benachrichtigung", "crewstats-sperre")
 
     @Test
     fun modulesAndOrderMatchHelp() {

@@ -20,6 +20,8 @@ package de.amongusmanager.crewbot.web
 import de.amongusmanager.crewbot.core.parseJson
 import de.amongusmanager.crewbot.db.Database
 import de.amongusmanager.crewbot.services.LinkService
+import de.amongusmanager.crewbot.services.PlayerBans
+import de.amongusmanager.crewbot.services.PlayerInfoProtocol
 import de.amongusmanager.crewbot.services.normalizeFriendCode
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -160,6 +162,7 @@ class VoiceChat(
 ) {
     private val log = LoggerFactory.getLogger(VoiceChat::class.java)
     private val links = LinkService(db)
+    private val bans = PlayerBans(db, links)
     private val random = SecureRandom()
     private val rooms = LinkedHashMap<String, Room>() // Host-Friendcode → Raum, alles unter synchronized(this)
     private val members = HashMap<String, Member>() // peer-id → Teilnehmer
@@ -188,9 +191,11 @@ class VoiceChat(
     // ---------- Host-Meldungen (über ModApi) ----------
 
     /** Meldung der Host-Mod verarbeiten; Antwort sagt, wie viele zuhören (ohne Zuhörer meldet die Mod seltener). */
-    fun report(text: String, client: String): String {
+    fun report(text: String, client: String, banned: (String) -> Boolean = { false }): String {
         if (!allowReport(client)) return """{"crewstats":"${VoiceReport.REPLY}","error":"busy"}"""
         val report = VoiceReport.parse(text) ?: return """{"crewstats":"${VoiceReport.REPLY}","error":"request"}"""
+        // Host per /crewstats-sperre gesperrt → kein Raum
+        if (banned(report.host)) return """{"crewstats":"${VoiceReport.REPLY}","error":"${PlayerInfoProtocol.BLOCKED}"}"""
         val now = clock()
         val listeners = synchronized(this) {
             val room = rooms.getOrPut(report.host) { Room(report.host) }
@@ -246,6 +251,7 @@ class VoiceChat(
         val handler = auth ?: return json(503, obj("error" to "Auf dieser Website ist die Anmeldung aus."))
         handler.sameOrigin(request)?.let { return it }
         val userId = handler.userOf(request) ?: return json(401, obj("error" to "Bitte zuerst mit Discord anmelden.", "login" to true))
+        if (bans.isUserBanned(userId)) return json(403, obj("error" to PlayerBans.BANNED_TEXT))
         val codes = codesOf(userId, fresh = true)
         if (codes.isEmpty()) {
             return json(409, obj("error" to "Verknüpfe zuerst deinen Among-Us-Account: /verknuepfen im Discord oder per Code aus dem F7-Menü von CrewStats."))

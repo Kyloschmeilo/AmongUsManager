@@ -33,6 +33,7 @@ import de.amongusmanager.crewbot.ui.Palette
 import de.amongusmanager.crewbot.ui.Tone
 import de.amongusmanager.crewbot.ui.buildAchievementsEmbed
 import de.amongusmanager.crewbot.ui.buildRecapEmbed
+import de.amongusmanager.crewbot.ui.escapeMarkdown
 import de.amongusmanager.crewbot.ui.buildStatsEmbed
 import de.amongusmanager.crewbot.ui.field
 import de.amongusmanager.crewbot.ui.fitLines
@@ -98,6 +99,7 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "
     private val wishes = RoleWishCommands(bot) // /rollenwunsch, /rolle-zuweisen
     private val autoJoin = AutoJoinCommands(bot) // /autojoin + Lobby-Anfragen der Mod
     private val lobbyPing = LobbyPingCommands(bot) // /lobby-benachrichtigung
+    private val banCommands = BanCommands(bot) // /crewstats-sperre
 
     override val commands = listOf(
         // ==========================================
@@ -326,7 +328,7 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "
                 null
             }
         },
-    ) + wishes.commands + autoJoin.commands + lobbyPing.commands
+    ) + wishes.commands + autoJoin.commands + lobbyPing.commands + banCommands.commands
 
     override suspend fun onReady() {
         wishes.startExpiry()
@@ -383,11 +385,11 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "
             return
         }
         AutoMuteEvent.parse(message.contentRaw)?.let { automute ->
-            handleAutomute(guild, message, automute)
+            if (bot.bans.isCodeBanned(automute.sender)) delete(message) else handleAutomute(guild, message, automute)
             return
         }
         LobbyEvent.parse(message.contentRaw)?.let { lobby ->
-            if (isFresh(message)) {
+            if (isFresh(message) && !bot.bans.isCodeBanned(lobby.sender)) { // gesperrte Hosts k√ºndigen nichts an
                 bot.lobby.apply(lobby)
                 bot.lobbyNotifier.onLobby(lobby) // DMs f√ºr /lobby-benachrichtigung
                 try {
@@ -411,6 +413,12 @@ class AmongUsModModule(private val bot: CrewBot) : CrewModule("Among Us Mod", "
                 val round = ModRound.parse(raw)
                 if (bot.modRounds.isKnown(round.gameId)) {
                     delete(message) // doppelt gesendet
+                    return
+                }
+                bot.modRounds.bannedHost(round)?.let { host ->
+                    log.info("Mod-Runde {} ignoriert: Host {} ist f√ºr CrewStats gesperrt", round.gameId, host.name)
+                    bot.audit.log(Actor.of(event.jda.selfUser), "Runde ignoriert (gesperrter Host)", "Host: ${escapeMarkdown(host.name)}")
+                    delete(message)
                     return
                 }
                 bot.modRounds.apply(guild, round, raw)

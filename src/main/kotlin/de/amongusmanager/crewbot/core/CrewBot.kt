@@ -6,6 +6,7 @@ import de.amongusmanager.crewbot.Env
 import de.amongusmanager.crewbot.db.Database
 import de.amongusmanager.crewbot.modules.AdminModule
 import de.amongusmanager.crewbot.modules.AmongUsModModule
+import de.amongusmanager.crewbot.modules.CREWSTATS_INPUT_COMMANDS
 import de.amongusmanager.crewbot.modules.EventsModule
 import de.amongusmanager.crewbot.modules.FunModule
 import de.amongusmanager.crewbot.modules.HelpModule
@@ -22,6 +23,7 @@ import de.amongusmanager.crewbot.services.AutoJoinSettings
 import de.amongusmanager.crewbot.services.LobbyStore
 import de.amongusmanager.crewbot.services.ModApiSettings
 import de.amongusmanager.crewbot.services.LinkCodes
+import de.amongusmanager.crewbot.services.PlayerBans
 import de.amongusmanager.crewbot.services.PlayerInfoService
 import de.amongusmanager.crewbot.ui.views.playerRoleLabel
 import de.amongusmanager.crewbot.services.RoundArchiveService
@@ -60,6 +62,7 @@ import de.amongusmanager.crewbot.ui.views.UndoRoundButton
 import de.amongusmanager.crewbot.ui.views.ViewRegistry
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.JDA
+import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.JDABuilder
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent
@@ -100,6 +103,7 @@ class CrewBot(val db: Database) {
 
     // Among-Us-Mod
     val links = LinkService(db)
+    val bans = PlayerBans(db, links) // /crewstats-sperre: alles von gesperrten Personen wird ignoriert
     val gameStats = GameStatsService(db)
     val modSettings = ModSettings(db)
     val autoJoin = AutoJoinSettings(db)
@@ -110,9 +114,9 @@ class CrewBot(val db: Database) {
     val roundHistory = RoundHistoryService(db)
     val achievements = AchievementService(db, levels)
     val roundArchive = RoundArchiveService(db)
-    val modRounds = ModRoundService(db, levels, bets, rounds, links, gameStats, roundHistory, achievements, roundArchive)
-    val roleWishes = RoleWishService(db, levels, links, { gameSettings.latest })
-    val playerInfo = PlayerInfoService(db, links, levels, gameStats, roundHistory, ::playerRoleLabel) // CrewStats-Komfort
+    val modRounds = ModRoundService(db, levels, bets, rounds, links, gameStats, roundHistory, achievements, roundArchive, bans = bans)
+    val roleWishes = RoleWishService(db, levels, links, { gameSettings.latest }, bans = bans)
+    val playerInfo = PlayerInfoService(db, links, levels, gameStats, roundHistory, ::playerRoleLabel, bans = bans) // CrewStats-Komfort
     val linkCodes = LinkCodes() // /verknuepfen-code
     val lobby = LobbyAnnouncer({ jda }, Channels.CODES, links, bets, { event, host -> buildLobbyEmbed(event, host) }, scope)
     val lobbyPings = LobbyPingStore(db) // /lobby-benachrichtigung (Opt-in)
@@ -235,6 +239,12 @@ class CrewBot(val db: Database) {
             val permission = command.permission
             if (permission != null && !event.member!!.hasPermissionIn(event.guildChannel, permission)) {
                 event.notify("🚫 Dafür fehlen dir die Rechte.", Tone.ERROR)
+                return
+            }
+            if (command.name in CREWSTATS_INPUT_COMMANDS && bans.isUserBanned(event.member!!.idLong) &&
+                !event.member!!.hasPermission(Permission.ADMINISTRATOR)
+            ) {
+                event.notify("⛔ ${PlayerBans.BANNED_TEXT}", Tone.ERROR) // /crewstats-sperre
                 return
             }
             command.handler(event)

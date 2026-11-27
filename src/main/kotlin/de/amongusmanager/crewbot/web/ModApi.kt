@@ -17,6 +17,7 @@ import de.amongusmanager.crewbot.services.LevelService
 import de.amongusmanager.crewbot.services.LinkService
 import de.amongusmanager.crewbot.services.LobbyStore
 import de.amongusmanager.crewbot.services.ModApiSettings
+import de.amongusmanager.crewbot.services.PlayerBans
 import de.amongusmanager.crewbot.services.PlayerInfoProtocol
 import de.amongusmanager.crewbot.services.PlayerInfoRequest
 import de.amongusmanager.crewbot.services.PlayerInfoService
@@ -42,8 +43,9 @@ class ModApi(
     private val settings = ModApiSettings(db)
     private val lobby = LobbyStore(db)
     private val links = LinkService(db)
+    private val bans = PlayerBans(db, links)
     private val playerInfo = PlayerInfoService(
-        db, links, LevelService(db), GameStatsService(db), RoundHistoryService(db, clock), ::playerRoleLabel, clock,
+        db, links, LevelService(db), GameStatsService(db), RoundHistoryService(db, clock), ::playerRoleLabel, bans, clock,
     )
     private val calls = ConcurrentHashMap<String, ArrayDeque<Instant>>()
 
@@ -71,7 +73,7 @@ class ModApi(
         if (request.method != "POST") return WebResponse(405, body = """{"error":"post"}""".toByteArray(), headers = listOf("Allow" to "POST", NO_STORE))
         if (request.body.size > MAX_BODY) return json(413, """{"error":"size"}""")
         val text = String(request.body, Charsets.UTF_8)
-        if (voice != null && VoiceReport.isReport(text)) return json(200, voice.report(text, client))
+        if (voice != null && VoiceReport.isReport(text)) return json(200, voice.report(text, client, bans::isCodeBanned))
         if (!allow(client)) return json(429, """{"error":"busy"}""")
 
         if (AutoJoinProtocol.isRequest(text)) return json(200, joinReply(text))
@@ -79,6 +81,7 @@ class ModApi(
             is PlayerInfoRequest.Stats -> json(200, playerInfo.statsReply(info))
             is PlayerInfoRequest.Link ->
                 if (info.friendCode.isEmpty()) json(200, PlayerInfoProtocol.linkReply(null, linked = false, error = "friendcode"))
+                else if (bans.isCodeBanned(info.friendCode)) json(200, PlayerInfoProtocol.linkReply(null, linked = false, error = PlayerInfoProtocol.BLOCKED))
                 else linkCode(info.friendCode)
             null -> json(400, """{"error":"request"}""")
         }
@@ -87,7 +90,9 @@ class ModApi(
     /** Neueste Lobby – oder die, bei der die Person auf der Website „Beitreten“ gedrückt hat. */
     private fun joinReply(text: String): String {
         val now = clock()
-        val pick = picks?.take(AutoJoinProtocol.friendCodeOf(text))
+        val fc = AutoJoinProtocol.friendCodeOf(text)
+        if (bans.isCodeBanned(fc)) return AutoJoinProtocol.reply(null, now) // /crewstats-sperre
+        val pick = picks?.take(fc)
         if (pick != null) {
             val chosen = lobby.find(pick.code, now)
             if (chosen != null) {
